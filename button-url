@@ -1,1 +1,1 @@
-javascript:(function() { document.body.appendChild(document.createElement("script")).src = "https://cdn.rawgit.com/mucalytic/Chess.Player/master/chess-player.min.js"; })();
+javascript:(function(){var src="https://cdn.rawgit.com/mucalytic/Chess.Player/master/chess-player.min.js";if(Array.prototype.slice.call(document.getElementsByTagName("script")).filter(e=>e.src==src).length==0){document.body.appendChild(document.createElement("script")).src=src}})();
