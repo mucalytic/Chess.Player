@@ -1,28 +1,27 @@
 var CountdownHelper = (function () {
     function CountdownHelper() {
-        this.clock = CountdownHelper.getClock();
+        this.observer = new MutationObserver(function (mutations) {
+            mutations.forEach(function (mutation) {
+                var hs = mutation.target.textContent.trim().split(":").map(function (s) { return parseFloat(s); });
+                if (hs[0] !== 1 && hs[1] % 5 === 0) {
+                    var utterance = new SpeechSynthesisUtterance(hs[1] + " seconds left");
+                    utterance.rate = 1.8;
+                    window.speechSynthesis.speak(utterance);
+                }
+                console.log(JSON.stringify(hs));
+            });
+        });
     }
     CountdownHelper.prototype.start = function () {
-        this.clock.addEventListener("DOMSubtreeModified", this.utter);
+        this.observer.observe(document.getElementsByClassName("clock")[0], {
+            characterData: true,
+            attributes: true,
+            childList: true,
+            subtree: true
+        });
     };
     CountdownHelper.prototype.stop = function () {
-        this.clock.removeEventListener("DOMSubtreeModified", this.utter);
-    };
-    CountdownHelper.prototype.utter = function () {
-        var clock = CountdownHelper.getClock();
-        var hs = clock.innerHTML.split(":").map(function (s) { return parseFloat(s); });
-        if (hs[0] !== 1 && hs[1] % 5 === 0) {
-            var utterance = new SpeechSynthesisUtterance(hs[1] + " seconds left");
-            utterance.rate = 1.8;
-            window.speechSynthesis.speak(utterance);
-        }
-        console.log(JSON.stringify(hs));
-    };
-    CountdownHelper.getClock = function () {
-        var clock = document.getElementsByClassName("clock")[0];
-        if (clock instanceof HTMLElement) {
-            return clock;
-        }
+        this.observer.disconnect();
     };
     return CountdownHelper;
 }());

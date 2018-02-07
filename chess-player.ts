@@ -1,41 +1,38 @@
 class CountdownHelper {
-    private readonly clock: HTMLElement;
+    private readonly observer: MutationObserver;
 
     public start(): void {
-        this.clock.addEventListener("DOMSubtreeModified", this.utter);
+        this.observer.observe(document.getElementsByClassName("clock")[0], {
+            characterData: true,
+            attributes: true,
+            childList: true,
+            subtree: true
+        });
     }
 
     public stop(): void {
-        this.clock.removeEventListener("DOMSubtreeModified", this.utter);
-    }
-
-    private utter(): void {
-        const clock = CountdownHelper.getClock();
-        const hs = clock.innerHTML.split(":").map(s => parseFloat(s));
-        if (hs[0] !== 1 && hs[1] % 5 === 0) {
-            const utterance = new SpeechSynthesisUtterance(hs[1] + " seconds left");
-            utterance.rate = 1.8;
-            window.speechSynthesis.speak(utterance);
-        }
-        console.log(JSON.stringify(hs));
-    }
-
-    static getClock(): HTMLElement {
-        const clock = document.getElementsByClassName("clock")[0];
-        if (clock instanceof HTMLElement) {
-            return clock;
-        }
+        this.observer.disconnect();
     }
 
     constructor() {
-        this.clock = CountdownHelper.getClock();
+        this.observer = new MutationObserver(mutations => {
+            mutations.forEach(mutation => {
+                const hs = mutation.target.textContent.trim().split(":").map(s => parseFloat(s));
+                if (hs[0] !== 1 && hs[1] % 5 === 0) {
+                    const utterance = new SpeechSynthesisUtterance(hs[1] + " seconds left");
+                    utterance.rate = 1.8;
+                    window.speechSynthesis.speak(utterance);
+                }
+                console.log(JSON.stringify(hs));
+            });
+        });
     }
 }
 
 class DomModifier {
     private readonly countdownHelper: CountdownHelper;
 
-    public addStartAiButton() : DomModifier {
+    public addStartAiButton(): DomModifier {
         const btnNewGame = document.getElementsByClassName("btns-container")[0];
         if (btnNewGame instanceof HTMLElement) {
             btnNewGame.style.cssFloat = "right";
@@ -86,7 +83,7 @@ class DomModifier {
         return this;
     }
 
-    public rightAlignStartButton() : DomModifier {
+    public rightAlignStartButton(): DomModifier {
         let head = document.getElementsByTagName("head")[0];
         if (head instanceof HTMLElement) {
             let text = document.createTextNode(".btns-container { float: right; }")
