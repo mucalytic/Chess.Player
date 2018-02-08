@@ -1,10 +1,10 @@
 changes
     .filter(o => o.mutation.type === "childList" &&
-        o.mutation.target.attributes["data-square"])
+                 o.mutation.target.attributes["data-square"])
     .reduce((a, o) => {
         var n = o.mutation.addedNodes.length == 0
-            ? o.mutation.removedNodes[0]
-            : o.mutation.addedNodes[0];
+              ? o.mutation.removedNodes[0]
+              : o.mutation.addedNodes[0];
         var c = {
             player: a.playerMap[n.attributes["data-piece"].value.charAt(0)],
             piece: a.pieceMap[n.attributes["data-piece"].value.charAt(1)],
