@@ -1,7 +1,7 @@
 class CountdownHelper {
     private readonly observer: MutationObserver;
 
-    public start(): void {
+    start(): void {
         this.observer.observe(document.getElementsByClassName("clock")[0], {
             characterData: true,
             attributes: true,
@@ -10,7 +10,7 @@ class CountdownHelper {
         });
     }
 
-    public stop(): void {
+    stop(): void {
         this.observer.disconnect();
     }
 
@@ -32,7 +32,7 @@ class CountdownHelper {
 class DomModifier {
     private readonly countdownHelper: CountdownHelper;
 
-    public addStartAiButton(): DomModifier {
+    addStartAiButton(): DomModifier {
         const btnNewGame = document.getElementsByClassName("btns-container")[0];
         if (btnNewGame instanceof HTMLElement) {
             btnNewGame.style.cssFloat = "right";
@@ -84,10 +84,10 @@ class DomModifier {
     }
 
     public rightAlignStartButton(): DomModifier {
-        let head = document.getElementsByTagName("head")[0];
+        const head = document.getElementsByTagName("head")[0];
         if (head instanceof HTMLElement) {
-            let text = document.createTextNode(".btns-container { float: right; }")
-            let style = document.createElement("style");
+            const text = document.createTextNode(".btns-container { float: right; }");
+            const style = document.createElement("style");
             if (style instanceof HTMLElement) {
                 style.type = "text/css";
                 style.appendChild(text);
