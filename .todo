@@ -1,0 +1,7 @@
+:confirm whether each collection of mutations corresponds to one group
+    :if so, group id (the datetime) can be instantiated outside the expression and the grouping code can be mostly removed
+:confirm whether every single square on the board is mutated every turn
+    :if so, the number of changes per group / turn should be 160 - i've noticed this is not the case, so investigte why
+:consider using matrixes
+:change piece maps to classes and add an array of functions defining how they move, etc
+:think about reducing the data down to changes between sets / groups / turns (they should be the same thing)
