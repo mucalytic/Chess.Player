@@ -19,6 +19,7 @@ changes
             });
         } else {
             group[0].changes.push(c);
+            group[0].changes = group[0].changes.sort(c => c.square);
         };
         return a;
     }, {
