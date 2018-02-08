@@ -1,20 +1,28 @@
 changes
-    .filter(m => m.type === "childList" &&
-                 m.target.attributes["data-square"])
-    .reduce((a, m) => {
-        var n = m.addedNodes.length == 0
-            ? m.removedNodes[0]
-            : m.addedNodes[0];
-        var o = {
+    .filter(o => o.mutation.type === "childList" &&
+                 o.mutation.target.attributes["data-square"])
+    .reduce((a, o) => {
+        var n = o.mutation.addedNodes.length == 0
+            ? o.mutation.removedNodes[0]
+            : o.mutation.addedNodes[0];
+        var c = {
             player: a.playerMap[n.attributes["data-piece"].value.charAt(0)],
             piece: a.pieceMap[n.attributes["data-piece"].value.charAt(1)],
-            moved: m.addedNodes.length == 0 ? "from" : "to",
-            square: m.target.attributes["data-square"].value
+            moved: o.mutation.addedNodes.length == 0 ? "from" : "to",
+            square: o.mutation.target.attributes["data-square"].value
         };
-        a.changes.push(o);
+        var group = a.groups.filter(x => x["group"] === o.datetime);
+        if (group.length === 0) {
+            a.groups.push({
+                group: o.datetime,
+                changes: [c]
+            });
+        } else {
+            group[0].changes.push(c);
+        };
         return a;
     }, {
-        changes: [],
+        groups: [],
         pieceMap: {
             "R": "Rook",
             "P": "Pawn",
@@ -29,4 +37,5 @@ changes
             "g": "Blue",
             "w": "Red"
         }
-    });
+    })
+    .groups;
