@@ -82,6 +82,7 @@ class Factory {
                 let board = this.board(change.datetime);
                 if (board == null) {
                     board = new Board(change.datetime);
+                    this.boards.push(board);
                 }
 
                 const dp = change.mutation.addedNodes[0].attributes["data-piece"].value;
