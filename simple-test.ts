@@ -49,26 +49,34 @@ class Square {
 }
 
 class Board {
-    datetime: string;
     squares: Square[][];
 
-    constructor(datetime: string) {
+    constructor() {
         for (let m = 0; m < 14; m++) {
             for (let n = 0; n < 14; n++) {
                 this.squares[m][n] = new Square(m, n);
             }
         }
+    }
+}
+
+class Turn {
+    board: Board;
+    datetime: string;
+
+    constructor(datetime: string) {
         this.datetime = datetime;
+        this.board = new Board();
     }
 }
 
 class Factory {
-    boards: Board[];
+    turns: Turn[];
 
-    board(datetime: string): Board {
-        for (let i = 0; i < this.boards.length; i++) {
-            if (this.boards[i].datetime === datetime) {
-                return this.boards[i];
+    turn(datetime: string): Turn {
+        for (const turn of this.turns) {
+            if (turn.datetime === datetime) {
+                return turn;
             }
         }
     }
@@ -79,10 +87,10 @@ class Factory {
                 change.mutation.addedNodes.length === 1 &&
                 change.mutation.target.attributes["data-square"]) {
 
-                let board = this.board(change.datetime);
-                if (board == null) {
-                    board = new Board(change.datetime);
-                    this.boards.push(board);
+                let turn = this.turn(change.datetime);
+                if (turn == null) {
+                    turn = new Turn(change.datetime);
+                    this.turns.push(turn);
                 }
 
                 const dp = change.mutation.addedNodes[0].attributes["data-piece"].value;
@@ -90,8 +98,8 @@ class Factory {
 
                 for (let m = 0; m < 14; m++) {
                     for (let n = 0; n < 14; n++) {
-                        if (board.squares[m][n].code === code) {
-                            board.squares[m][n].piece = new Piece(dp);
+                        if (turn.board.squares[m][n].code === code) {
+                            turn.board.squares[m][n].piece = new Piece(dp);
                             break;
                         }
                     }
