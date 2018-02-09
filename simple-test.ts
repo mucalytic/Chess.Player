@@ -1,4 +1,4 @@
-﻿class Player {
+class Player {
     name: string;
     map = {
         "b": "Yellow",
@@ -63,8 +63,15 @@ class Board {
 }
 
 class Factory {
-    board: Board;
     boards: Board[];
+
+    board(datetime: string): Board {
+        for (let i = 0; i < this.boards.length; i++) {
+            if (this.boards[i].datetime === datetime) {
+                return this.boards[i];
+            }
+        }
+    }
 
     process(changes: { mutation: MutationRecord, datetime: string }[]): void {
         for (const change of changes) {
@@ -72,16 +79,18 @@ class Factory {
                 change.mutation.addedNodes.length === 1 &&
                 change.mutation.target.attributes["data-square"]) {
 
-                if (this.board.datetime !== change.datetime) {
-                    this.board = new Board(change.datetime);
+                let board = this.board(change.datetime);
+                if (board == null) {
+                    board = new Board(change.datetime);
                 }
 
                 const dp = change.mutation.addedNodes[0].attributes["data-piece"].value;
+                const code = change.mutation.target.attributes["data-square"].value;
 
                 for (let m = 0; m < 14; m++) {
                     for (let n = 0; n < 14; n++) {
-                        if (this.board.squares[m][n].code === dp) {
-                            this.board.squares[m][n].piece = new Piece(dp);
+                        if (board.squares[m][n].code === code) {
+                            board.squares[m][n].piece = new Piece(dp);
                             break;
                         }
                     }
