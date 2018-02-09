@@ -8,12 +8,21 @@ class Player {
         "w": "Red"
     };
 
+    equals(player: Player): boolean {
+        if (player === undefined) {
+            return false;
+        } else {
+            return this.name === player.name;
+        }
+    }
+
     constructor(dp: string) {
         this.name = this.map[dp.charAt(0)];
     }
 }
 
 class Piece {
+    dp: string;
     name: string;
     player: Player;
     map = {
@@ -25,9 +34,19 @@ class Piece {
         "N": "Knight"
     };
 
+    equals(piece: Piece): boolean {
+        if (piece === undefined) {
+            return false;
+        } else {
+            return this.name === piece.name &&
+                this.player.equals(piece.player);
+        }
+    }
+
     constructor(dp: string) {
-        this.player = new Player(dp);
         this.name = this.map[dp.charAt(1)];
+        this.player = new Player(dp);
+        this.dp = dp;
     }
 }
 
@@ -63,17 +82,30 @@ class Board {
 }
 
 class Turn {
-    board: Board;
+    added: Board;
+    removed: Board;
     datetime: string;
 
     constructor(datetime: string) {
+        this.removed = new Board();
+        this.added = new Board();
         this.datetime = datetime;
-        this.board = new Board();
+    }
+}
+
+class Change {
+    from: Square;
+    to: Square;
+
+    constructor(from: Square, to: Square) {
+        this.from = from;
+        this.to = to;
     }
 }
 
 class Factory {
     turns: Turn[] = [];
+    changes: Change[] = [];
 
     turn(datetime: string): Turn {
         for (const turn of this.turns) {
@@ -84,33 +116,92 @@ class Factory {
         return null;
     }
 
-    process(changes: { mutation: MutationRecord, datetime: string }[]): void {
+    process(changes: { mutation: MutationRecord, datetime: string }[]): Factory {
         for (const change of changes) {
             if (change.mutation.type === "childList" &&
-                change.mutation.addedNodes.length === 1 &&
                 change.mutation.target.attributes["data-square"]) {
-
                 let turn = this.turn(change.datetime);
                 if (turn == null) {
                     turn = new Turn(change.datetime);
                     this.turns.push(turn);
                 }
-
-                const dp = change.mutation.addedNodes[0].attributes["data-piece"].value;
                 const code = change.mutation.target.attributes["data-square"].value;
-
-                for (let m = 0; m < 14; m++) {
-                    for (let n = 0; n < 14; n++) {
-                        if (turn.board.squares[m][n].code === code) {
-                            turn.board.squares[m][n].piece = new Piece(dp);
-                            break;
+                if (change.mutation.addedNodes.length === 1) {
+                    const dpa = change.mutation.addedNodes[0].attributes["data-piece"].value;
+                    for (let m = 0; m < 14; m++) {
+                        for (let n = 0; n < 14; n++) {
+                            if (turn.added.squares[m][n].code === code) {
+                                turn.added.squares[m][n].piece = new Piece(dpa);
+                            }
+                        }
+                    }
+                }
+                if (change.mutation.removedNodes.length === 1) {
+                    const dpr = change.mutation.removedNodes[0].attributes["data-piece"].value;
+                    for (let m = 0; m < 14; m++) {
+                        for (let n = 0; n < 14; n++) {
+                            if (turn.removed.squares[m][n].code === code) {
+                                turn.removed.squares[m][n].piece = new Piece(dpr);
+                            }
                         }
                     }
                 }
             }
         }
+        return this;
+    }
+
+    analyse(): Factory {
+        if (this.turns.length > 2) {
+            for (let i = 1; i < this.turns.length; i++) {
+                for (let m = 0; m < 14; m++) {
+                    for (let n = 0; n < 14; n++) {
+                        const from = this.turns[i].added.squares[m][n];
+                        const to = this.turns[i - 1].added.squares[m][n];
+                        if (from.piece !== undefined) {
+                            if (!from.piece.equals(to.piece)) {
+                                this.changes.push(new Change(from, to));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return this;
+    }
+
+    show(turns: number): Factory {
+        for (let i = 1; i < Math.min(this.turns.length, turns); i++) {
+            console.log(`When: ${this.turns[i].datetime}`);
+            for (let m = 0; m < 14; m++) {
+                let line: string = "[ ";
+                for (let n = 0; n < 14; n++) {
+                    const square = this.turns[i].added.squares[m][n];
+                    if (square.piece === undefined) {
+                        line += "[]";
+                    } else {
+                        line += square.piece.dp;
+                    }
+                    line += " ";
+                }
+                line += "] | [ ";
+                for (let n = 0; n < 14; n++) {
+                    const square = this.turns[i].removed.squares[m][n];
+                    if (square.piece === undefined) {
+                        line += "[]";
+                    } else {
+                        line += square.piece.dp;
+                    }
+                    line += " ";
+                }
+                line += "]";
+                console.log(line);
+            }
+            console.log("");
+        }
+        return this;
     }
 }
 
 // usage:
-// var factory = new Factory(); factory.process(changesa); factory.turns;
+// new Factory().process(changesa).show();
