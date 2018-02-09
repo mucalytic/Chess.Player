@@ -33,38 +33,59 @@ var Square = (function () {
         this.n = n;
     }
     Square.prototype.convert = function (m, n) {
-        return "" + String.fromCharCode(n + 97) + (n + 1);
+        return "" + String.fromCharCode(n + 97) + (m + 1);
     };
     return Square;
 }());
 var Board = (function () {
-    function Board(datetime) {
+    function Board() {
+        this.squares = [];
         for (var m = 0; m < 14; m++) {
+            this.squares[m] = [];
             for (var n = 0; n < 14; n++) {
                 this.squares[m][n] = new Square(m, n);
             }
         }
-        this.datetime = datetime;
     }
     return Board;
 }());
+var Turn = (function () {
+    function Turn(datetime) {
+        this.datetime = datetime;
+        this.board = new Board();
+    }
+    return Turn;
+}());
 var Factory = (function () {
     function Factory() {
+        this.turns = [];
     }
+    Factory.prototype.turn = function (datetime) {
+        for (var _i = 0, _a = this.turns; _i < _a.length; _i++) {
+            var turn = _a[_i];
+            if (turn.datetime === datetime) {
+                return turn;
+            }
+        }
+        return null;
+    };
     Factory.prototype.process = function (changes) {
         for (var _i = 0, changes_1 = changes; _i < changes_1.length; _i++) {
             var change = changes_1[_i];
             if (change.mutation.type === "childList" &&
                 change.mutation.addedNodes.length === 1 &&
                 change.mutation.target.attributes["data-square"]) {
-                if (this.board.datetime !== change.datetime) {
-                    this.board = new Board(change.datetime);
+                var turn = this.turn(change.datetime);
+                if (turn == null) {
+                    turn = new Turn(change.datetime);
+                    this.turns.push(turn);
                 }
                 var dp = change.mutation.addedNodes[0].attributes["data-piece"].value;
+                var code = change.mutation.target.attributes["data-square"].value;
                 for (var m = 0; m < 14; m++) {
                     for (var n = 0; n < 14; n++) {
-                        if (this.board.squares[m][n].code === dp) {
-                            this.board.squares[m][n].piece = new Piece(dp);
+                        if (turn.board.squares[m][n].code === code) {
+                            turn.board.squares[m][n].piece = new Piece(dp);
                             break;
                         }
                     }

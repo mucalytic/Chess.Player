@@ -38,7 +38,7 @@ class Square {
     n: number;
 
     convert(m: number, n: number): string {
-        return `${String.fromCharCode(n + 97)}${n + 1}`;
+        return `${String.fromCharCode(n + 97)}${m + 1}`;
     }
 
     constructor(m: number, n: number) {
@@ -52,7 +52,9 @@ class Board {
     squares: Square[][];
 
     constructor() {
+        this.squares = [];
         for (let m = 0; m < 14; m++) {
+            this.squares[m] = [];
             for (let n = 0; n < 14; n++) {
                 this.squares[m][n] = new Square(m, n);
             }
@@ -71,7 +73,7 @@ class Turn {
 }
 
 class Factory {
-    turns: Turn[];
+    turns: Turn[] = [];
 
     turn(datetime: string): Turn {
         for (const turn of this.turns) {
@@ -79,6 +81,7 @@ class Factory {
                 return turn;
             }
         }
+        return null;
     }
 
     process(changes: { mutation: MutationRecord, datetime: string }[]): void {
@@ -110,4 +113,4 @@ class Factory {
 }
 
 // usage:
-// new Factory().process(changesa).boards;
+// var factory = new Factory(); factory.process(changesa); factory.turns;
