@@ -41,9 +41,7 @@ var Radius = (function () {
         this.max = max;
     }
     Radius.prototype.next = function () {
-        if (this.max === undefined ||
-            (this.max !== undefined &&
-                this.counter < this.max)) {
+        if (!this.max || (this.max && this.counter < this.max)) {
             this.counter++;
             return {
                 value: this.counter,
@@ -60,24 +58,24 @@ var Radius = (function () {
     return Radius;
 }());
 var Piece = (function () {
-    function Piece(player) {
-        this.player = player;
+    function Piece(dp) {
+        this.player = new Player(dp);
+        this.dp = dp;
     }
     Piece.create = function (dp) {
-        var player = new Player(dp);
         switch (dp.charAt(1)) {
             case "R":
-                return new Rook(player);
+                return new Rook(dp);
             case "P":
-                return new Pawn(player);
+                return new Pawn(dp);
             case "K":
-                return new King(player);
+                return new King(dp);
             case "Q":
-                return new Queen(player);
+                return new Queen(dp);
             case "B":
-                return new Bishop(player);
+                return new Bishop(dp);
             case "N":
-                return new Knight(player);
+                return new Knight(dp);
             default:
                 return null;
         }
@@ -86,8 +84,8 @@ var Piece = (function () {
 }());
 var Rook = (function (_super) {
     __extends(Rook, _super);
-    function Rook(player) {
-        var _this = _super.call(this, player) || this;
+    function Rook(dp) {
+        var _this = _super.call(this, dp) || this;
         _this.name = "Rook";
         _this.jump = false;
         _this.radius = new Radius();
@@ -101,8 +99,8 @@ var Rook = (function (_super) {
 }(Piece));
 var Pawn = (function (_super) {
     __extends(Pawn, _super);
-    function Pawn(player) {
-        var _this = _super.call(this, player) || this;
+    function Pawn(dp) {
+        var _this = _super.call(this, dp) || this;
         _this.name = "Pawn";
         _this.jump = false;
         _this.radius = new Radius(2);
@@ -113,8 +111,8 @@ var Pawn = (function (_super) {
 }(Piece));
 var King = (function (_super) {
     __extends(King, _super);
-    function King(player) {
-        var _this = _super.call(this, player) || this;
+    function King(dp) {
+        var _this = _super.call(this, dp) || this;
         _this.name = "King";
         _this.jump = false;
         _this.radius = new Radius(1);
@@ -132,8 +130,8 @@ var King = (function (_super) {
 }(Piece));
 var Queen = (function (_super) {
     __extends(Queen, _super);
-    function Queen(player) {
-        var _this = _super.call(this, player) || this;
+    function Queen(dp) {
+        var _this = _super.call(this, dp) || this;
         _this.name = "Queen";
         _this.jump = false;
         _this.radius = new Radius();
@@ -151,8 +149,8 @@ var Queen = (function (_super) {
 }(Piece));
 var Bishop = (function (_super) {
     __extends(Bishop, _super);
-    function Bishop(player) {
-        var _this = _super.call(this, player) || this;
+    function Bishop(dp) {
+        var _this = _super.call(this, dp) || this;
         _this.name = "Bishop";
         _this.jump = false;
         _this.radius = new Radius();
@@ -166,8 +164,8 @@ var Bishop = (function (_super) {
 }(Piece));
 var Knight = (function (_super) {
     __extends(Knight, _super);
-    function Knight(player) {
-        var _this = _super.call(this, player) || this;
+    function Knight(dp) {
+        var _this = _super.call(this, dp) || this;
         _this.name = "Knight";
         _this.jump = true;
         _this.radius = new Radius(1);
@@ -296,17 +294,17 @@ var Factory = (function () {
                     for (var n = 0; n < 14; n++) {
                         var to = this.turns[i].board.squares[m][n];
                         var from = this.turns[i - 1].board.squares[m][n];
-                        if (from.piece === undefined && to.piece !== undefined) {
+                        if (!from.piece && to.piece) {
                             variance.board.squares[m][n].piece = to.piece;
                             variance.board.squares[m][n].change = Change.Added;
                             variance.additions++;
                         }
-                        if (from.piece !== undefined && to.piece === undefined) {
+                        if (from.piece && !to.piece) {
                             variance.board.squares[m][n].piece = from.piece;
                             variance.board.squares[m][n].change = Change.Removed;
                             variance.removals++;
                         }
-                        if (from.piece !== undefined && to.piece !== undefined) {
+                        if (from.piece && to.piece) {
                             if (from.piece.dp !== to.piece.dp) {
                                 variance.board.squares[m][n].piece = to.piece;
                                 if (to.piece.player.name === "Dead") {
@@ -361,7 +359,7 @@ var Factory = (function () {
                 var line = "[ ";
                 for (var n = 0; n < 14; n++) {
                     var square = turn.board.squares[m][n];
-                    if (square.piece === undefined) {
+                    if (!square.piece) {
                         line += "[]";
                     }
                     else {
@@ -372,7 +370,7 @@ var Factory = (function () {
                 line += "]  |  [ ";
                 for (var n = 0; n < 14; n++) {
                     var square = variance.board.squares[m][n];
-                    if (square.piece === undefined) {
+                    if (!square.piece) {
                         line += "[ ]";
                     }
                     else {

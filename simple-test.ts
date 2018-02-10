@@ -36,7 +36,7 @@ class Vector {
     dy: (y: number, r?: number) => number;
 
     constructor(dx: (x: number, r?: number) => number,
-                dy: (x: number, r?: number) => number) {
+                dy: (y: number, r?: number) => number) {
         this.dx = dx;
         this.dy = dy;
     }
@@ -47,9 +47,7 @@ class Radius implements Iterator<number> {
     max?: number;
 
     next(): IteratorResult<number> {
-        if (this.max === undefined ||
-           (this.max !== undefined &&
-            this.counter < this.max)) {
+        if (!this.max || (this.max && this.counter < this.max)) {
             this.counter++;
             return {
                 value: this.counter,
@@ -78,27 +76,27 @@ abstract class Piece {
     abstract mobility: Vector[];
 
     static create(dp: string): Piece {
-        const player = new Player(dp);
         switch (dp.charAt(1)) {
             case "R":
-                return new Rook(player);
+                return new Rook(dp);
             case "P":
-                return new Pawn(player);
+                return new Pawn(dp);
             case "K":
-                return new King(player);
+                return new King(dp);
             case "Q":
-                return new Queen(player);
+                return new Queen(dp);
             case "B":
-                return new Bishop(player);
+                return new Bishop(dp);
             case "N":
-                return new Knight(player);
+                return new Knight(dp);
             default:
                 return null;
         }
     }
 
-    protected constructor(player: Player) {
-        this.player = player;
+    protected constructor(dp: string) {
+        this.player = new Player(dp);
+        this.dp = dp;
     }
 }
 
@@ -112,8 +110,8 @@ class Rook extends Piece {
          new Vector((x) => x, (y, r) => y + r),
          new Vector((x) => x, (y, r) => y - r)];
 
-    constructor(player: Player) {
-        super(player);
+    constructor(dp: string) {
+        super(dp);
     }
 }
 
@@ -124,8 +122,8 @@ class Pawn extends Piece {
     mobility: Vector[] =
         [new Vector((x) => x, (y, r) => y + r)];
 
-    constructor(player: Player) {
-        super(player);
+    constructor(dp: string) {
+        super(dp);
     }
 }
 
@@ -143,8 +141,8 @@ class King extends Piece {
          new Vector((x) => x - 1, (y) => y + 1),
          new Vector((x) => x - 1, (y) => y - 1)];
 
-    constructor(player: Player) {
-        super(player);
+    constructor(dp: string) {
+        super(dp);
     }
 }
 
@@ -162,8 +160,8 @@ class Queen extends Piece {
          new Vector((x, r) => x - r, (y, r) => y + r),
          new Vector((x, r) => x - r, (y, r) => y - r)];
 
-    constructor(player: Player) {
-        super(player);
+    constructor(dp: string) {
+        super(dp);
     }
 }
 
@@ -177,8 +175,8 @@ class Bishop extends Piece {
          new Vector((x, r) => x - r, (y, r) => y + r),
          new Vector((x, r) => x - r, (y, r) => y - r)];
 
-    constructor(player: Player) {
-        super(player);
+    constructor(dp: string) {
+        super(dp);
     }
 }
 
@@ -196,8 +194,8 @@ class Knight extends Piece {
          new Vector((x) => x - 1, (y) => y + 2),
          new Vector((x) => x - 1, (y) => y - 2)];
 
-    constructor(player: Player) {
-        super(player);
+    constructor(dp: string) {
+        super(dp);
     }
 }
 
@@ -321,17 +319,17 @@ class Factory {
                     for (let n = 0; n < 14; n++) {
                         const to = this.turns[i].board.squares[m][n];
                         const from = this.turns[i - 1].board.squares[m][n];
-                        if (from.piece === undefined && to.piece !== undefined) {
+                        if (!from.piece && to.piece) {
                             variance.board.squares[m][n].piece = to.piece;
                             variance.board.squares[m][n].change = Change.Added;
                             variance.additions++;
                         }
-                        if (from.piece !== undefined && to.piece === undefined) {
+                        if (from.piece && !to.piece) {
                             variance.board.squares[m][n].piece = from.piece;
                             variance.board.squares[m][n].change = Change.Removed;
                             variance.removals++;
                         }
-                        if (from.piece !== undefined && to.piece !== undefined) {
+                        if (from.piece && to.piece) {
                             if (from.piece.dp !== to.piece.dp) {
                                 variance.board.squares[m][n].piece = to.piece;
                                 if (to.piece.player.name === "Dead") {
@@ -400,7 +398,7 @@ class Factory {
                 let line: string = "[ ";
                 for (let n = 0; n < 14; n++) {
                     const square = turn.board.squares[m][n];
-                    if (square.piece === undefined) {
+                    if (!square.piece) {
                         line += "[]";
                     } else {
                         line += square.piece.dp;
@@ -410,7 +408,7 @@ class Factory {
                 line += "]  |  [ ";
                 for (let n = 0; n < 14; n++) {
                     const square = variance.board.squares[m][n];
-                    if (square.piece === undefined) {
+                    if (!square.piece) {
                         line += "[ ]";
                     } else {
                         line += square.piece.dp;
