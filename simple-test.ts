@@ -348,6 +348,31 @@ class Factory {
                         }
                     }
                 }
+                for (const removal of variance.removals) {
+                    const addition = variance.addition(removal);
+                    if (!addition) {
+                        variance.board.squares[removal.m][removal.n].piece = undefined;
+                    }
+                }
+                for (const addition of variance.additions) {
+                    const removal = variance.removal(addition);
+                    if (!removal) {
+                        for (let m = 0; m < 14; m++) {
+                            for (let n = 0; n < 14; n++) {
+                                const piece = this.turns[i - 1].board.squares[m][n].piece;
+                                if (piece && piece.dp === addition.piece.dp) {
+                                    while (piece.radius.next()) {
+                                        const tries: Square[] = [];
+                                        for (let vector of piece.mobility) {
+
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        // do some complicated stuff
+                    }
+                }
                 this.variances.push(variance);
             }
         }
@@ -365,23 +390,6 @@ class Factory {
      * -need to know what each piece's moves are so i can work
      *  out where an added piece came from
      */
-    correct(): Factory {
-        for (let variance of this.variances) {
-            for (const removal of variance.removals) {
-                const addition = variance.addition(removal);
-                if (!addition) {
-                    variance.board.squares[removal.m][removal.n].piece = undefined;
-                }
-            }
-            for (const addition of variance.additions) {
-                const removal = variance.removal(addition);
-                if (!removal) {
-                    // do some complicated stuff
-                }
-            }
-        }
-        return this;
-    }
 
     apply(): Factory {
         return this;
@@ -441,4 +449,4 @@ class Factory {
 }
 
 // usage:
-// new Factory().process(changesa).analyse().correct().show(500);
+// new Factory().process(changesa).analyse().show(500);

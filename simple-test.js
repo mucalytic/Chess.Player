@@ -325,26 +325,33 @@ var Factory = (function () {
                         }
                     }
                 }
+                for (var _i = 0, _a = variance.removals; _i < _a.length; _i++) {
+                    var removal = _a[_i];
+                    var addition = variance.addition(removal);
+                    if (!addition) {
+                        variance.board.squares[removal.m][removal.n].piece = undefined;
+                    }
+                }
+                for (var _b = 0, _c = variance.additions; _b < _c.length; _b++) {
+                    var addition = _c[_b];
+                    var removal = variance.removal(addition);
+                    if (!removal) {
+                        for (var m = 0; m < 14; m++) {
+                            for (var n = 0; n < 14; n++) {
+                                var piece = this.turns[i - 1].board.squares[m][n].piece;
+                                if (piece && piece.dp === addition.piece.dp) {
+                                    while (piece.radius.next()) {
+                                        var tries = [];
+                                        for (var _d = 0, _e = piece.mobility; _d < _e.length; _d++) {
+                                            var vector = _e[_d];
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
                 this.variances.push(variance);
-            }
-        }
-        return this;
-    };
-    Factory.prototype.correct = function () {
-        for (var _i = 0, _a = this.variances; _i < _a.length; _i++) {
-            var variance = _a[_i];
-            for (var _b = 0, _c = variance.removals; _b < _c.length; _b++) {
-                var removal = _c[_b];
-                var addition = variance.addition(removal);
-                if (!addition) {
-                    variance.board.squares[removal.m][removal.n].piece = undefined;
-                }
-            }
-            for (var _d = 0, _e = variance.additions; _d < _e.length; _d++) {
-                var addition = _e[_d];
-                var removal = variance.removal(addition);
-                if (!removal) {
-                }
             }
         }
         return this;
