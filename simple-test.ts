@@ -1,10 +1,3 @@
-enum Change {
-    Added,
-    Removed,
-    Captured,
-    Died
-}
-
 interface IteratorResult<T> {
     done: boolean;
     value: T;
@@ -18,16 +11,27 @@ interface Iterator<T> {
 
 class Player {
     name: string;
-    names = {
-        "b": "Yellow",
-        "r": "Green",
-        "g": "Blue",
-        "d": "Dead",
-        "w": "Red"
-    };
 
     constructor(dp: string) {
-        this.name = this.names[dp.charAt(0)];
+        switch (dp.charAt(0)) {
+            case "w":
+                this.name = "Red";
+                break;
+            case "g":
+                this.name = "Blue";
+                break;
+            case "d":
+                this.name = "Dead";
+                break;
+            case "r":
+                this.name = "Green";
+                break;
+            case "b":
+                this.name = "Yellow";
+                break;
+            default:
+                this.name = undefined;
+        }
     }
 }
 
@@ -47,8 +51,7 @@ class Radius implements Iterator<number> {
     max?: number;
 
     next(): IteratorResult<number> {
-        if (!this.max || (this.max && this.counter < this.max)) {
-            this.counter++;
+        if (!this.max || (this.max && this.max >= ++this.counter)) {
             return {
                 value: this.counter,
                 done: false
@@ -204,7 +207,7 @@ class Square {
     n: number;
     code: string;
     piece?: Piece;
-    change?: Change;
+    change?: string;
 
     convert(m: number, n: number): string {
         return `${String.fromCharCode(n + 97)}${m + 1}`;
@@ -242,15 +245,32 @@ class Turn {
 }
 
 class Variance extends Turn {
-    additions: number = 0;
-    captures: number = 0;
-    removals: number = 0;
-    deaths: number = 0;
+    additions: Square[] = [];
+    captures: Square[] = [];
+    removals: Square[] = [];
+    deaths: Square[] = [];
+
+    addition(square: Square): Square {
+        for (const addition of this.additions) {
+            if (addition.piece.dp === square.piece.dp) {
+                return addition;
+            }
+        }
+        return null;
+    }
+
+    removal(square: Square): Square {
+        for (const removal of this.removals) {
+            if (removal.piece.dp === square.piece.dp) {
+                return removal;
+            }
+        }
+        return null;
+    }
 }
 
 class Factory {
     turns: Turn[] = [];
-    corrections: Turn[] = [];
     variances: Variance[] = [];
 
     turn(datetime: string): Turn {
@@ -271,27 +291,12 @@ class Factory {
         return null;
     }
 
-    map(change: Change): string {
-        switch (change) {
-            case Change.Added:
-                return "+";
-            case Change.Removed:
-                return "-";
-            case Change.Captured:
-                return "*";
-            case Change.Died:
-                return "x";
-            default:
-                return " ";
-        }
-    }
-
     process(changes: { mutation: MutationRecord, datetime: string }[]): Factory {
         for (const change of changes) {
             if (change.mutation.type === "childList" &&
                 change.mutation.target.attributes["data-square"]) {
                 let turn = this.turn(change.datetime);
-                if (turn == null) {
+                if (!turn) {
                     turn = new Turn(change.datetime);
                     this.turns.push(turn);
                 }
@@ -320,24 +325,24 @@ class Factory {
                         const to = this.turns[i].board.squares[m][n];
                         const from = this.turns[i - 1].board.squares[m][n];
                         if (!from.piece && to.piece) {
+                            variance.additions.push(to);
+                            variance.board.squares[m][n].change = "+";
                             variance.board.squares[m][n].piece = to.piece;
-                            variance.board.squares[m][n].change = Change.Added;
-                            variance.additions++;
                         }
                         if (from.piece && !to.piece) {
+                            variance.removals.push(from);
+                            variance.board.squares[m][n].change = "-";
                             variance.board.squares[m][n].piece = from.piece;
-                            variance.board.squares[m][n].change = Change.Removed;
-                            variance.removals++;
                         }
                         if (from.piece && to.piece) {
                             if (from.piece.dp !== to.piece.dp) {
                                 variance.board.squares[m][n].piece = to.piece;
                                 if (to.piece.player.name === "Dead") {
-                                    variance.board.squares[m][n].change = Change.Died;
-                                    variance.deaths++;
+                                    variance.deaths.push(to);
+                                    variance.board.squares[m][n].change = "x";
                                 } else {
-                                    variance.board.squares[m][n].change = Change.Captured;
-                                    variance.captures++;
+                                    variance.captures.push(to);
+                                    variance.board.squares[m][n].change = "*";
                                 }
                             }
                         }
@@ -361,8 +366,18 @@ class Factory {
      *  out where an added piece came from
      */
     correct(): Factory {
-        for (let m = 0; m < 14; m++) {
-            for (let n = 0; n < 14; n++) {
+        for (let variance of this.variances) {
+            for (const removal of variance.removals) {
+                const addition = variance.addition(removal);
+                if (!addition) {
+                    variance.board.squares[removal.m][removal.n].piece = undefined;
+                }
+            }
+            for (const addition of variance.additions) {
+                const removal = variance.removal(addition);
+                if (!removal) {
+                    // do some complicated stuff
+                }
             }
         }
         return this;
@@ -377,16 +392,16 @@ class Factory {
                turn.datetime +
                "                         " +
                "Additions: " +
-               variance.additions +
+               variance.additions.length +
                "     " +
                "Removals: " +
-               variance.removals +
+               variance.removals.length +
                "     " +
                "Captures: " +
-               variance.captures +
+               variance.captures.length +
                "     " +
                "Deaths: " +
-               variance.deaths;
+               variance.deaths.length;
     }
 
     show(turns: number): Factory {
@@ -412,7 +427,7 @@ class Factory {
                         line += "[ ]";
                     } else {
                         line += square.piece.dp;
-                        line += this.map(square.change);
+                        line += square.change;
                     }
                     line += " ";
                 }
@@ -426,4 +441,4 @@ class Factory {
 }
 
 // usage:
-// new Factory().process(changesa).analyse().correct().show(10);
+// new Factory().process(changesa).analyse().correct().show(500);

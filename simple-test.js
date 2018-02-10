@@ -8,23 +8,27 @@ var __extends = (this && this.__extends) || (function () {
         d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
     };
 })();
-var Change;
-(function (Change) {
-    Change[Change["Added"] = 0] = "Added";
-    Change[Change["Removed"] = 1] = "Removed";
-    Change[Change["Captured"] = 2] = "Captured";
-    Change[Change["Died"] = 3] = "Died";
-})(Change || (Change = {}));
 var Player = (function () {
     function Player(dp) {
-        this.names = {
-            "b": "Yellow",
-            "r": "Green",
-            "g": "Blue",
-            "d": "Dead",
-            "w": "Red"
-        };
-        this.name = this.names[dp.charAt(0)];
+        switch (dp.charAt(0)) {
+            case "w":
+                this.name = "Red";
+                break;
+            case "g":
+                this.name = "Blue";
+                break;
+            case "d":
+                this.name = "Dead";
+                break;
+            case "r":
+                this.name = "Green";
+                break;
+            case "b":
+                this.name = "Yellow";
+                break;
+            default:
+                this.name = undefined;
+        }
     }
     return Player;
 }());
@@ -41,8 +45,7 @@ var Radius = (function () {
         this.max = max;
     }
     Radius.prototype.next = function () {
-        if (!this.max || (this.max && this.counter < this.max)) {
-            this.counter++;
+        if (!this.max || (this.max && this.max >= ++this.counter)) {
             return {
                 value: this.counter,
                 done: false
@@ -215,18 +218,35 @@ var Variance = (function (_super) {
     __extends(Variance, _super);
     function Variance() {
         var _this = _super !== null && _super.apply(this, arguments) || this;
-        _this.additions = 0;
-        _this.captures = 0;
-        _this.removals = 0;
-        _this.deaths = 0;
+        _this.additions = [];
+        _this.captures = [];
+        _this.removals = [];
+        _this.deaths = [];
         return _this;
     }
+    Variance.prototype.addition = function (square) {
+        for (var _i = 0, _a = this.additions; _i < _a.length; _i++) {
+            var addition = _a[_i];
+            if (addition.piece.dp === square.piece.dp) {
+                return addition;
+            }
+        }
+        return null;
+    };
+    Variance.prototype.removal = function (square) {
+        for (var _i = 0, _a = this.removals; _i < _a.length; _i++) {
+            var removal = _a[_i];
+            if (removal.piece.dp === square.piece.dp) {
+                return removal;
+            }
+        }
+        return null;
+    };
     return Variance;
 }(Turn));
 var Factory = (function () {
     function Factory() {
         this.turns = [];
-        this.corrections = [];
         this.variances = [];
     }
     Factory.prototype.turn = function (datetime) {
@@ -247,27 +267,13 @@ var Factory = (function () {
         }
         return null;
     };
-    Factory.prototype.map = function (change) {
-        switch (change) {
-            case Change.Added:
-                return "+";
-            case Change.Removed:
-                return "-";
-            case Change.Captured:
-                return "*";
-            case Change.Died:
-                return "x";
-            default:
-                return " ";
-        }
-    };
     Factory.prototype.process = function (changes) {
         for (var _i = 0, changes_1 = changes; _i < changes_1.length; _i++) {
             var change = changes_1[_i];
             if (change.mutation.type === "childList" &&
                 change.mutation.target.attributes["data-square"]) {
                 var turn = this.turn(change.datetime);
-                if (turn == null) {
+                if (!turn) {
                     turn = new Turn(change.datetime);
                     this.turns.push(turn);
                 }
@@ -295,25 +301,25 @@ var Factory = (function () {
                         var to = this.turns[i].board.squares[m][n];
                         var from = this.turns[i - 1].board.squares[m][n];
                         if (!from.piece && to.piece) {
+                            variance.additions.push(to);
+                            variance.board.squares[m][n].change = "+";
                             variance.board.squares[m][n].piece = to.piece;
-                            variance.board.squares[m][n].change = Change.Added;
-                            variance.additions++;
                         }
                         if (from.piece && !to.piece) {
+                            variance.removals.push(from);
+                            variance.board.squares[m][n].change = "-";
                             variance.board.squares[m][n].piece = from.piece;
-                            variance.board.squares[m][n].change = Change.Removed;
-                            variance.removals++;
                         }
                         if (from.piece && to.piece) {
                             if (from.piece.dp !== to.piece.dp) {
                                 variance.board.squares[m][n].piece = to.piece;
                                 if (to.piece.player.name === "Dead") {
-                                    variance.board.squares[m][n].change = Change.Died;
-                                    variance.deaths++;
+                                    variance.deaths.push(to);
+                                    variance.board.squares[m][n].change = "x";
                                 }
                                 else {
-                                    variance.board.squares[m][n].change = Change.Captured;
-                                    variance.captures++;
+                                    variance.captures.push(to);
+                                    variance.board.squares[m][n].change = "*";
                                 }
                             }
                         }
@@ -325,8 +331,20 @@ var Factory = (function () {
         return this;
     };
     Factory.prototype.correct = function () {
-        for (var m = 0; m < 14; m++) {
-            for (var n = 0; n < 14; n++) {
+        for (var _i = 0, _a = this.variances; _i < _a.length; _i++) {
+            var variance = _a[_i];
+            for (var _b = 0, _c = variance.removals; _b < _c.length; _b++) {
+                var removal = _c[_b];
+                var addition = variance.addition(removal);
+                if (!addition) {
+                    variance.board.squares[removal.m][removal.n].piece = undefined;
+                }
+            }
+            for (var _d = 0, _e = variance.additions; _d < _e.length; _d++) {
+                var addition = _e[_d];
+                var removal = variance.removal(addition);
+                if (!removal) {
+                }
             }
         }
         return this;
@@ -339,16 +357,16 @@ var Factory = (function () {
             turn.datetime +
             "                         " +
             "Additions: " +
-            variance.additions +
+            variance.additions.length +
             "     " +
             "Removals: " +
-            variance.removals +
+            variance.removals.length +
             "     " +
             "Captures: " +
-            variance.captures +
+            variance.captures.length +
             "     " +
             "Deaths: " +
-            variance.deaths;
+            variance.deaths.length;
     };
     Factory.prototype.show = function (turns) {
         for (var i = 1; i < Math.min(this.turns.length, turns); i++) {
@@ -375,7 +393,7 @@ var Factory = (function () {
                     }
                     else {
                         line += square.piece.dp;
-                        line += this.map(square.change);
+                        line += square.change;
                     }
                     line += " ";
                 }
