@@ -68,77 +68,138 @@ class Radius implements Iterator<number> {
     }
 }
 
-class Piece {
-    dp: string;
-    name: string;
+abstract class Piece {
     player: Player;
-    names = {
-        "R": "Rook",
-        "P": "Pawn",
-        "K": "King",
-        "Q": "Queen",
-        "B": "Bishop",
-        "N": "Knight"
-    };
-    radius = {
-        "Rook": new Radius(),
-        "Pawn": new Radius(2),
-        "King": new Radius(1),
-        "Queen": new Radius(),
-        "Bishop": new Radius(),
-        "Knight": new Radius(1)
-    }
-    jump = {
-        "Rook": false,
-        "Pawn": false,
-        "King": false,
-        "Queen": false,
-        "Bishop": false,
-        "Knight": true
-    }
-    mobility = {
-        "Rook": [new Vector((x, r) => x + r, (y) => y),
-                 new Vector((x, r) => x - r, (y) => y),
-                 new Vector((x) => x, (y, r) => y + r),
-                 new Vector((x) => x, (y, r) => y - r)],
-        "Pawn": [new Vector((x) => x, (y, r) => y + r)],
-        "King": [new Vector((x) => x + 1, (y) => y),
-                 new Vector((x) => x - 1, (y) => y),
-                 new Vector((x) => x, (y) => y + 1),
-                 new Vector((x) => x, (y) => y - 1),
-                 new Vector((x) => x + 1, (y) => y + 1),
-                 new Vector((x) => x + 1, (y) => y - 1),
-                 new Vector((x) => x - 1, (y) => y + 1),
-                 new Vector((x) => x - 1, (y) => y - 1)],
-        "Queen": [new Vector((x, r) => x + r, (y) => y),
-                  new Vector((x, r) => x - r, (y) => y),
-                  new Vector((x) => x, (y, r) => y + r),
-                  new Vector((x) => x, (y, r) => y - r),
-                  new Vector((x, r) => x + r, (y, r) => y + r),
-                  new Vector((x, r) => x + r, (y, r) => y - r),
-                  new Vector((x, r) => x - r, (y, r) => y + r),
-                  new Vector((x, r) => x - r, (y, r) => y - r)],
-        "Bishop": [new Vector((x, r) => x + r, (y, r) => y + r),
-                   new Vector((x, r) => x + r, (y, r) => y - r),
-                   new Vector((x, r) => x - r, (y, r) => y + r),
-                   new Vector((x, r) => x - r, (y, r) => y - r)],
-        "Knight": [new Vector((x) => x + 2, (y) => y + 1),
-                   new Vector((x) => x + 2, (y) => y - 1),
-                   new Vector((x) => x - 2, (y) => y + 1),
-                   new Vector((x) => x - 2, (y) => y - 1),
-                   new Vector((x) => x + 1, (y) => y + 2),
-                   new Vector((x) => x + 1, (y) => y - 2),
-                   new Vector((x) => x - 1, (y) => y + 2),
-                   new Vector((x) => x - 1, (y) => y - 2)]
+    dp: string;
+
+    abstract name: string;
+    abstract radius: Radius;
+    abstract jump: boolean;
+    abstract mobility: Vector[];
+
+    static create(dp: string): Piece {
+        const player = new Player(dp);
+        switch (dp.charAt(1)) {
+            case "R":
+                return new Rook(player);
+            case "P":
+                return new Pawn(player);
+            case "K":
+                return new King(player);
+            case "Q":
+                return new Queen(player);
+            case "B":
+                return new Bishop(player);
+            case "N":
+                return new Knight(player);
+            default:
+                return null;
+        }
     }
 
-    constructor(dp: string) {
-        this.name = this.names[dp.charAt(1)];
-        this.player = new Player(dp);
-        this.dp = dp;
+    protected constructor(player: Player) {
+        this.player = player;
     }
 }
 
+class Rook extends Piece {
+    name: string = "Rook";
+    jump: boolean = false;
+    radius = new Radius();
+    mobility: Vector[] =
+        [new Vector((x, r) => x + r, (y) => y),
+         new Vector((x, r) => x - r, (y) => y),
+         new Vector((x) => x, (y, r) => y + r),
+         new Vector((x) => x, (y, r) => y - r)];
+
+    constructor(player: Player) {
+        super(player);
+    }
+}
+
+class Pawn extends Piece {
+    name: string = "Pawn";
+    jump: boolean = false;
+    radius = new Radius(2);
+    mobility: Vector[] =
+        [new Vector((x) => x, (y, r) => y + r)];
+
+    constructor(player: Player) {
+        super(player);
+    }
+}
+
+class King extends Piece {
+    name: string = "King";
+    jump: boolean = false;
+    radius = new Radius(1);
+    mobility: Vector[] =
+        [new Vector((x) => x + 1, (y) => y),
+         new Vector((x) => x - 1, (y) => y),
+         new Vector((x) => x, (y) => y + 1),
+         new Vector((x) => x, (y) => y - 1),
+         new Vector((x) => x + 1, (y) => y + 1),
+         new Vector((x) => x + 1, (y) => y - 1),
+         new Vector((x) => x - 1, (y) => y + 1),
+         new Vector((x) => x - 1, (y) => y - 1)];
+
+    constructor(player: Player) {
+        super(player);
+    }
+}
+
+class Queen extends Piece {
+    name: string = "Queen";
+    jump: boolean = false;
+    radius = new Radius();
+    mobility: Vector[] =
+        [new Vector((x, r) => x + r, (y) => y),
+         new Vector((x, r) => x - r, (y) => y),
+         new Vector((x) => x, (y, r) => y + r),
+         new Vector((x) => x, (y, r) => y - r),
+         new Vector((x, r) => x + r, (y, r) => y + r),
+         new Vector((x, r) => x + r, (y, r) => y - r),
+         new Vector((x, r) => x - r, (y, r) => y + r),
+         new Vector((x, r) => x - r, (y, r) => y - r)];
+
+    constructor(player: Player) {
+        super(player);
+    }
+}
+
+class Bishop extends Piece {
+    name: string = "Bishop";
+    jump: boolean = false;
+    radius = new Radius();
+    mobility: Vector[] =
+        [new Vector((x, r) => x + r, (y, r) => y + r),
+         new Vector((x, r) => x + r, (y, r) => y - r),
+         new Vector((x, r) => x - r, (y, r) => y + r),
+         new Vector((x, r) => x - r, (y, r) => y - r)];
+
+    constructor(player: Player) {
+        super(player);
+    }
+}
+
+class Knight extends Piece {
+    name: string = "Knight";
+    jump: boolean = true;
+    radius = new Radius(1);
+    mobility: Vector[] =
+        [new Vector((x) => x + 2, (y) => y + 1),
+         new Vector((x) => x + 2, (y) => y - 1),
+         new Vector((x) => x - 2, (y) => y + 1),
+         new Vector((x) => x - 2, (y) => y - 1),
+         new Vector((x) => x + 1, (y) => y + 2),
+         new Vector((x) => x + 1, (y) => y - 2),
+         new Vector((x) => x - 1, (y) => y + 2),
+         new Vector((x) => x - 1, (y) => y - 2)];
+
+    constructor(player: Player) {
+        super(player);
+    }
+}
 
 class Square {
     m: number;
@@ -238,11 +299,11 @@ class Factory {
                 }
                 const code = change.mutation.target.attributes["data-square"].value;
                 if (change.mutation.addedNodes.length === 1) {
-                    const dpa = change.mutation.addedNodes[0].attributes["data-piece"].value;
+                    const dp = change.mutation.addedNodes[0].attributes["data-piece"].value;
                     for (let m = 0; m < 14; m++) {
                         for (let n = 0; n < 14; n++) {
                             if (turn.board.squares[m][n].code === code) {
-                                turn.board.squares[m][n].piece = new Piece(dpa);
+                                turn.board.squares[m][n].piece = Piece.create(dp);
                             }
                         }
                     }

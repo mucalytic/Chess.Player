@@ -60,72 +60,129 @@ var Radius = (function () {
     return Radius;
 }());
 var Piece = (function () {
-    function Piece(dp) {
-        this.names = {
-            "R": "Rook",
-            "P": "Pawn",
-            "K": "King",
-            "Q": "Queen",
-            "B": "Bishop",
-            "N": "Knight"
-        };
-        this.radius = {
-            "Rook": new Radius(),
-            "Pawn": new Radius(2),
-            "King": new Radius(1),
-            "Queen": new Radius(),
-            "Bishop": new Radius(),
-            "Knight": new Radius(1)
-        };
-        this.jump = {
-            "Rook": false,
-            "Pawn": false,
-            "King": false,
-            "Queen": false,
-            "Bishop": false,
-            "Knight": true
-        };
-        this.mobility = {
-            "Rook": [new Vector(function (x, r) { return x + r; }, function (y) { return y; }),
-                new Vector(function (x, r) { return x - r; }, function (y) { return y; }),
-                new Vector(function (x) { return x; }, function (y, r) { return y + r; }),
-                new Vector(function (x) { return x; }, function (y, r) { return y - r; })],
-            "Pawn": [new Vector(function (x) { return x; }, function (y, r) { return y + r; })],
-            "King": [new Vector(function (x) { return x + 1; }, function (y) { return y; }),
-                new Vector(function (x) { return x - 1; }, function (y) { return y; }),
-                new Vector(function (x) { return x; }, function (y) { return y + 1; }),
-                new Vector(function (x) { return x; }, function (y) { return y - 1; }),
-                new Vector(function (x) { return x + 1; }, function (y) { return y + 1; }),
-                new Vector(function (x) { return x + 1; }, function (y) { return y - 1; }),
-                new Vector(function (x) { return x - 1; }, function (y) { return y + 1; }),
-                new Vector(function (x) { return x - 1; }, function (y) { return y - 1; })],
-            "Queen": [new Vector(function (x, r) { return x + r; }, function (y) { return y; }),
-                new Vector(function (x, r) { return x - r; }, function (y) { return y; }),
-                new Vector(function (x) { return x; }, function (y, r) { return y + r; }),
-                new Vector(function (x) { return x; }, function (y, r) { return y - r; }),
-                new Vector(function (x, r) { return x + r; }, function (y, r) { return y + r; }),
-                new Vector(function (x, r) { return x + r; }, function (y, r) { return y - r; }),
-                new Vector(function (x, r) { return x - r; }, function (y, r) { return y + r; }),
-                new Vector(function (x, r) { return x - r; }, function (y, r) { return y - r; })],
-            "Bishop": [new Vector(function (x, r) { return x + r; }, function (y, r) { return y + r; }),
-                new Vector(function (x, r) { return x + r; }, function (y, r) { return y - r; }),
-                new Vector(function (x, r) { return x - r; }, function (y, r) { return y + r; }),
-                new Vector(function (x, r) { return x - r; }, function (y, r) { return y - r; })],
-            "Knight": [new Vector(function (x) { return x + 2; }, function (y) { return y + 1; }),
-                new Vector(function (x) { return x + 2; }, function (y) { return y - 1; }),
-                new Vector(function (x) { return x - 2; }, function (y) { return y + 1; }),
-                new Vector(function (x) { return x - 2; }, function (y) { return y - 1; }),
-                new Vector(function (x) { return x + 1; }, function (y) { return y + 2; }),
-                new Vector(function (x) { return x + 1; }, function (y) { return y - 2; }),
-                new Vector(function (x) { return x - 1; }, function (y) { return y + 2; }),
-                new Vector(function (x) { return x - 1; }, function (y) { return y - 2; })]
-        };
-        this.name = this.names[dp.charAt(1)];
-        this.player = new Player(dp);
-        this.dp = dp;
+    function Piece(player) {
+        this.player = player;
     }
+    Piece.create = function (dp) {
+        var player = new Player(dp);
+        switch (dp.charAt(1)) {
+            case "R":
+                return new Rook(player);
+            case "P":
+                return new Pawn(player);
+            case "K":
+                return new King(player);
+            case "Q":
+                return new Queen(player);
+            case "B":
+                return new Bishop(player);
+            case "N":
+                return new Knight(player);
+            default:
+                return null;
+        }
+    };
     return Piece;
 }());
+var Rook = (function (_super) {
+    __extends(Rook, _super);
+    function Rook(player) {
+        var _this = _super.call(this, player) || this;
+        _this.name = "Rook";
+        _this.jump = false;
+        _this.radius = new Radius();
+        _this.mobility = [new Vector(function (x, r) { return x + r; }, function (y) { return y; }),
+            new Vector(function (x, r) { return x - r; }, function (y) { return y; }),
+            new Vector(function (x) { return x; }, function (y, r) { return y + r; }),
+            new Vector(function (x) { return x; }, function (y, r) { return y - r; })];
+        return _this;
+    }
+    return Rook;
+}(Piece));
+var Pawn = (function (_super) {
+    __extends(Pawn, _super);
+    function Pawn(player) {
+        var _this = _super.call(this, player) || this;
+        _this.name = "Pawn";
+        _this.jump = false;
+        _this.radius = new Radius(2);
+        _this.mobility = [new Vector(function (x) { return x; }, function (y, r) { return y + r; })];
+        return _this;
+    }
+    return Pawn;
+}(Piece));
+var King = (function (_super) {
+    __extends(King, _super);
+    function King(player) {
+        var _this = _super.call(this, player) || this;
+        _this.name = "King";
+        _this.jump = false;
+        _this.radius = new Radius(1);
+        _this.mobility = [new Vector(function (x) { return x + 1; }, function (y) { return y; }),
+            new Vector(function (x) { return x - 1; }, function (y) { return y; }),
+            new Vector(function (x) { return x; }, function (y) { return y + 1; }),
+            new Vector(function (x) { return x; }, function (y) { return y - 1; }),
+            new Vector(function (x) { return x + 1; }, function (y) { return y + 1; }),
+            new Vector(function (x) { return x + 1; }, function (y) { return y - 1; }),
+            new Vector(function (x) { return x - 1; }, function (y) { return y + 1; }),
+            new Vector(function (x) { return x - 1; }, function (y) { return y - 1; })];
+        return _this;
+    }
+    return King;
+}(Piece));
+var Queen = (function (_super) {
+    __extends(Queen, _super);
+    function Queen(player) {
+        var _this = _super.call(this, player) || this;
+        _this.name = "Queen";
+        _this.jump = false;
+        _this.radius = new Radius();
+        _this.mobility = [new Vector(function (x, r) { return x + r; }, function (y) { return y; }),
+            new Vector(function (x, r) { return x - r; }, function (y) { return y; }),
+            new Vector(function (x) { return x; }, function (y, r) { return y + r; }),
+            new Vector(function (x) { return x; }, function (y, r) { return y - r; }),
+            new Vector(function (x, r) { return x + r; }, function (y, r) { return y + r; }),
+            new Vector(function (x, r) { return x + r; }, function (y, r) { return y - r; }),
+            new Vector(function (x, r) { return x - r; }, function (y, r) { return y + r; }),
+            new Vector(function (x, r) { return x - r; }, function (y, r) { return y - r; })];
+        return _this;
+    }
+    return Queen;
+}(Piece));
+var Bishop = (function (_super) {
+    __extends(Bishop, _super);
+    function Bishop(player) {
+        var _this = _super.call(this, player) || this;
+        _this.name = "Bishop";
+        _this.jump = false;
+        _this.radius = new Radius();
+        _this.mobility = [new Vector(function (x, r) { return x + r; }, function (y, r) { return y + r; }),
+            new Vector(function (x, r) { return x + r; }, function (y, r) { return y - r; }),
+            new Vector(function (x, r) { return x - r; }, function (y, r) { return y + r; }),
+            new Vector(function (x, r) { return x - r; }, function (y, r) { return y - r; })];
+        return _this;
+    }
+    return Bishop;
+}(Piece));
+var Knight = (function (_super) {
+    __extends(Knight, _super);
+    function Knight(player) {
+        var _this = _super.call(this, player) || this;
+        _this.name = "Knight";
+        _this.jump = true;
+        _this.radius = new Radius(1);
+        _this.mobility = [new Vector(function (x) { return x + 2; }, function (y) { return y + 1; }),
+            new Vector(function (x) { return x + 2; }, function (y) { return y - 1; }),
+            new Vector(function (x) { return x - 2; }, function (y) { return y + 1; }),
+            new Vector(function (x) { return x - 2; }, function (y) { return y - 1; }),
+            new Vector(function (x) { return x + 1; }, function (y) { return y + 2; }),
+            new Vector(function (x) { return x + 1; }, function (y) { return y - 2; }),
+            new Vector(function (x) { return x - 1; }, function (y) { return y + 2; }),
+            new Vector(function (x) { return x - 1; }, function (y) { return y - 2; })];
+        return _this;
+    }
+    return Knight;
+}(Piece));
 var Square = (function () {
     function Square(m, n) {
         this.code = this.convert(m, n);
@@ -218,11 +275,11 @@ var Factory = (function () {
                 }
                 var code = change.mutation.target.attributes["data-square"].value;
                 if (change.mutation.addedNodes.length === 1) {
-                    var dpa = change.mutation.addedNodes[0].attributes["data-piece"].value;
+                    var dp = change.mutation.addedNodes[0].attributes["data-piece"].value;
                     for (var m = 0; m < 14; m++) {
                         for (var n = 0; n < 14; n++) {
                             if (turn.board.squares[m][n].code === code) {
-                                turn.board.squares[m][n].piece = new Piece(dpa);
+                                turn.board.squares[m][n].piece = Piece.create(dp);
                             }
                         }
                     }
