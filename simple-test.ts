@@ -82,9 +82,17 @@ class Turn {
     }
 }
 
+class Variance extends Turn {
+    additions: number = 0;
+    captures: number = 0;
+    removals: number = 0;
+    deaths: number = 0;
+}
+
 class Factory {
     turns: Turn[] = [];
-    changes: Turn[] = [];
+    variances: Variance[] = [];
+    corrections: Turn[] = [];
 
     turn(datetime: string): Turn {
         for (const turn of this.turns) {
@@ -95,10 +103,10 @@ class Factory {
         return null;
     }
 
-    change(datetime: string): Turn {
-        for (const change of this.changes) {
-            if (change.datetime === datetime) {
-                return change;
+    variance(datetime: string): Variance {
+        for (const variance of this.variances) {
+            if (variance.datetime === datetime) {
+                return variance;
             }
         }
         return null;
@@ -147,41 +155,86 @@ class Factory {
     analyse(): Factory {
         if (this.turns.length > 1) {
             for (let i = 1; i < this.turns.length; i++) {
-                const change = new Turn(this.turns[i].datetime);
+                const variance = new Variance(this.turns[i].datetime);
                 for (let m = 0; m < 14; m++) {
                     for (let n = 0; n < 14; n++) {
                         const to = this.turns[i].board.squares[m][n];
                         const from = this.turns[i - 1].board.squares[m][n];
                         if (from.piece === undefined && to.piece !== undefined) {
-                            change.board.squares[m][n].piece = to.piece;
-                            change.board.squares[m][n].change = Change.Added;
+                            variance.board.squares[m][n].piece = to.piece;
+                            variance.board.squares[m][n].change = Change.Added;
+                            variance.additions++;
                         }
                         if (from.piece !== undefined && to.piece === undefined) {
-                            change.board.squares[m][n].piece = from.piece;
-                            change.board.squares[m][n].change = Change.Removed;
+                            variance.board.squares[m][n].piece = from.piece;
+                            variance.board.squares[m][n].change = Change.Removed;
+                            variance.removals++;
                         }
                         if (from.piece !== undefined && to.piece !== undefined) {
                             if (from.piece.dp !== to.piece.dp) {
-                                change.board.squares[m][n].piece = to.piece;
+                                variance.board.squares[m][n].piece = to.piece;
                                 if (to.piece.player.name === "Dead") {
-                                    change.board.squares[m][n].change = Change.Died;
+                                    variance.board.squares[m][n].change = Change.Died;
+                                    variance.deaths++;
                                 } else {
-                                    change.board.squares[m][n].change = Change.Captured;
+                                    variance.board.squares[m][n].change = Change.Captured;
+                                    variance.captures++;
                                 }
                             }
                         }
                     }
                 }
-                this.changes.push(change);
+                this.variances.push(variance);
             }
         }
         return this;
     }
 
+    /* -there can be 0, 1 or 2 additions (+) to the board every turn
+     *   0 because of a piece being taken by another piece
+     *   1 because of a piece being moved
+     *   2 because of castling
+     * -in cases where 1 or 2 additions are made, there can be a
+     *  mismatch with the number of removals (-). this is always
+     *  corrected the next turn, but the correction needs to be
+     *  predicted to ensure accurate state
+     * -need to know what each piece's moves are so i can work
+     *  out where an added piece came from
+     */
+    correct(): Factory {
+        for (let m = 0; m < 14; m++) {
+            for (let n = 0; n < 14; n++) {
+            }
+        }
+        return this;
+    }
+
+    apply(): Factory {
+        return this;
+    }
+
+    header(turn: Turn, variance: Variance): string {
+        return "When: " +
+               turn.datetime +
+               "                         " +
+               "Additions: " +
+               variance.additions +
+               "     " +
+               "Removals: " +
+               variance.removals +
+               "     " +
+               "Captures: " +
+               variance.captures +
+               "     " +
+               "Deaths: " +
+               variance.deaths;
+    }
+
     show(turns: number): Factory {
         for (let i = 1; i < Math.min(this.turns.length, turns); i++) {
             const turn = this.turns[i];
-            console.log(`When: ${turn.datetime}`);
+            const variance = this.variance(turn.datetime);
+            console.log(this.header(turn, variance));
             for (let m = 0; m < 14; m++) {
                 let line: string = "[ ";
                 for (let n = 0; n < 14; n++) {
@@ -194,9 +247,8 @@ class Factory {
                     line += " ";
                 }
                 line += "]  |  [ ";
-                const change = this.change(turn.datetime);
                 for (let n = 0; n < 14; n++) {
-                    const square = change.board.squares[m][n];
+                    const square = variance.board.squares[m][n];
                     if (square.piece === undefined) {
                         line += "[ ]";
                     } else {
@@ -215,4 +267,4 @@ class Factory {
 }
 
 // usage:
-// new Factory().process(changesa).analyse().show(10);
+// new Factory().process(changesa).analyse().correct().show(10);
