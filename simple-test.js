@@ -1,3 +1,10 @@
+var Change;
+(function (Change) {
+    Change[Change["Added"] = 0] = "Added";
+    Change[Change["Removed"] = 1] = "Removed";
+    Change[Change["Captured"] = 2] = "Captured";
+    Change[Change["Died"] = 3] = "Died";
+})(Change || (Change = {}));
 var Player = (function () {
     function Player(dp) {
         this.map = {
@@ -9,14 +16,6 @@ var Player = (function () {
         };
         this.name = this.map[dp.charAt(0)];
     }
-    Player.prototype.equals = function (player) {
-        if (player === undefined) {
-            return false;
-        }
-        else {
-            return this.name === player.name;
-        }
-    };
     return Player;
 }());
 var Piece = (function () {
@@ -33,15 +32,6 @@ var Piece = (function () {
         this.player = new Player(dp);
         this.dp = dp;
     }
-    Piece.prototype.equals = function (piece) {
-        if (piece === undefined) {
-            return false;
-        }
-        else {
-            return this.name === piece.name &&
-                this.player.equals(piece.player);
-        }
-    };
     return Piece;
 }());
 var Square = (function () {
@@ -69,18 +59,10 @@ var Board = (function () {
 }());
 var Turn = (function () {
     function Turn(datetime) {
-        this.removed = new Board();
-        this.added = new Board();
         this.datetime = datetime;
+        this.board = new Board();
     }
     return Turn;
-}());
-var Change = (function () {
-    function Change(from, to) {
-        this.from = from;
-        this.to = to;
-    }
-    return Change;
 }());
 var Factory = (function () {
     function Factory() {
@@ -95,6 +77,29 @@ var Factory = (function () {
             }
         }
         return null;
+    };
+    Factory.prototype.change = function (datetime) {
+        for (var _i = 0, _a = this.changes; _i < _a.length; _i++) {
+            var change = _a[_i];
+            if (change.datetime === datetime) {
+                return change;
+            }
+        }
+        return null;
+    };
+    Factory.prototype.map = function (change) {
+        switch (change) {
+            case Change.Added:
+                return "+";
+            case Change.Removed:
+                return "-";
+            case Change.Captured:
+                return "*";
+            case Change.Died:
+                return "x";
+            default:
+                return " ";
+        }
     };
     Factory.prototype.process = function (changes) {
         for (var _i = 0, changes_1 = changes; _i < changes_1.length; _i++) {
@@ -111,18 +116,8 @@ var Factory = (function () {
                     var dpa = change.mutation.addedNodes[0].attributes["data-piece"].value;
                     for (var m = 0; m < 14; m++) {
                         for (var n = 0; n < 14; n++) {
-                            if (turn.added.squares[m][n].code === code) {
-                                turn.added.squares[m][n].piece = new Piece(dpa);
-                            }
-                        }
-                    }
-                }
-                if (change.mutation.removedNodes.length === 1) {
-                    var dpr = change.mutation.removedNodes[0].attributes["data-piece"].value;
-                    for (var m = 0; m < 14; m++) {
-                        for (var n = 0; n < 14; n++) {
-                            if (turn.removed.squares[m][n].code === code) {
-                                turn.removed.squares[m][n].piece = new Piece(dpr);
+                            if (turn.board.squares[m][n].code === code) {
+                                turn.board.squares[m][n].piece = new Piece(dpa);
                             }
                         }
                     }
@@ -132,30 +127,47 @@ var Factory = (function () {
         return this;
     };
     Factory.prototype.analyse = function () {
-        if (this.turns.length > 2) {
+        if (this.turns.length > 1) {
             for (var i = 1; i < this.turns.length; i++) {
+                var change = new Turn(this.turns[i].datetime);
                 for (var m = 0; m < 14; m++) {
                     for (var n = 0; n < 14; n++) {
-                        var from = this.turns[i].added.squares[m][n];
-                        var to = this.turns[i - 1].added.squares[m][n];
-                        if (from.piece !== undefined) {
-                            if (!from.piece.equals(to.piece)) {
-                                this.changes.push(new Change(from, to));
+                        var to = this.turns[i].board.squares[m][n];
+                        var from = this.turns[i - 1].board.squares[m][n];
+                        if (from.piece === undefined && to.piece !== undefined) {
+                            change.board.squares[m][n].piece = to.piece;
+                            change.board.squares[m][n].change = Change.Added;
+                        }
+                        if (from.piece !== undefined && to.piece === undefined) {
+                            change.board.squares[m][n].piece = from.piece;
+                            change.board.squares[m][n].change = Change.Removed;
+                        }
+                        if (from.piece !== undefined && to.piece !== undefined) {
+                            if (from.piece.dp !== to.piece.dp) {
+                                change.board.squares[m][n].piece = to.piece;
+                                if (to.piece.player.name === "Dead") {
+                                    change.board.squares[m][n].change = Change.Died;
+                                }
+                                else {
+                                    change.board.squares[m][n].change = Change.Captured;
+                                }
                             }
                         }
                     }
                 }
+                this.changes.push(change);
             }
         }
         return this;
     };
     Factory.prototype.show = function (turns) {
         for (var i = 1; i < Math.min(this.turns.length, turns); i++) {
-            console.log("When: " + this.turns[i].datetime);
+            var turn = this.turns[i];
+            console.log("When: " + turn.datetime);
             for (var m = 0; m < 14; m++) {
                 var line = "[ ";
                 for (var n = 0; n < 14; n++) {
-                    var square = this.turns[i].added.squares[m][n];
+                    var square = turn.board.squares[m][n];
                     if (square.piece === undefined) {
                         line += "[]";
                     }
@@ -164,14 +176,16 @@ var Factory = (function () {
                     }
                     line += " ";
                 }
-                line += "] | [ ";
+                line += "]  |  [ ";
+                var change = this.change(turn.datetime);
                 for (var n = 0; n < 14; n++) {
-                    var square = this.turns[i].removed.squares[m][n];
+                    var square = change.board.squares[m][n];
                     if (square.piece === undefined) {
-                        line += "[]";
+                        line += "[ ]";
                     }
                     else {
                         line += square.piece.dp;
+                        line += this.map(square.change);
                     }
                     line += " ";
                 }
