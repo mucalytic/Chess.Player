@@ -17,20 +17,51 @@ var Change;
 })(Change || (Change = {}));
 var Player = (function () {
     function Player(dp) {
-        this.map = {
+        this.names = {
             "b": "Yellow",
             "r": "Green",
             "g": "Blue",
             "d": "Dead",
             "w": "Red"
         };
-        this.name = this.map[dp.charAt(0)];
+        this.name = this.names[dp.charAt(0)];
     }
     return Player;
 }());
+var Vector = (function () {
+    function Vector(dx, dy) {
+        this.dx = dx;
+        this.dy = dy;
+    }
+    return Vector;
+}());
+var Radius = (function () {
+    function Radius(max) {
+        this.counter = 0;
+        this.max = max;
+    }
+    Radius.prototype.next = function () {
+        if (this.max === undefined ||
+            (this.max !== undefined &&
+                this.counter < this.max)) {
+            this.counter++;
+            return {
+                value: this.counter,
+                done: false
+            };
+        }
+        else {
+            return {
+                value: null,
+                done: true
+            };
+        }
+    };
+    return Radius;
+}());
 var Piece = (function () {
     function Piece(dp) {
-        this.map = {
+        this.names = {
             "R": "Rook",
             "P": "Pawn",
             "K": "King",
@@ -38,7 +69,58 @@ var Piece = (function () {
             "B": "Bishop",
             "N": "Knight"
         };
-        this.name = this.map[dp.charAt(1)];
+        this.radius = {
+            "Rook": new Radius(),
+            "Pawn": new Radius(2),
+            "King": new Radius(1),
+            "Queen": new Radius(),
+            "Bishop": new Radius(),
+            "Knight": new Radius(1)
+        };
+        this.jump = {
+            "Rook": false,
+            "Pawn": false,
+            "King": false,
+            "Queen": false,
+            "Bishop": false,
+            "Knight": true
+        };
+        this.mobility = {
+            "Rook": [new Vector(function (x, r) { return x + r; }, function (y) { return y; }),
+                new Vector(function (x, r) { return x - r; }, function (y) { return y; }),
+                new Vector(function (x) { return x; }, function (y, r) { return y + r; }),
+                new Vector(function (x) { return x; }, function (y, r) { return y - r; })],
+            "Pawn": [new Vector(function (x) { return x; }, function (y, r) { return y + r; })],
+            "King": [new Vector(function (x) { return x + 1; }, function (y) { return y; }),
+                new Vector(function (x) { return x - 1; }, function (y) { return y; }),
+                new Vector(function (x) { return x; }, function (y) { return y + 1; }),
+                new Vector(function (x) { return x; }, function (y) { return y - 1; }),
+                new Vector(function (x) { return x + 1; }, function (y) { return y + 1; }),
+                new Vector(function (x) { return x + 1; }, function (y) { return y - 1; }),
+                new Vector(function (x) { return x - 1; }, function (y) { return y + 1; }),
+                new Vector(function (x) { return x - 1; }, function (y) { return y - 1; })],
+            "Queen": [new Vector(function (x, r) { return x + r; }, function (y) { return y; }),
+                new Vector(function (x, r) { return x - r; }, function (y) { return y; }),
+                new Vector(function (x) { return x; }, function (y, r) { return y + r; }),
+                new Vector(function (x) { return x; }, function (y, r) { return y - r; }),
+                new Vector(function (x, r) { return x + r; }, function (y, r) { return y + r; }),
+                new Vector(function (x, r) { return x + r; }, function (y, r) { return y - r; }),
+                new Vector(function (x, r) { return x - r; }, function (y, r) { return y + r; }),
+                new Vector(function (x, r) { return x - r; }, function (y, r) { return y - r; })],
+            "Bishop": [new Vector(function (x, r) { return x + r; }, function (y, r) { return y + r; }),
+                new Vector(function (x, r) { return x + r; }, function (y, r) { return y - r; }),
+                new Vector(function (x, r) { return x - r; }, function (y, r) { return y + r; }),
+                new Vector(function (x, r) { return x - r; }, function (y, r) { return y - r; })],
+            "Knight": [new Vector(function (x) { return x + 2; }, function (y) { return y + 1; }),
+                new Vector(function (x) { return x + 2; }, function (y) { return y - 1; }),
+                new Vector(function (x) { return x - 2; }, function (y) { return y + 1; }),
+                new Vector(function (x) { return x - 2; }, function (y) { return y - 1; }),
+                new Vector(function (x) { return x + 1; }, function (y) { return y + 2; }),
+                new Vector(function (x) { return x + 1; }, function (y) { return y - 2; }),
+                new Vector(function (x) { return x - 1; }, function (y) { return y + 2; }),
+                new Vector(function (x) { return x - 1; }, function (y) { return y - 2; })]
+        };
+        this.name = this.names[dp.charAt(1)];
         this.player = new Player(dp);
         this.dp = dp;
     }
@@ -89,8 +171,8 @@ var Variance = (function (_super) {
 var Factory = (function () {
     function Factory() {
         this.turns = [];
-        this.variances = [];
         this.corrections = [];
+        this.variances = [];
     }
     Factory.prototype.turn = function (datetime) {
         for (var _i = 0, _a = this.turns; _i < _a.length; _i++) {

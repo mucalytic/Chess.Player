@@ -5,9 +5,20 @@ enum Change {
     Died
 }
 
+interface IteratorResult<T> {
+    done: boolean;
+    value: T;
+}
+
+interface Iterator<T> {
+    next(value?: any): IteratorResult<T>;
+    return?(value?: any): IteratorResult<T>;
+    throw?(e?: any): IteratorResult<T>;
+}
+
 class Player {
     name: string;
-    map = {
+    names = {
         "b": "Yellow",
         "r": "Green",
         "g": "Blue",
@@ -16,7 +27,44 @@ class Player {
     };
 
     constructor(dp: string) {
-        this.name = this.map[dp.charAt(0)];
+        this.name = this.names[dp.charAt(0)];
+    }
+}
+
+class Vector {
+    dx: (x: number, r?: number) => number;
+    dy: (y: number, r?: number) => number;
+
+    constructor(dx: (x: number, r?: number) => number,
+                dy: (x: number, r?: number) => number) {
+        this.dx = dx;
+        this.dy = dy;
+    }
+}
+
+class Radius implements Iterator<number> {
+    counter: number = 0;
+    max?: number;
+
+    next(): IteratorResult<number> {
+        if (this.max === undefined ||
+           (this.max !== undefined &&
+            this.counter < this.max)) {
+            this.counter++;
+            return {
+                value: this.counter,
+                done: false
+            };
+        } else {
+            return {
+                value: null,
+                done: true
+            };
+        }
+    }
+
+    constructor(max?: number) {
+        this.max = max;
     }
 }
 
@@ -24,7 +72,7 @@ class Piece {
     dp: string;
     name: string;
     player: Player;
-    map = {
+    names = {
         "R": "Rook",
         "P": "Pawn",
         "K": "King",
@@ -32,20 +80,72 @@ class Piece {
         "B": "Bishop",
         "N": "Knight"
     };
+    radius = {
+        "Rook": new Radius(),
+        "Pawn": new Radius(2),
+        "King": new Radius(1),
+        "Queen": new Radius(),
+        "Bishop": new Radius(),
+        "Knight": new Radius(1)
+    }
+    jump = {
+        "Rook": false,
+        "Pawn": false,
+        "King": false,
+        "Queen": false,
+        "Bishop": false,
+        "Knight": true
+    }
+    mobility = {
+        "Rook": [new Vector((x, r) => x + r, (y) => y),
+                 new Vector((x, r) => x - r, (y) => y),
+                 new Vector((x) => x, (y, r) => y + r),
+                 new Vector((x) => x, (y, r) => y - r)],
+        "Pawn": [new Vector((x) => x, (y, r) => y + r)],
+        "King": [new Vector((x) => x + 1, (y) => y),
+                 new Vector((x) => x - 1, (y) => y),
+                 new Vector((x) => x, (y) => y + 1),
+                 new Vector((x) => x, (y) => y - 1),
+                 new Vector((x) => x + 1, (y) => y + 1),
+                 new Vector((x) => x + 1, (y) => y - 1),
+                 new Vector((x) => x - 1, (y) => y + 1),
+                 new Vector((x) => x - 1, (y) => y - 1)],
+        "Queen": [new Vector((x, r) => x + r, (y) => y),
+                  new Vector((x, r) => x - r, (y) => y),
+                  new Vector((x) => x, (y, r) => y + r),
+                  new Vector((x) => x, (y, r) => y - r),
+                  new Vector((x, r) => x + r, (y, r) => y + r),
+                  new Vector((x, r) => x + r, (y, r) => y - r),
+                  new Vector((x, r) => x - r, (y, r) => y + r),
+                  new Vector((x, r) => x - r, (y, r) => y - r)],
+        "Bishop": [new Vector((x, r) => x + r, (y, r) => y + r),
+                   new Vector((x, r) => x + r, (y, r) => y - r),
+                   new Vector((x, r) => x - r, (y, r) => y + r),
+                   new Vector((x, r) => x - r, (y, r) => y - r)],
+        "Knight": [new Vector((x) => x + 2, (y) => y + 1),
+                   new Vector((x) => x + 2, (y) => y - 1),
+                   new Vector((x) => x - 2, (y) => y + 1),
+                   new Vector((x) => x - 2, (y) => y - 1),
+                   new Vector((x) => x + 1, (y) => y + 2),
+                   new Vector((x) => x + 1, (y) => y - 2),
+                   new Vector((x) => x - 1, (y) => y + 2),
+                   new Vector((x) => x - 1, (y) => y - 2)]
+    }
 
     constructor(dp: string) {
-        this.name = this.map[dp.charAt(1)];
+        this.name = this.names[dp.charAt(1)];
         this.player = new Player(dp);
         this.dp = dp;
     }
 }
 
+
 class Square {
     m: number;
     n: number;
     code: string;
-    piece: Piece;
-    change: Change;
+    piece?: Piece;
+    change?: Change;
 
     convert(m: number, n: number): string {
         return `${String.fromCharCode(n + 97)}${m + 1}`;
@@ -91,8 +191,8 @@ class Variance extends Turn {
 
 class Factory {
     turns: Turn[] = [];
-    variances: Variance[] = [];
     corrections: Turn[] = [];
+    variances: Variance[] = [];
 
     turn(datetime: string): Turn {
         for (const turn of this.turns) {
