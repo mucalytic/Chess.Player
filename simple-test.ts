@@ -370,7 +370,6 @@ class Factory {
                                 }
                             }
                         }
-                        // do some complicated stuff
                     }
                 }
                 this.variances.push(variance);
@@ -448,5 +447,4 @@ class Factory {
     }
 }
 
-// usage:
-// new Factory().process(changesa).analyse().show(500);
+//new Factory().process(watcher.changes).analyse().show(500);

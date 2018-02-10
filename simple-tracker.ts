@@ -1,39 +1,39 @@
-﻿var changesa = [];
-var changesb = [];
-var changesc = [];
-var ukDate = () => {
-    var d = new Date();
-    var dt = d.getFullYear()
-           + "-"
-           + String("0" + d.getMonth()).slice(-2)
-           + "-"
-           + String("0" + d.getDate()).slice(-2)
-           + " "
-           + String("0" + d.getHours()).slice(-2)
-           + ":"
-           + String("0" + d.getMinutes()).slice(-2)
-           + ":"
-           + String("0" + d.getSeconds()).slice(-2);
-    return dt;
-};
-var observer = new MutationObserver(mutations => {
-    var count = 0;
-    var dt = ukDate();
-    mutations.forEach(m => {
-        var oa = { mutation: m, datetime: ukDate() };
-        changesa.push(oa);
-        var ob = { mutation: m, datetime: dt };
-        changesb.push(ob);
-        var oc = { mutation: m, turn: count };
-        changesc.push(oc);
-    });
-    count++;
-});
-observer.observe(document.getElementById("board"), {
-    characterDataOldValue: true,
-    attributeOldValue: true,
-    characterData: true,
-    attributes: true,
-    childList: true,
-    subtree: true
-});
+﻿class Watcher {
+    observer: MutationObserver;
+    changes: { mutation: MutationRecord, datetime: string }[] = [];
+
+    dd(num: number): string {
+        return ("0" + num).slice(-2);
+    }
+
+    date(dt: Date): string {
+        return `${dt.getFullYear()}-${this.dd(dt.getMonth())}-${this.dd(dt.getDate())}`;
+    }
+
+    time(dt: Date): string {
+        return `${this.dd(dt.getHours())}:${this.dd(dt.getMinutes())}:${this.dd(dt.getSeconds())}`;
+    }
+
+    start(): void {
+        this.observer.observe(document.getElementById("board"), {
+            characterDataOldValue: true,
+            attributeOldValue: true,
+            characterData: true,
+            attributes: true,
+            childList: true,
+            subtree: true
+        });
+    }
+
+    constructor() {
+        this.observer = new MutationObserver(mutations => {
+            mutations.forEach(m => {
+                const d = new Date();
+                const dt = `${this.date(d)} ${this.time(d)}`;
+                this.changes.push({ mutation: m, datetime: dt });
+            });
+        });
+    }
+}
+
+var watcher = new Watcher().start();
