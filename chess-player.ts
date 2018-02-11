@@ -16,14 +16,17 @@ class CountdownHelper {
 
     constructor() {
         this.observer = new MutationObserver(mutations => {
+            let counter: number = 59;
             mutations.forEach(mutation => {
-                const hs = mutation.target.textContent.trim().split(":").map(s => parseFloat(s));
-                if (hs[0] !== 1 && hs[1] % 5 === 0) {
-                    const utterance = new SpeechSynthesisUtterance(hs[1] + " seconds left");
+                const c = parseFloat(mutation.target.textContent.trim().split(":")[1]);
+                if (counter - c > 0 && counter - c <= 1) {
+                    counter = c;
+                }
+                if (counter % 5 === 0) {
+                    const utterance = new SpeechSynthesisUtterance(counter + " seconds left");
                     utterance.rate = 1.8;
                     window.speechSynthesis.speak(utterance);
                 }
-                console.log(JSON.stringify(hs));
             });
         });
     }

@@ -1,14 +1,17 @@
 var CountdownHelper = (function () {
     function CountdownHelper() {
         this.observer = new MutationObserver(function (mutations) {
+            var counter = 59;
             mutations.forEach(function (mutation) {
-                var hs = mutation.target.textContent.trim().split(":").map(function (s) { return parseFloat(s); });
-                if (hs[0] !== 1 && hs[1] % 5 === 0) {
-                    var utterance = new SpeechSynthesisUtterance(hs[1] + " seconds left");
+                var c = parseFloat(mutation.target.textContent.trim().split(":")[1]);
+                if (counter - c > 0 && counter - c <= 1) {
+                    counter = c;
+                }
+                if (counter % 5 === 0) {
+                    var utterance = new SpeechSynthesisUtterance(counter + " seconds left");
                     utterance.rate = 1.8;
                     window.speechSynthesis.speak(utterance);
                 }
-                console.log(JSON.stringify(hs));
             });
         });
     }

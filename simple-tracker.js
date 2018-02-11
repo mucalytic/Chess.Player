@@ -28,6 +28,7 @@ var Watcher = (function () {
             childList: true,
             subtree: true
         });
+        return this;
     };
     return Watcher;
 }());

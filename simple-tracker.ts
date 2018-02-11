@@ -14,7 +14,7 @@
         return `${this.dd(dt.getHours())}:${this.dd(dt.getMinutes())}:${this.dd(dt.getSeconds())}`;
     }
 
-    start(): void {
+    start(): Watcher {
         this.observer.observe(document.getElementById("board"), {
             characterDataOldValue: true,
             attributeOldValue: true,
@@ -23,6 +23,7 @@
             childList: true,
             subtree: true
         });
+        return this;
     }
 
     constructor() {
