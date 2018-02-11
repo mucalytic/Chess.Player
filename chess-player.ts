@@ -19,10 +19,16 @@ class CountdownHelper {
             let counter: number = 59;
             mutations.forEach(mutation => {
                 const c = parseFloat(mutation.target.textContent.trim().split(":")[1]);
-                console.log("c:" + c);
+                console.log(
+                    "c:" + c +
+                    ";counter:" + counter +
+                    ";counter - c:" + (counter - c) +
+                    ";counter - c > 0:" + (counter - c > 0) +
+                    ";counter - c <= 1:" + (counter - c <= 1) +
+                    ";counter - c > 0 && counter - c <= 1:" + (counter - c > 0 && counter - c <= 1));
                 if (counter - c > 0 && counter - c <= 1) {
-                    console.log("counter:" + counter);
                     counter = c;
+                    console.log("counter:" + counter);
                 }
                 if (counter % 5 === 0) {
                     const words = counter + " seconds left";
