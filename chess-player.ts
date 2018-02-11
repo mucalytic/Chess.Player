@@ -19,13 +19,17 @@ class CountdownHelper {
             let counter: number = 59;
             mutations.forEach(mutation => {
                 const c = parseFloat(mutation.target.textContent.trim().split(":")[1]);
+                console.log("c:" + c);
                 if (counter - c > 0 && counter - c <= 1) {
+                    console.log("counter:" + counter);
                     counter = c;
                 }
                 if (counter % 5 === 0) {
-                    const utterance = new SpeechSynthesisUtterance(counter + " seconds left");
+                    const words = counter + " seconds left";
+                    const utterance = new SpeechSynthesisUtterance(words);
                     utterance.rate = 1.8;
                     window.speechSynthesis.speak(utterance);
+                    console.log("uttered:'" + words + "'");
                 }
             });
         });

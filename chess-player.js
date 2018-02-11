@@ -4,13 +4,17 @@ var CountdownHelper = (function () {
             var counter = 59;
             mutations.forEach(function (mutation) {
                 var c = parseFloat(mutation.target.textContent.trim().split(":")[1]);
+                console.log("c:" + c);
                 if (counter - c > 0 && counter - c <= 1) {
+                    console.log("counter:" + counter);
                     counter = c;
                 }
                 if (counter % 5 === 0) {
-                    var utterance = new SpeechSynthesisUtterance(counter + " seconds left");
+                    var words = counter + " seconds left";
+                    var utterance = new SpeechSynthesisUtterance(words);
                     utterance.rate = 1.8;
                     window.speechSynthesis.speak(utterance);
+                    console.log("uttered:'" + words + "'");
                 }
             });
         });
