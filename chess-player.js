@@ -4,37 +4,35 @@ var CountdownHelper = (function () {
         this.observer = new MutationObserver(function (mutations) {
             mutations.forEach(function (mutation) {
                 var c = parseFloat(mutation.target.textContent.trim().split(":")[1]);
-                console.log("c:" + c +
-                    ";counter:" + _this.counter +
-                    ";counter - c:" + (_this.counter - c) +
-                    ";counter - c > 0:" + (_this.counter - c > 0) +
-                    ";counter - c <= 1:" + (_this.counter - c <= 1) +
-                    ";counter - c > 0 && counter - c <= 1:" + (_this.counter - c > 0 && _this.counter - c <= 1));
                 if (_this.counter - c > 0 && _this.counter - c <= 1) {
                     _this.counter = c;
-                    console.log("counter:" + _this.counter);
                 }
                 if (_this.counter % 5 === 0) {
                     var words = _this.counter + " seconds left";
                     var utterance = new SpeechSynthesisUtterance(words);
                     utterance.rate = 1.8;
                     window.speechSynthesis.speak(utterance);
-                    console.log("uttered:'" + words + "'");
                 }
             });
         });
     }
     CountdownHelper.prototype.start = function () {
-        this.counter = 59;
+        this.reset();
         this.observer.observe(document.getElementsByClassName("clock")[0], {
             characterData: true,
             attributes: true,
             childList: true,
             subtree: true
         });
+        console.log("countdown observer started");
     };
     CountdownHelper.prototype.stop = function () {
         this.observer.disconnect();
+        console.log("countdown observer stopped");
+    };
+    CountdownHelper.prototype.reset = function () {
+        this.counter = 59;
+        console.log("counter reset");
     };
     return CountdownHelper;
 }());
@@ -47,6 +45,12 @@ var DomModifier = (function () {
         var btnNewGame = document.getElementsByClassName("btns-container")[0];
         if (btnNewGame instanceof HTMLElement) {
             btnNewGame.style.cssFloat = "right";
+            var anchorNewGame = btnNewGame.firstChild;
+            if (anchorNewGame.nodeName === "A") {
+                if (anchorNewGame instanceof HTMLElement) {
+                    anchorNewGame.addEventListener("click", this.countdownHelper.reset);
+                }
+            }
             var btnOn_1 = btnNewGame.cloneNode(true);
             if (btnOn_1 instanceof HTMLElement) {
                 btnOn_1.style.cssFloat = "left";
