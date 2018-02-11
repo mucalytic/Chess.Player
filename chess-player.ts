@@ -31,13 +31,15 @@ class CountdownHelper {
     constructor() {
         this.observer = new MutationObserver(mutations => {
             mutations.forEach(mutation => {
-                if (mutation.target instanceof HTMLElement) {
-                    if (mutation.target.className === "clock") {
-                        const c = parseFloat(mutation.target.textContent.trim().split(":")[1]);
+                const target = mutation.target;
+                if (target instanceof HTMLElement) {
+                    if (target.classList["clock"]) {
+                        const c = parseFloat(target.textContent.trim().split(":")[1]);
                         if (this.counter - c > 0 && this.counter - c <= 1) {
                             this.counter = c;
                         }
-                        if (this.counter % 5 === 0 && this.counter !== this.utterances[0]) {
+                        if (this.counter % 5 === 0 &&
+                            this.counter !== this.utterances[0]) {
                             const words = this.counter + " seconds left";
                             const utterance = new SpeechSynthesisUtterance(words);
                             utterance.rate = 1.8;
@@ -45,8 +47,14 @@ class CountdownHelper {
                             this.utterances.unshift(this.counter);
                         }
                     }
-                    if (mutation.target.className === "game-over-container") {
-                        this.reset();
+                }
+                if (mutation.type === "childList" &&
+                    mutation.addedNodes.length === 1) {
+                    const node = mutation.addedNodes[0];
+                    if (node instanceof HTMLElement) {
+                        if (node.classList["game-over-container"]) {
+                            this.reset();
+                        }
                     }
                 }
                 console.log(mutation);

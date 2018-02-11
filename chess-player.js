@@ -9,13 +9,15 @@ var CountdownHelper = (function () {
         };
         this.observer = new MutationObserver(function (mutations) {
             mutations.forEach(function (mutation) {
-                if (mutation.target instanceof HTMLElement) {
-                    if (mutation.target.className === "clock") {
-                        var c = parseFloat(mutation.target.textContent.trim().split(":")[1]);
+                var target = mutation.target;
+                if (target instanceof HTMLElement) {
+                    if (target.classList["clock"]) {
+                        var c = parseFloat(target.textContent.trim().split(":")[1]);
                         if (_this.counter - c > 0 && _this.counter - c <= 1) {
                             _this.counter = c;
                         }
-                        if (_this.counter % 5 === 0 && _this.counter !== _this.utterances[0]) {
+                        if (_this.counter % 5 === 0 &&
+                            _this.counter !== _this.utterances[0]) {
                             var words = _this.counter + " seconds left";
                             var utterance = new SpeechSynthesisUtterance(words);
                             utterance.rate = 1.8;
@@ -23,8 +25,14 @@ var CountdownHelper = (function () {
                             _this.utterances.unshift(_this.counter);
                         }
                     }
-                    if (mutation.target.className === "game-over-container") {
-                        _this.reset();
+                }
+                if (mutation.type === "childList" &&
+                    mutation.addedNodes.length === 1) {
+                    var node = mutation.addedNodes[0];
+                    if (node instanceof HTMLElement) {
+                        if (node.classList["game-over-container"]) {
+                            _this.reset();
+                        }
                     }
                 }
                 console.log(mutation);
