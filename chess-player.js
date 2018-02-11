@@ -7,36 +7,37 @@ var CountdownHelper = (function () {
             childList: true,
             subtree: true
         };
-        this.countdown = new MutationObserver(function (mutations) {
+        this.observer = new MutationObserver(function (mutations) {
             mutations.forEach(function (mutation) {
-                var c = parseFloat(mutation.target.textContent.trim().split(":")[1]);
-                if (_this.counter - c > 0 && _this.counter - c <= 1) {
-                    _this.counter = c;
+                if (mutation.target instanceof HTMLElement) {
+                    if (mutation.target.className === "clock") {
+                        var c = parseFloat(mutation.target.textContent.trim().split(":")[1]);
+                        if (_this.counter - c > 0 && _this.counter - c <= 1) {
+                            _this.counter = c;
+                        }
+                        if (_this.counter % 5 === 0 && _this.counter !== _this.utterances[0]) {
+                            var words = _this.counter + " seconds left";
+                            var utterance = new SpeechSynthesisUtterance(words);
+                            utterance.rate = 1.8;
+                            window.speechSynthesis.speak(utterance);
+                            _this.utterances.unshift(_this.counter);
+                        }
+                    }
+                    if (mutation.target.className === "game-over-container") {
+                        _this.reset();
+                    }
                 }
-                if (_this.counter % 5 === 0 && _this.counter !== _this.utterances[0]) {
-                    var words = _this.counter + " seconds left";
-                    var utterance = new SpeechSynthesisUtterance(words);
-                    utterance.rate = 1.8;
-                    window.speechSynthesis.speak(utterance);
-                    _this.utterances.unshift(_this.counter);
-                }
-            });
-        });
-        this.gameover = new MutationObserver(function (mutations) {
-            mutations.forEach(function (mutation) {
                 console.log(mutation);
-                _this.reset();
             });
         });
     }
     CountdownHelper.prototype.start = function () {
         this.reset();
-        this.countdown.observe(document.getElementsByClassName("clock")[0], this.options);
-        this.gameover.observe(document.getElementsByClassName("game-over-container")[0], this.options);
+        this.observer.observe(document.body, this.options);
         console.log("countdown observer started");
     };
     CountdownHelper.prototype.stop = function () {
-        this.countdown.disconnect();
+        this.observer.disconnect();
         console.log("countdown observer stopped");
     };
     CountdownHelper.prototype.reset = function () {

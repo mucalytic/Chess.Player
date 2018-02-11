@@ -1,6 +1,5 @@
 class CountdownHelper {
-    private readonly countdown: MutationObserver;
-    private readonly gameover: MutationObserver;
+    private readonly observer: MutationObserver;
 
     options: MutationObserverInit = {
         characterData: true,
@@ -14,13 +13,12 @@ class CountdownHelper {
 
     start(): void {
         this.reset();
-        this.countdown.observe(document.getElementsByClassName("clock")[0], this.options);
-        this.gameover.observe(document.getElementsByClassName("game-over-container")[0], this.options);
+        this.observer.observe(document.body, this.options);
         console.log("countdown observer started");
     }
 
     stop(): void {
-        this.countdown.disconnect();
+        this.observer.disconnect();
         console.log("countdown observer stopped");
     }
 
@@ -31,25 +29,27 @@ class CountdownHelper {
     }
 
     constructor() {
-        this.countdown = new MutationObserver(mutations => {
+        this.observer = new MutationObserver(mutations => {
             mutations.forEach(mutation => {
-                const c = parseFloat(mutation.target.textContent.trim().split(":")[1]);
-                if (this.counter - c > 0 && this.counter - c <= 1) {
-                    this.counter = c;
+                if (mutation.target instanceof HTMLElement) {
+                    if (mutation.target.className === "clock") {
+                        const c = parseFloat(mutation.target.textContent.trim().split(":")[1]);
+                        if (this.counter - c > 0 && this.counter - c <= 1) {
+                            this.counter = c;
+                        }
+                        if (this.counter % 5 === 0 && this.counter !== this.utterances[0]) {
+                            const words = this.counter + " seconds left";
+                            const utterance = new SpeechSynthesisUtterance(words);
+                            utterance.rate = 1.8;
+                            window.speechSynthesis.speak(utterance);
+                            this.utterances.unshift(this.counter);
+                        }
+                    }
+                    if (mutation.target.className === "game-over-container") {
+                        this.reset();
+                    }
                 }
-                if (this.counter % 5 === 0 && this.counter !== this.utterances[0]) {
-                    const words = this.counter + " seconds left";
-                    const utterance = new SpeechSynthesisUtterance(words);
-                    utterance.rate = 1.8;
-                    window.speechSynthesis.speak(utterance);
-                    this.utterances.unshift(this.counter);
-                }
-            });
-        });
-        this.gameover = new MutationObserver(mutations => {
-            mutations.forEach(mutation => {
                 console.log(mutation);
-                this.reset();
             });
         });
     }
