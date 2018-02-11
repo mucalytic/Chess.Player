@@ -1,5 +1,6 @@
 class CountdownHelper {
-    private readonly observer: MutationObserver;
+    private readonly gameover: MutationObserver;
+    private readonly countdown: MutationObserver;
 
     options: MutationObserverInit = {
         characterData: true,
@@ -11,14 +12,34 @@ class CountdownHelper {
     utterances: number[];
     counter: number;
 
+    clock(): HTMLDivElement {
+        const name = document.getElementById("four-player-username").innerText;
+        const avatars = document.getElementsByClassName("player-avatar");
+        for (let i = 0; i < avatars.length; i++) {
+            const avatar = avatars[i];
+            if (avatar instanceof HTMLAnchorElement) {
+                if (avatar.pathname === "/member/" + name) {
+                    const clock = avatar.nextElementSibling;
+                    if (clock instanceof HTMLDivElement) {
+                        if (clock.classList.contains("clock")) {
+                            return clock;
+                        }
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
     start(): void {
         this.reset();
-        this.observer.observe(document.body, this.options);
+        this.gameover.observe(document.body, this.options);
+        this.countdown.observe(this.clock(), this.options);
         console.log("countdown observer started");
     }
 
     stop(): void {
-        this.observer.disconnect();
+        this.gameover.disconnect();
         console.log("countdown observer stopped");
     }
 
@@ -29,30 +50,33 @@ class CountdownHelper {
     }
 
     constructor() {
-        this.observer = new MutationObserver(mutations => {
+        this.countdown = new MutationObserver(mutations => {
             mutations.forEach(mutation => {
                 const target = mutation.target;
-                if (target instanceof HTMLElement) {
-                    if (target.classList["clock"]) {
-                        const c = parseFloat(target.textContent.trim().split(":")[1]);
-                        if (this.counter - c > 0 && this.counter - c <= 1) {
-                            this.counter = c;
-                        }
-                        if (this.counter % 5 === 0 &&
-                            this.counter !== this.utterances[0]) {
-                            const words = this.counter + " seconds left";
-                            const utterance = new SpeechSynthesisUtterance(words);
-                            utterance.rate = 1.8;
-                            window.speechSynthesis.speak(utterance);
-                            this.utterances.unshift(this.counter);
-                        }
+                if (target instanceof HTMLDivElement) {
+                    const c = parseFloat(target.innerText.trim().split(":")[1]);
+                    if (this.counter - c > 0 && this.counter - c <= 1) {
+                        this.counter = c;
+                    }
+                    if (this.counter % 5 === 0 &&
+                        this.counter !== this.utterances[0]) {
+                        const words = this.counter + " seconds left";
+                        const utterance = new SpeechSynthesisUtterance(words);
+                        utterance.rate = 1.8;
+                        window.speechSynthesis.speak(utterance);
+                        this.utterances.unshift(this.counter);
                     }
                 }
+                console.log(mutation);
+            });
+        });
+        this.gameover = new MutationObserver(mutations => {
+            mutations.forEach(mutation => {
                 if (mutation.type === "childList" &&
                     mutation.addedNodes.length === 1) {
                     const node = mutation.addedNodes[0];
                     if (node instanceof HTMLElement) {
-                        if (node.classList["game-over-container"]) {
+                        if (node.classList.contains("game-over-container")) {
                             this.reset();
                         }
                     }
