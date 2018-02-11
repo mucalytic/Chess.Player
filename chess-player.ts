@@ -1,33 +1,37 @@
 class CountdownHelper {
-    private readonly observer: MutationObserver;
+    private readonly countdown: MutationObserver;
+    private readonly gameover: MutationObserver;
+
+    options: MutationObserverInit = {
+        characterData: true,
+        attributes: true,
+        childList: true,
+        subtree: true
+    };
 
     utterances: number[];
     counter: number;
 
     start(): void {
         this.reset();
-        this.observer.observe(document.getElementsByClassName("clock")[0], {
-            characterData: true,
-            attributes: true,
-            childList: true,
-            subtree: true
-        });
+        this.countdown.observe(document.getElementsByClassName("clock")[0], this.options);
+        this.gameover.observe(document.getElementsByClassName("game-over-container")[0], this.options);
         console.log("countdown observer started");
     }
 
     stop(): void {
-        this.observer.disconnect();
+        this.countdown.disconnect();
         console.log("countdown observer stopped");
     }
 
     reset(): void {
         this.counter = 60;
         this.utterances = [60];
-        console.log("counter reset");
+        console.log("counters reset");
     }
 
     constructor() {
-        this.observer = new MutationObserver(mutations => {
+        this.countdown = new MutationObserver(mutations => {
             mutations.forEach(mutation => {
                 const c = parseFloat(mutation.target.textContent.trim().split(":")[1]);
                 if (this.counter - c > 0 && this.counter - c <= 1) {
@@ -42,6 +46,12 @@ class CountdownHelper {
                 }
             });
         });
+        this.gameover = new MutationObserver(mutations => {
+            mutations.forEach(mutation => {
+                console.log(mutation);
+                this.reset();
+            });
+        });
     }
 }
 
@@ -52,13 +62,6 @@ class DomModifier {
         const btnNewGame = document.getElementsByClassName("btns-container")[0];
         if (btnNewGame instanceof HTMLElement) {
             btnNewGame.style.cssFloat = "right";
-
-            const anchorNewGame = btnNewGame.firstChild;
-            if (anchorNewGame.nodeName === "A") {
-                if (anchorNewGame instanceof HTMLElement) {
-                    anchorNewGame.addEventListener("click", this.countdownHelper.reset);
-                }
-            }
 
             const btnOn = btnNewGame.cloneNode(true);
             if (btnOn instanceof HTMLElement) {

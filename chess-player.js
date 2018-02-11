@@ -1,7 +1,13 @@
 var CountdownHelper = (function () {
     function CountdownHelper() {
         var _this = this;
-        this.observer = new MutationObserver(function (mutations) {
+        this.options = {
+            characterData: true,
+            attributes: true,
+            childList: true,
+            subtree: true
+        };
+        this.countdown = new MutationObserver(function (mutations) {
             mutations.forEach(function (mutation) {
                 var c = parseFloat(mutation.target.textContent.trim().split(":")[1]);
                 if (_this.counter - c > 0 && _this.counter - c <= 1) {
@@ -16,25 +22,27 @@ var CountdownHelper = (function () {
                 }
             });
         });
+        this.gameover = new MutationObserver(function (mutations) {
+            mutations.forEach(function (mutation) {
+                console.log(mutation);
+                _this.reset();
+            });
+        });
     }
     CountdownHelper.prototype.start = function () {
         this.reset();
-        this.observer.observe(document.getElementsByClassName("clock")[0], {
-            characterData: true,
-            attributes: true,
-            childList: true,
-            subtree: true
-        });
+        this.countdown.observe(document.getElementsByClassName("clock")[0], this.options);
+        this.gameover.observe(document.getElementsByClassName("game-over-container")[0], this.options);
         console.log("countdown observer started");
     };
     CountdownHelper.prototype.stop = function () {
-        this.observer.disconnect();
+        this.countdown.disconnect();
         console.log("countdown observer stopped");
     };
     CountdownHelper.prototype.reset = function () {
         this.counter = 60;
         this.utterances = [60];
-        console.log("counter reset");
+        console.log("counters reset");
     };
     return CountdownHelper;
 }());
@@ -47,12 +55,6 @@ var DomModifier = (function () {
         var btnNewGame = document.getElementsByClassName("btns-container")[0];
         if (btnNewGame instanceof HTMLElement) {
             btnNewGame.style.cssFloat = "right";
-            var anchorNewGame = btnNewGame.firstChild;
-            if (anchorNewGame.nodeName === "A") {
-                if (anchorNewGame instanceof HTMLElement) {
-                    anchorNewGame.addEventListener("click", this.countdownHelper.reset);
-                }
-            }
             var btnOn_1 = btnNewGame.cloneNode(true);
             if (btnOn_1 instanceof HTMLElement) {
                 btnOn_1.style.cssFloat = "left";
