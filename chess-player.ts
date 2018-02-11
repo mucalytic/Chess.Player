@@ -55,7 +55,7 @@ class CountdownHelper {
             mutations.forEach(mutation => {
                 const target = mutation.target;
                 if (target instanceof HTMLDivElement) {
-                    console.log(target);
+                    console.log("cd: %o", target);
                     const c = parseFloat(target.innerText.trim().split(":")[1]);
                     if (this.counter - c > 0 && this.counter - c <= 1) {
                         this.counter = c;
@@ -77,7 +77,7 @@ class CountdownHelper {
                     mutation.addedNodes.length === 1) {
                     const node = mutation.addedNodes[0];
                     if (node instanceof HTMLElement) {
-                        console.log(node);
+                        console.log("go: %o", node);
                         if (node.classList.contains("game-over-container")) {
                             this.reset();
                         }

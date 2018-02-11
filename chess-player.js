@@ -11,7 +11,7 @@ var CountdownHelper = (function () {
             mutations.forEach(function (mutation) {
                 var target = mutation.target;
                 if (target instanceof HTMLDivElement) {
-                    console.log(target);
+                    console.log("cd: %o", target);
                     var c = parseFloat(target.innerText.trim().split(":")[1]);
                     if (_this.counter - c > 0 && _this.counter - c <= 1) {
                         _this.counter = c;
@@ -33,7 +33,7 @@ var CountdownHelper = (function () {
                     mutation.addedNodes.length === 1) {
                     var node = mutation.addedNodes[0];
                     if (node instanceof HTMLElement) {
-                        console.log(node);
+                        console.log("go: %o", node);
                         if (node.classList.contains("game-over-container")) {
                             _this.reset();
                         }
