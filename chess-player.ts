@@ -1,6 +1,7 @@
 class CountdownHelper {
     private readonly observer: MutationObserver;
 
+    utterances: number[];
     counter: number;
 
     start(): void {
@@ -20,7 +21,8 @@ class CountdownHelper {
     }
 
     reset(): void {
-        this.counter = 59;
+        this.counter = 60;
+        this.utterances = [60];
         console.log("counter reset");
     }
 
@@ -31,11 +33,12 @@ class CountdownHelper {
                 if (this.counter - c > 0 && this.counter - c <= 1) {
                     this.counter = c;
                 }
-                if (this.counter % 5 === 0) {
+                if (this.counter % 5 === 0 && this.counter !== this.utterances[0]) {
                     const words = this.counter + " seconds left";
                     const utterance = new SpeechSynthesisUtterance(words);
                     utterance.rate = 1.8;
                     window.speechSynthesis.speak(utterance);
+                    this.utterances.unshift(this.counter);
                 }
             });
         });

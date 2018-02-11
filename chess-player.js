@@ -7,11 +7,12 @@ var CountdownHelper = (function () {
                 if (_this.counter - c > 0 && _this.counter - c <= 1) {
                     _this.counter = c;
                 }
-                if (_this.counter % 5 === 0) {
+                if (_this.counter % 5 === 0 && _this.counter !== _this.utterances[0]) {
                     var words = _this.counter + " seconds left";
                     var utterance = new SpeechSynthesisUtterance(words);
                     utterance.rate = 1.8;
                     window.speechSynthesis.speak(utterance);
+                    _this.utterances.unshift(_this.counter);
                 }
             });
         });
@@ -31,7 +32,8 @@ var CountdownHelper = (function () {
         console.log("countdown observer stopped");
     };
     CountdownHelper.prototype.reset = function () {
-        this.counter = 59;
+        this.counter = 60;
+        this.utterances = [60];
         console.log("counter reset");
     };
     return CountdownHelper;
