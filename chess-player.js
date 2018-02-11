@@ -1,21 +1,21 @@
 var CountdownHelper = (function () {
     function CountdownHelper() {
+        var _this = this;
         this.observer = new MutationObserver(function (mutations) {
-            var counter = 59;
             mutations.forEach(function (mutation) {
                 var c = parseFloat(mutation.target.textContent.trim().split(":")[1]);
                 console.log("c:" + c +
-                    ";counter:" + counter +
-                    ";counter - c:" + (counter - c) +
-                    ";counter - c > 0:" + (counter - c > 0) +
-                    ";counter - c <= 1:" + (counter - c <= 1) +
-                    ";counter - c > 0 && counter - c <= 1:" + (counter - c > 0 && counter - c <= 1));
-                if (counter - c > 0 && counter - c <= 1) {
-                    counter = c;
-                    console.log("counter:" + counter);
+                    ";counter:" + _this.counter +
+                    ";counter - c:" + (_this.counter - c) +
+                    ";counter - c > 0:" + (_this.counter - c > 0) +
+                    ";counter - c <= 1:" + (_this.counter - c <= 1) +
+                    ";counter - c > 0 && counter - c <= 1:" + (_this.counter - c > 0 && _this.counter - c <= 1));
+                if (_this.counter - c > 0 && _this.counter - c <= 1) {
+                    _this.counter = c;
+                    console.log("counter:" + _this.counter);
                 }
-                if (counter % 5 === 0) {
-                    var words = counter + " seconds left";
+                if (_this.counter % 5 === 0) {
+                    var words = _this.counter + " seconds left";
                     var utterance = new SpeechSynthesisUtterance(words);
                     utterance.rate = 1.8;
                     window.speechSynthesis.speak(utterance);
@@ -25,6 +25,7 @@ var CountdownHelper = (function () {
         });
     }
     CountdownHelper.prototype.start = function () {
+        this.counter = 59;
         this.observer.observe(document.getElementsByClassName("clock")[0], {
             characterData: true,
             attributes: true,

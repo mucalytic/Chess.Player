@@ -1,7 +1,11 @@
 class CountdownHelper {
     private readonly observer: MutationObserver;
 
+    counter: number;
+
     start(): void {
+        this.counter = 59;
+
         this.observer.observe(document.getElementsByClassName("clock")[0], {
             characterData: true,
             attributes: true,
@@ -16,22 +20,21 @@ class CountdownHelper {
 
     constructor() {
         this.observer = new MutationObserver(mutations => {
-            let counter: number = 59;
             mutations.forEach(mutation => {
                 const c = parseFloat(mutation.target.textContent.trim().split(":")[1]);
                 console.log(
                     "c:" + c +
-                    ";counter:" + counter +
-                    ";counter - c:" + (counter - c) +
-                    ";counter - c > 0:" + (counter - c > 0) +
-                    ";counter - c <= 1:" + (counter - c <= 1) +
-                    ";counter - c > 0 && counter - c <= 1:" + (counter - c > 0 && counter - c <= 1));
-                if (counter - c > 0 && counter - c <= 1) {
-                    counter = c;
-                    console.log("counter:" + counter);
+                    ";counter:" + this.counter +
+                    ";counter - c:" + (this.counter - c) +
+                    ";counter - c > 0:" + (this.counter - c > 0) +
+                    ";counter - c <= 1:" + (this.counter - c <= 1) +
+                    ";counter - c > 0 && counter - c <= 1:" + (this.counter - c > 0 && this.counter - c <= 1));
+                if (this.counter - c > 0 && this.counter - c <= 1) {
+                    this.counter = c;
+                    console.log("counter:" + this.counter);
                 }
-                if (counter % 5 === 0) {
-                    const words = counter + " seconds left";
+                if (this.counter % 5 === 0) {
+                    const words = this.counter + " seconds left";
                     const utterance = new SpeechSynthesisUtterance(words);
                     utterance.rate = 1.8;
                     window.speechSynthesis.speak(utterance);
