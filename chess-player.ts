@@ -22,6 +22,7 @@ class CountdownHelper {
                     const clock = avatar.nextElementSibling;
                     if (clock instanceof HTMLDivElement) {
                         if (clock.classList.contains("clock")) {
+                            console.log(clock);
                             return clock;
                         }
                     }
@@ -54,6 +55,7 @@ class CountdownHelper {
             mutations.forEach(mutation => {
                 const target = mutation.target;
                 if (target instanceof HTMLDivElement) {
+                    console.log(target);
                     const c = parseFloat(target.innerText.trim().split(":")[1]);
                     if (this.counter - c > 0 && this.counter - c <= 1) {
                         this.counter = c;
@@ -67,7 +69,6 @@ class CountdownHelper {
                         this.utterances.unshift(this.counter);
                     }
                 }
-                console.log(mutation);
             });
         });
         this.gameover = new MutationObserver(mutations => {
@@ -76,12 +77,12 @@ class CountdownHelper {
                     mutation.addedNodes.length === 1) {
                     const node = mutation.addedNodes[0];
                     if (node instanceof HTMLElement) {
+                        console.log(node);
                         if (node.classList.contains("game-over-container")) {
                             this.reset();
                         }
                     }
                 }
-                console.log(mutation);
             });
         });
     }
