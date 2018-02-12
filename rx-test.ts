@@ -23,6 +23,7 @@ class DomManipulator {
 class DomWatcher {
     observer: MutationObserver;
     subscription: Rx.IDisposable;
+    records: MutationRecord[] = [];
     subject: Rx.Subject<MutationRecord>;
     init: MutationObserverInit = {
         characterDataOldValue: true,
@@ -40,7 +41,7 @@ class DomWatcher {
         });
         this.subscription = this.subject
             .subscribe(
-                mr => console.log("Rx: Mutation: %o", mr),
+                mr => this.records.push(mr),
                 ex => {
                     console.log("Rx: Exception: %o", ex);
                     this.observer.disconnect();
