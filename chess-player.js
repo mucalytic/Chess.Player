@@ -54,13 +54,12 @@ var CountdownHelper = (function () {
     };
     CountdownHelper.prototype.start = function () {
         this.reset();
-        this.gameover.observe(document.body, this.options);
         this.countdown.observe(this.clock(), this.options);
-        console.log("countdown observer started");
+        console.log("observers started");
     };
     CountdownHelper.prototype.stop = function () {
-        this.gameover.disconnect();
-        console.log("countdown observer stopped");
+        this.countdown.disconnect();
+        console.log("observers stopped");
     };
     CountdownHelper.prototype.reset = function () {
         this.counter = 60;

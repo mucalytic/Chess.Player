@@ -1,5 +1,5 @@
 class CountdownHelper {
-    private readonly gameover: MutationObserver;
+    //private readonly gameover: MutationObserver;
     private readonly countdown: MutationObserver;
 
     options: MutationObserverInit = {
@@ -39,14 +39,15 @@ class CountdownHelper {
 
     start(): void {
         this.reset();
-        this.gameover.observe(document.body, this.options);
+        //this.gameover.observe(document.body, this.options);
         this.countdown.observe(this.clock(), this.options);
-        console.log("countdown observer started");
+        console.log("observers started");
     }
 
     stop(): void {
-        this.gameover.disconnect();
-        console.log("countdown observer stopped");
+        //this.gameover.disconnect();
+        this.countdown.disconnect();
+        console.log("observers stopped");
     }
 
     reset(): void {
