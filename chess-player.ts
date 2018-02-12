@@ -14,15 +14,20 @@ class CountdownHelper {
 
     clock(): HTMLDivElement {
         const name = document.getElementById("four-player-username").innerText;
+        console.log("name: %o", name);
         const avatars = document.getElementsByClassName("player-avatar");
+        console.log("avatars: %o", avatars);
         for (let i = 0; i < avatars.length; i++) {
             const avatar = avatars[i];
+            console.log("avatar[%i]: %o", i, avatar);
             if (avatar instanceof HTMLAnchorElement) {
+                console.log("avatar.pathname: %s", avatar.pathname);
                 if (avatar.pathname === "/member/" + name) {
                     const clock = avatar.nextElementSibling;
+                    console.log("avatar.nextElementSibling: %o", clock);
                     if (clock instanceof HTMLDivElement) {
                         if (clock.classList.contains("clock")) {
-                            console.log(clock);
+                            console.log("clock: %o", clock);
                             return clock;
                         }
                     }
@@ -71,20 +76,20 @@ class CountdownHelper {
                 }
             });
         });
-        this.gameover = new MutationObserver(mutations => {
-            mutations.forEach(mutation => {
-                if (mutation.type === "childList" &&
-                    mutation.addedNodes.length === 1) {
-                    const node = mutation.addedNodes[0];
-                    if (node instanceof HTMLElement) {
-                        console.log("go: %o", node);
-                        if (node.classList.contains("game-over-container")) {
-                            this.reset();
-                        }
-                    }
-                }
-            });
-        });
+        //this.gameover = new MutationObserver(mutations => {
+        //    mutations.forEach(mutation => {
+        //        if (mutation.type === "childList" &&
+        //            mutation.addedNodes.length === 1) {
+        //            const node = mutation.addedNodes[0];
+        //            if (node instanceof HTMLElement) {
+        //                console.log("go: %o", node);
+        //                if (node.classList.contains("game-over-container")) {
+        //                    this.reset();
+        //                }
+        //            }
+        //        }
+        //    });
+        //});
     }
 }
 

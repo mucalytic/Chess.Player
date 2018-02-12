@@ -27,32 +27,23 @@ var CountdownHelper = (function () {
                 }
             });
         });
-        this.gameover = new MutationObserver(function (mutations) {
-            mutations.forEach(function (mutation) {
-                if (mutation.type === "childList" &&
-                    mutation.addedNodes.length === 1) {
-                    var node = mutation.addedNodes[0];
-                    if (node instanceof HTMLElement) {
-                        console.log("go: %o", node);
-                        if (node.classList.contains("game-over-container")) {
-                            _this.reset();
-                        }
-                    }
-                }
-            });
-        });
     }
     CountdownHelper.prototype.clock = function () {
         var name = document.getElementById("four-player-username").innerText;
+        console.log("name: %o", name);
         var avatars = document.getElementsByClassName("player-avatar");
+        console.log("avatars: %o", avatars);
         for (var i = 0; i < avatars.length; i++) {
             var avatar = avatars[i];
+            console.log("avatar[%i]: %o", i, avatar);
             if (avatar instanceof HTMLAnchorElement) {
+                console.log("avatar.pathname: %s", avatar.pathname);
                 if (avatar.pathname === "/member/" + name) {
                     var clock = avatar.nextElementSibling;
+                    console.log("avatar.nextElementSibling: %o", clock);
                     if (clock instanceof HTMLDivElement) {
                         if (clock.classList.contains("clock")) {
-                            console.log(clock);
+                            console.log("clock: %o", clock);
                             return clock;
                         }
                     }
