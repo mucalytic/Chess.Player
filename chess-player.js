@@ -7,58 +7,21 @@ var CountdownHelper = (function () {
             childList: true,
             subtree: true
         };
-        this.countdown = new MutationObserver(function (mutations) {
+        this.record = [];
+        this.username = document.getElementById("four-player-username").innerText;
+        this.gameover = new MutationObserver(function (mutations) {
             mutations.forEach(function (mutation) {
-                var target = mutation.target;
-                if (target instanceof HTMLDivElement) {
-                    console.log("cd: %o", target);
-                    var c = parseFloat(target.innerText.trim().split(":")[1]);
-                    if (_this.counter - c > 0 && _this.counter - c <= 1) {
-                        _this.counter = c;
-                    }
-                    if (_this.counter % 5 === 0 &&
-                        _this.counter !== _this.utterances[0]) {
-                        var words = _this.counter + " seconds left";
-                        var utterance = new SpeechSynthesisUtterance(words);
-                        utterance.rate = 1.8;
-                        window.speechSynthesis.speak(utterance);
-                        _this.utterances.unshift(_this.counter);
-                    }
-                }
+                _this.record.push(mutation);
             });
         });
     }
-    CountdownHelper.prototype.clock = function () {
-        var name = document.getElementById("four-player-username").innerText;
-        console.log("name: %o", name);
-        var avatars = document.getElementsByClassName("player-avatar");
-        console.log("avatars: %o", avatars);
-        for (var i = 0; i < avatars.length; i++) {
-            var avatar = avatars[i];
-            console.log("avatar[%i]: %o", i, avatar);
-            if (avatar instanceof HTMLAnchorElement) {
-                console.log("avatar.pathname: %s", avatar.pathname);
-                if (avatar.pathname === "/member/" + name) {
-                    var clock = avatar.nextElementSibling;
-                    console.log("avatar.nextElementSibling: %o", clock);
-                    if (clock instanceof HTMLDivElement) {
-                        if (clock.classList.contains("clock")) {
-                            console.log("clock: %o", clock);
-                            return clock;
-                        }
-                    }
-                }
-            }
-        }
-        return null;
-    };
     CountdownHelper.prototype.start = function () {
         this.reset();
-        this.countdown.observe(this.clock(), this.options);
+        this.gameover.observe(document.body, this.options);
         console.log("observers started");
     };
     CountdownHelper.prototype.stop = function () {
-        this.countdown.disconnect();
+        this.gameover.disconnect();
         console.log("observers stopped");
     };
     CountdownHelper.prototype.reset = function () {
@@ -70,8 +33,21 @@ var CountdownHelper = (function () {
 }());
 var DomModifier = (function () {
     function DomModifier() {
+        this.src = "https://rawgit.com/Reactive-Extensions/RxJS/master/dist/rx.all.min.js";
         this.countdownHelper = new CountdownHelper();
     }
+    DomModifier.prototype.addRx = function () {
+        var scripts = document.getElementsByTagName("script");
+        for (var i = 0; i < scripts.length; i++) {
+            if (scripts[i].src === this.src) {
+                return this;
+            }
+        }
+        var script = document.createElement("script");
+        document.body.appendChild(script);
+        script.src = this.src;
+        return this;
+    };
     DomModifier.prototype.addStartAiButton = function () {
         var _this = this;
         var btnNewGame = document.getElementsByClassName("btns-container")[0];
@@ -132,6 +108,7 @@ var DomModifier = (function () {
     };
     return DomModifier;
 }());
-new DomModifier()
+var modifier = new DomModifier()
     .rightAlignStartButton()
-    .addStartAiButton();
+    .addStartAiButton()
+    .addRx();

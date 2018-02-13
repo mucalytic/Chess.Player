@@ -1,6 +1,6 @@
 class CountdownHelper {
-    //private readonly gameover: MutationObserver;
-    private readonly countdown: MutationObserver;
+    private readonly gameover: MutationObserver;
+    //private readonly countdown: MutationObserver;
 
     options: MutationObserverInit = {
         characterData: true,
@@ -9,44 +9,45 @@ class CountdownHelper {
         subtree: true
     };
 
+    record: MutationRecord[] = [];
     utterances: number[];
+    username: string;
     counter: number;
 
-    clock(): HTMLDivElement {
-        const name = document.getElementById("four-player-username").innerText;
-        console.log("name: %o", name);
-        const avatars = document.getElementsByClassName("player-avatar");
-        console.log("avatars: %o", avatars);
-        for (let i = 0; i < avatars.length; i++) {
-            const avatar = avatars[i];
-            console.log("avatar[%i]: %o", i, avatar);
-            if (avatar instanceof HTMLAnchorElement) {
-                console.log("avatar.pathname: %s", avatar.pathname);
-                if (avatar.pathname === "/member/" + name) {
-                    const clock = avatar.nextElementSibling;
-                    console.log("avatar.nextElementSibling: %o", clock);
-                    if (clock instanceof HTMLDivElement) {
-                        if (clock.classList.contains("clock")) {
-                            console.log("clock: %o", clock);
-                            return clock;
-                        }
-                    }
-                }
-            }
-        }
-        return null;
-    }
+    //clock(): HTMLDivElement {
+    //    const avatars = document.getElementsByClassName("player-avatar");
+    //    console.log("avatars: %o", avatars);
+    //    for (let i = 0; i < avatars.length; i++) {
+    //        const avatar = avatars[i];
+    //        console.log("avatar[%i]: %o", i, avatar);
+    //        if (avatar instanceof HTMLAnchorElement) {
+    //            console.log("avatar.pathname: %s", avatar.pathname);
+    //            if (avatar.pathname === "/member/" + name) {
+    //                const clock = avatar.nextElementSibling;
+    //                console.log("avatar.nextElementSibling: %o", clock);
+    //                if (clock instanceof HTMLDivElement) {
+    //                    if (clock.classList.contains("clock")) {
+    //                        console.log("clock: %o", clock);
+    //                        return clock;
+    //                    }
+    //                }
+    //            }
+    //        }
+    //    }
+    //    return null;
+    //}
 
     start(): void {
         this.reset();
-        //this.gameover.observe(document.body, this.options);
-        this.countdown.observe(this.clock(), this.options);
+        //const clock = this.clock();
+        //this.countdown.observe(clock, this.options);
+        this.gameover.observe(document.body, this.options);
         console.log("observers started");
     }
 
     stop(): void {
-        //this.gameover.disconnect();
-        this.countdown.disconnect();
+        this.gameover.disconnect();
+        //this.countdown.disconnect();
         console.log("observers stopped");
     }
 
@@ -57,26 +58,27 @@ class CountdownHelper {
     }
 
     constructor() {
-        this.countdown = new MutationObserver(mutations => {
-            mutations.forEach(mutation => {
-                const target = mutation.target;
-                if (target instanceof HTMLDivElement) {
-                    console.log("cd: %o", target);
-                    const c = parseFloat(target.innerText.trim().split(":")[1]);
-                    if (this.counter - c > 0 && this.counter - c <= 1) {
-                        this.counter = c;
-                    }
-                    if (this.counter % 5 === 0 &&
-                        this.counter !== this.utterances[0]) {
-                        const words = this.counter + " seconds left";
-                        const utterance = new SpeechSynthesisUtterance(words);
-                        utterance.rate = 1.8;
-                        window.speechSynthesis.speak(utterance);
-                        this.utterances.unshift(this.counter);
-                    }
-                }
-            });
-        });
+        this.username = document.getElementById("four-player-username").innerText;
+        //this.countdown = new MutationObserver(mutations => {
+        //    mutations.forEach(mutation => {
+        //        const target = mutation.target;
+        //        if (target instanceof HTMLDivElement) {
+        //            console.log("cd: %o", target);
+        //            const c = parseFloat(target.innerText.trim().split(":")[1]);
+        //            if (this.counter - c > 0 && this.counter - c <= 1) {
+        //                this.counter = c;
+        //            }
+        //            if (this.counter % 5 === 0 &&
+        //                this.counter !== this.utterances[0]) {
+        //                const words = this.counter + " seconds left";
+        //                const utterance = new SpeechSynthesisUtterance(words);
+        //                utterance.rate = 1.8;
+        //                window.speechSynthesis.speak(utterance);
+        //                this.utterances.unshift(this.counter);
+        //            }
+        //        }
+        //    });
+        //});
         //this.gameover = new MutationObserver(mutations => {
         //    mutations.forEach(mutation => {
         //        if (mutation.type === "childList" &&
@@ -91,11 +93,30 @@ class CountdownHelper {
         //        }
         //    });
         //});
+        this.gameover = new MutationObserver(mutations => {
+            mutations.forEach(mutation => {
+                this.record.push(mutation);
+            });
+        });
     }
 }
 
 class DomModifier {
-    private readonly countdownHelper: CountdownHelper;
+    src: string = "https://rawgit.com/Reactive-Extensions/RxJS/master/dist/rx.all.min.js";
+    countdownHelper: CountdownHelper;
+
+    addRx(): DomModifier {
+        const scripts: NodeListOf<HTMLScriptElement> = document.getElementsByTagName("script");
+        for (let i = 0; i < scripts.length; i++) {
+            if (scripts[i].src === this.src) {
+                return this;
+            }
+        }
+        const script = document.createElement("script");
+        document.body.appendChild(script);
+        script.src = this.src;
+        return this;
+    }
 
     addStartAiButton(): DomModifier {
         const btnNewGame = document.getElementsByClassName("btns-container")[0];
@@ -148,7 +169,7 @@ class DomModifier {
         return this;
     }
 
-    public rightAlignStartButton(): DomModifier {
+    rightAlignStartButton(): DomModifier {
         const head = document.getElementsByTagName("head")[0];
         if (head instanceof HTMLElement) {
             const text = document.createTextNode(".btns-container { float: right; }");
@@ -167,6 +188,7 @@ class DomModifier {
     }
 }
 
-new DomModifier()
+var modifier = new DomModifier()
     .rightAlignStartButton()
-    .addStartAiButton();
+    .addStartAiButton()
+    .addRx();

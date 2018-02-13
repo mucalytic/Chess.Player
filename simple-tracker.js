@@ -1,35 +1,50 @@
-var Watcher = (function () {
-    function Watcher() {
-        var _this = this;
-        this.changes = [];
-        this.observer = new MutationObserver(function (mutations) {
-            mutations.forEach(function (m) {
-                var d = new Date();
-                var dt = _this.date(d) + " " + _this.time(d);
-                _this.changes.push({ mutation: m, datetime: dt });
-            });
-        });
+var DomManipulator = (function () {
+    function DomManipulator() {
+        this.src = "https://rawgit.com/Reactive-Extensions/RxJS/master/dist/rx.all.min.js";
+        this.addScriptTags(this.src);
     }
-    Watcher.prototype.dd = function (num) {
-        return ("0" + num).slice(-2);
+    DomManipulator.prototype.addScriptTags = function (src) {
+        var scripts = document.getElementsByTagName("script");
+        for (var i = 0; i < scripts.length; i++) {
+            if (scripts[i].src === src) {
+                return;
+            }
+        }
+        var script = document.createElement("script");
+        document.body.appendChild(script);
+        script.src = src;
     };
-    Watcher.prototype.date = function (dt) {
-        return dt.getFullYear() + "-" + this.dd(dt.getMonth()) + "-" + this.dd(dt.getDate());
-    };
-    Watcher.prototype.time = function (dt) {
-        return this.dd(dt.getHours()) + ":" + this.dd(dt.getMinutes()) + ":" + this.dd(dt.getSeconds());
-    };
-    Watcher.prototype.start = function () {
-        this.observer.observe(document.getElementById("board"), {
+    return DomManipulator;
+}());
+var DomWatcher = (function () {
+    function DomWatcher() {
+        this.records = [];
+        this.init = {
             characterDataOldValue: true,
             attributeOldValue: true,
             characterData: true,
             attributes: true,
             childList: true,
             subtree: true
+        };
+        this.createDocumentBodyObserverSubscription();
+        this.observer.observe(document.body, this.init);
+    }
+    DomWatcher.prototype.createDocumentBodyObserverSubscription = function () {
+        var _this = this;
+        this.subject = new Rx.Subject();
+        this.observer = new MutationObserver(function (mrs) {
+            mrs.forEach(function (mr) { return _this.subject.onNext(mr); });
         });
-        return this;
+        this.subscription = this.subject
+            .subscribe(function (mr) { return _this.records.push(mr); }, function (ex) {
+            console.log("Rx: Exception: %o", ex);
+            _this.observer.disconnect();
+        }, function () {
+            console.log("Rx: Completed");
+            _this.observer.disconnect();
+        });
     };
-    return Watcher;
+    return DomWatcher;
 }());
-var watcher = new Watcher().start();
+var manipulator = new DomManipulator();
