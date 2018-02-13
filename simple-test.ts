@@ -305,8 +305,8 @@ class Factory {
         if (aro.length !== 0 && rro.length !== 0) {
             for (let m = 0; m < 14; m++) {
                 for (let n = 0; n < 14; n++) {
-                    const aco: Node = aro[m].childNodes[n];
-                    const rco: Node = rro[m].childNodes[n];
+                    const aco = aro[m].childNodes[n];
+                    const rco = rro[m].childNodes[n];
                     if (aco instanceof HTMLElement &&
                         rco instanceof HTMLElement) {
                         const apn = this.piece(aco.childNodes);
