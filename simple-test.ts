@@ -211,8 +211,8 @@ class Square {
     piece?: Piece;
 
     static coords(code: string): [number, number] {
-        const n = parseInt(code.slice(1)) - 1;
-        const m = code.charCodeAt(0) - 97;
+        const m = parseInt(code.slice(1)) - 1;
+        const n = code.charCodeAt(0) - 97;
         return [m, n];
     }
 
