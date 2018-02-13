@@ -210,15 +210,22 @@ class Square {
     code: string;
     piece?: Piece;
 
-    initFromCode(code: string): Square {
-        this.n = parseInt(code.slice(1));
-        this.m = code.charCodeAt(0);
-        this.code = code;
-        return this;
+    static coords(code: string): [number, number] {
+        const n = parseInt(code.slice(1));
+        const m = code.charCodeAt(0);
+        return [m, n];
     }
 
-    initFromCoords(m: number, n: number): Square {
-        this.code = `${String.fromCharCode(n + 97)}${m + 1}`;
+    char(n: number): string {
+        return String.fromCharCode(n + 97);
+    }
+
+    codegen(m: number, n: number): string {
+        return `${this.char(n)}${m + 1}`;
+    }
+
+    constructor(m: number, n: number) {
+        this.code = this.codegen(m, n);
         this.m = m;
         this.n = n;
         return this;
@@ -232,8 +239,17 @@ class DiffSquare extends Square {
 class Board {
     squares: Square[][] = [];
 
-    add(sq: Square): void {
-        this.squares[sq.m][sq.n] = sq;
+    square(code: string): Square {
+        const c = Square.coords(code);
+        return this.squares[c[0]][c[1]];
+    }
+
+    constructor() {
+        for (let m = 0; m < 14; m++) {
+            for (let n = 0; n < 14; n++) {
+                this.squares[m].push(new Square(m, n));
+            }
+        }
     }
 }
 
@@ -244,22 +260,28 @@ class Diff {
     additions: Square[] = [];
     squares: DiffSquare[][] = [];
 
-    add(sq: DiffSquare): void {
-        this.squares[sq.m][sq.n] = sq;
+    square(code: string): DiffSquare {
+        const c = DiffSquare.coords(code);
+        return this.squares[c[0]][c[1]];
+    }
+
+    constructor() {
+        for (let m = 0; m < 14; m++) {
+            for (let n = 0; n < 14; n++) {
+                this.squares[m].push(new DiffSquare(m, n));
+            }
+        }
     }
 }
 
 class Turn {
-    diff: Diff;
-    added: Board;
-    removed: Board;
     index: number;
+    diff = new Diff();
+    added = new Board();
+    removed = new Board();
 
     constructor(index: number) {
         this.index = index;
-        this.diff = new Diff();
-        this.added = new Board();
-        this.removed = new Board();
     }
 }
 
@@ -277,6 +299,70 @@ class Factory {
         return undefined;
     }
 
+    createAddedAndRemovedBoards(turn: Turn, mr: MutationRecord): void {
+        const aro = mr.addedNodes;
+        const rro = mr.removedNodes;
+        if (aro.length !== 0 && rro.length !== 0) {
+            for (let m = 0; m < 14; m++) {
+                for (let n = 0; n < 14; n++) {
+                    const aco: Node = aro[m].childNodes[n];
+                    const rco: Node = rro[m].childNodes[n];
+                    if (aco instanceof HTMLElement &&
+                        rco instanceof HTMLElement) {
+                        const apn = this.piece(aco.childNodes);
+                        const rpn = this.piece(rco.childNodes);
+                        if (apn) {
+                            const code = apn.attributes["data-piece"];
+                            if (code) {
+                                const pc = Piece.create(code.value);
+                                turn.added.square(code).piece = pc;
+                            }
+                        }
+                        if (rpn) {
+                            const code = rpn.attributes["data-piece"];
+                            if (code) {
+                                const pc = Piece.create(code.value);
+                                turn.removed.square(code).piece = pc;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    createDiffBoard(turn: Turn): void {
+        for (let m = 0; m < 14; m++) {
+            for (let n = 0; n < 14; n++) {
+                const rsq = turn.removed.squares[m][n];
+                const asq = turn.added.squares[m][n];
+                const dsq = turn.diff.squares[m][n];
+                if (!rsq.piece && asq.piece) {
+                    turn.diff.additions.push(asq);
+                    dsq.piece = asq.piece;
+                    dsq.change = "+";
+                }
+                if (rsq.piece && !asq.piece) {
+                    turn.diff.removals.push(rsq);
+                    dsq.piece = rsq.piece;
+                    dsq.change = "-";
+                }
+                if (rsq.piece && asq.piece) {
+                    if (rsq.piece.dp !== asq.piece.dp) {
+                        dsq.piece = asq.piece;
+                        if (asq.piece.player.name === "Dead") {
+                            turn.diff.deaths.push(asq);
+                            dsq.change = "x";
+                        } else {
+                            turn.diff.captures.push(asq);
+                            dsq.change = "*";
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     process(changes: MutationRecord[]): Factory {
         Rx.Observable.fromArray(changes)
             .filter(mr => mr.type === "childList" &&
@@ -286,78 +372,11 @@ class Factory {
                 const res: [MutationRecord, number] = [mr, ++mrc[1]];
                 return res;
             }, [undefined, 0])
-            .forEach(mrc => {
-                let mr: MutationRecord;
-                let index: number;
-                [mr, index] = mrc;
-                const turn = new Turn(index);
+            .subscribe(mrc => {
+                const turn = new Turn(mrc[1]);
+                this.createAddedAndRemovedBoards(turn, mrc[0]);
+                this.createDiffBoard(turn);
                 this.turns.push(turn);
-                const aro = mr.addedNodes;
-                const rro = mr.removedNodes;
-                if (aro.length !== 0 && rro.length !== 0) {
-                    console.log("A");
-                    for (let m = 0; m < 14; m++) {
-                        console.log("B");
-                        for (let n = 0; n < 14; n++) {
-                            console.log("C");
-                            const aco: Node = aro[m].childNodes[n];
-                            const rco: Node = rro[m].childNodes[n];
-                            if (aco instanceof HTMLElement &&
-                                rco instanceof HTMLElement) {
-                                console.log("D");
-                                const apn = this.piece(aco.childNodes);
-                                const rpn = this.piece(rco.childNodes);
-                                const asq = new Square().initFromCode(aco.dataset["square"]);
-                                const rsq = new Square().initFromCode(rco.dataset["square"]);
-                                const dsq = new DiffSquare().initFromCode(aco.dataset["square"]);
-                                console.log("E");
-                                if (apn) {
-                                    console.log("F");
-                                    asq.piece = Piece.create(apn.attributes["data-piece"].value);
-                                    console.log("G");
-                                }
-                                console.log("H");
-                                if (rpn) {
-                                    console.log("I");
-                                    rsq.piece = Piece.create(rpn.attributes["data-piece"].value);
-                                    console.log("J");
-                                }
-                                console.log("K");
-                                if (!rsq.piece && asq.piece) {
-                                    turn.diff.additions.push(asq);
-                                    dsq.piece = asq.piece;
-                                    dsq.change = "+";
-                                }
-                                console.log("L");
-                                if (rsq.piece && !asq.piece) {
-                                    turn.diff.removals.push(rsq);
-                                    dsq.piece = rsq.piece;
-                                    dsq.change = "-";
-                                }
-                                console.log("M");
-                                if (rsq.piece && asq.piece) {
-                                    if (rsq.piece.dp !== asq.piece.dp) {
-                                        dsq.piece = asq.piece;
-                                        if (asq.piece.player.name === "Dead") {
-                                            turn.diff.deaths.push(asq);
-                                            dsq.change = "x";
-                                        } else {
-                                            turn.diff.captures.push(asq);
-                                            dsq.change = "*";
-                                        }
-                                    }
-                                }
-                                console.log("N: %O", rsq);
-                                turn.removed.add(rsq);
-                                console.log("O");
-                                turn.added.add(asq);
-                                console.log("P");
-                                turn.diff.add(dsq);
-                                console.log("Q");
-                            }
-                        }
-                    }
-                }
             });
         return this;
     }
