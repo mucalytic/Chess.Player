@@ -211,6 +211,7 @@ class Square {
     piece?: Piece;
 
     static coords(code: string): [number, number] {
+        console.log(code);
         const n = parseInt(code.slice(1));
         const m = code.charCodeAt(0);
         return [m, n];
@@ -246,8 +247,9 @@ class Board {
 
     constructor() {
         for (let m = 0; m < 14; m++) {
+            this.squares[m] = [];
             for (let n = 0; n < 14; n++) {
-                this.squares[m].push(new Square(m, n));
+                this.squares[m][n] = new Square(m, n);
             }
         }
     }
@@ -267,8 +269,9 @@ class Diff {
 
     constructor() {
         for (let m = 0; m < 14; m++) {
+            this.squares[m] = [];
             for (let n = 0; n < 14; n++) {
-                this.squares[m].push(new DiffSquare(m, n));
+                this.squares[m][n] = new DiffSquare(m, n);
             }
         }
     }
@@ -300,29 +303,32 @@ class Factory {
     }
 
     createAddedAndRemovedBoards(turn: Turn, mr: MutationRecord): void {
-        const aro = mr.addedNodes;
-        const rro = mr.removedNodes;
-        if (aro.length !== 0 && rro.length !== 0) {
-            for (let m = 0; m < 14; m++) {
-                for (let n = 0; n < 14; n++) {
-                    const aco = aro[m].childNodes[n];
-                    const rco = rro[m].childNodes[n];
-                    if (aco instanceof HTMLElement &&
-                        rco instanceof HTMLElement) {
-                        const apn = this.piece(aco.childNodes);
-                        const rpn = this.piece(rco.childNodes);
-                        if (apn) {
-                            const code = apn.attributes["data-piece"];
-                            if (code) {
-                                const pc = Piece.create(code.value);
-                                turn.added.square(code).piece = pc;
+        const ds = mr.target.attributes["data-square"];
+        if (ds) {
+            const aro = mr.addedNodes;
+            const rro = mr.removedNodes;
+            if (aro.length !== 0 && rro.length !== 0) {
+                for (let m = 0; m < 14; m++) {
+                    for (let n = 0; n < 14; n++) {
+                        const aco = aro[m].childNodes[n];
+                        const rco = rro[m].childNodes[n];
+                        if (aco instanceof HTMLElement &&
+                            rco instanceof HTMLElement) {
+                            const apn = this.piece(aco.childNodes);
+                            const rpn = this.piece(rco.childNodes);
+                            if (apn) {
+                                const dp = apn.attributes["data-piece"];
+                                if (dp) {
+                                    const pc = Piece.create(dp.value);
+                                    turn.added.square(ds.value).piece = pc;
+                                }
                             }
-                        }
-                        if (rpn) {
-                            const code = rpn.attributes["data-piece"];
-                            if (code) {
-                                const pc = Piece.create(code.value);
-                                turn.removed.square(code).piece = pc;
+                            if (rpn) {
+                                const dp = rpn.attributes["data-piece"];
+                                if (dp) {
+                                    const pc = Piece.create(dp.value);
+                                    turn.removed.square(ds.value).piece = pc;
+                                }
                             }
                         }
                     }
