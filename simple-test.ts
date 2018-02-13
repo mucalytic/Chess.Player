@@ -95,7 +95,7 @@ abstract class Piece {
             case "N":
                 return new Knight(dp);
             default:
-                return null;
+                return undefined;
         }
     }
 
