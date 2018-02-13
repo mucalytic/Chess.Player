@@ -185,13 +185,19 @@ var Knight = (function (_super) {
     return Knight;
 }(Piece));
 var Square = (function () {
-    function Square(code) {
-        _a = this.convert(code), this.m = _a[0], this.n = _a[1];
-        this.code = code;
-        var _a;
+    function Square() {
     }
-    Square.prototype.convert = function (code) {
-        return [code.charCodeAt(0), parseInt(code.slice(1))];
+    Square.prototype.initFromCode = function (code) {
+        this.n = parseInt(code.slice(1));
+        this.m = code.charCodeAt(0);
+        this.code = code;
+        return this;
+    };
+    Square.prototype.initFromCoords = function (m, n) {
+        this.code = "" + String.fromCharCode(n + 97) + (m + 1);
+        this.m = m;
+        this.n = n;
+        return this;
     };
     return Square;
 }());
@@ -263,51 +269,70 @@ var Factory = (function () {
             mr = mrc[0], index = mrc[1];
             var turn = new Turn(index);
             _this.turns.push(turn);
-            for (var m = 0; m < 14; m++) {
-                var aro = mr[m].addedNodes;
-                var rro = mr[m].removedNodes;
-                for (var n = 0; n < 14; n++) {
-                    var aco = aro[m].childNodes[n];
-                    var rco = rro[m].childNodes[n];
-                    if (aco instanceof HTMLElement &&
-                        rco instanceof HTMLElement) {
-                        var apn = _this.piece(aco.childNodes);
-                        var rpn = _this.piece(rco.childNodes);
-                        var asq = new Square(aco.dataset["square"]);
-                        var rsq = new Square(rco.dataset["square"]);
-                        var dsq = new DiffSquare(aco.dataset["square"]);
-                        if (apn) {
-                            asq.piece = Piece.create(apn.attributes["data-piece"].value);
-                        }
-                        if (rpn) {
-                            rsq.piece = Piece.create(rpn.attributes["data-piece"].value);
-                        }
-                        if (!rsq.piece && asq.piece) {
-                            turn.diff.additions.push(asq);
-                            dsq.piece = asq.piece;
-                            dsq.change = "+";
-                        }
-                        if (rsq.piece && !asq.piece) {
-                            turn.diff.removals.push(rsq);
-                            dsq.piece = rsq.piece;
-                            dsq.change = "-";
-                        }
-                        if (rsq.piece && asq.piece) {
-                            if (rsq.piece.dp !== asq.piece.dp) {
+            var aro = mr.addedNodes;
+            var rro = mr.removedNodes;
+            if (aro.length !== 0 && rro.length !== 0) {
+                console.log("A");
+                for (var m = 0; m < 14; m++) {
+                    console.log("B");
+                    for (var n = 0; n < 14; n++) {
+                        console.log("C");
+                        var aco = aro[m].childNodes[n];
+                        var rco = rro[m].childNodes[n];
+                        if (aco instanceof HTMLElement &&
+                            rco instanceof HTMLElement) {
+                            console.log("D");
+                            var apn = _this.piece(aco.childNodes);
+                            var rpn = _this.piece(rco.childNodes);
+                            var asq = new Square().initFromCode(aco.dataset["square"]);
+                            var rsq = new Square().initFromCode(rco.dataset["square"]);
+                            var dsq = new DiffSquare().initFromCode(aco.dataset["square"]);
+                            console.log("E");
+                            if (apn) {
+                                console.log("F");
+                                asq.piece = Piece.create(apn.attributes["data-piece"].value);
+                                console.log("G");
+                            }
+                            console.log("H");
+                            if (rpn) {
+                                console.log("I");
+                                rsq.piece = Piece.create(rpn.attributes["data-piece"].value);
+                                console.log("J");
+                            }
+                            console.log("K");
+                            if (!rsq.piece && asq.piece) {
+                                turn.diff.additions.push(asq);
                                 dsq.piece = asq.piece;
-                                if (asq.piece.player.name === "Dead") {
-                                    turn.diff.deaths.push(asq);
-                                    dsq.change = "x";
-                                }
-                                else {
-                                    turn.diff.captures.push(asq);
-                                    dsq.change = "*";
+                                dsq.change = "+";
+                            }
+                            console.log("L");
+                            if (rsq.piece && !asq.piece) {
+                                turn.diff.removals.push(rsq);
+                                dsq.piece = rsq.piece;
+                                dsq.change = "-";
+                            }
+                            console.log("M");
+                            if (rsq.piece && asq.piece) {
+                                if (rsq.piece.dp !== asq.piece.dp) {
+                                    dsq.piece = asq.piece;
+                                    if (asq.piece.player.name === "Dead") {
+                                        turn.diff.deaths.push(asq);
+                                        dsq.change = "x";
+                                    }
+                                    else {
+                                        turn.diff.captures.push(asq);
+                                        dsq.change = "*";
+                                    }
                                 }
                             }
+                            console.log("N: %O", rsq);
+                            turn.removed.add(rsq);
+                            console.log("O");
+                            turn.added.add(asq);
+                            console.log("P");
+                            turn.diff.add(dsq);
+                            console.log("Q");
                         }
-                        turn.removed.add(rsq);
-                        turn.added.add(asq);
-                        turn.diff.add(dsq);
                     }
                 }
             }
