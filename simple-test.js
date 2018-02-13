@@ -195,6 +195,13 @@ var Square = (function () {
     };
     return Square;
 }());
+var DiffSquare = (function (_super) {
+    __extends(DiffSquare, _super);
+    function DiffSquare() {
+        return _super !== null && _super.apply(this, arguments) || this;
+    }
+    return DiffSquare;
+}(Square));
 var Board = (function () {
     function Board() {
         this.squares = [];
@@ -203,6 +210,19 @@ var Board = (function () {
         this.squares[sq.m][sq.n] = sq;
     };
     return Board;
+}());
+var Diff = (function () {
+    function Diff() {
+        this.deaths = [];
+        this.captures = [];
+        this.removals = [];
+        this.additions = [];
+        this.squares = [];
+    }
+    Diff.prototype.add = function (sq) {
+        this.squares[sq.m][sq.n] = sq;
+    };
+    return Diff;
 }());
 var Turn = (function () {
     function Turn(index) {
@@ -213,18 +233,6 @@ var Turn = (function () {
     }
     return Turn;
 }());
-var Diff = (function (_super) {
-    __extends(Diff, _super);
-    function Diff() {
-        var _this = _super !== null && _super.apply(this, arguments) || this;
-        _this.deaths = [];
-        _this.captures = [];
-        _this.removals = [];
-        _this.additions = [];
-        return _this;
-    }
-    return Diff;
-}(Board));
 var Factory = (function () {
     function Factory() {
         this.turns = [];
@@ -265,9 +273,9 @@ var Factory = (function () {
                         rco instanceof HTMLElement) {
                         var apn = _this.piece(aco.childNodes);
                         var rpn = _this.piece(rco.childNodes);
-                        var dsq = new Square(aco.dataset["square"]);
                         var asq = new Square(aco.dataset["square"]);
                         var rsq = new Square(rco.dataset["square"]);
+                        var dsq = new DiffSquare(aco.dataset["square"]);
                         if (apn) {
                             asq.piece = Piece.create(apn.attributes["data-piece"].value);
                         }

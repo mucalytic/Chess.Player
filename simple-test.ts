@@ -209,7 +209,6 @@ class Square {
     n: number;
     code: string;
     piece?: Piece;
-    change?: string;
 
     convert(code: string): number[] {
         return [code.charCodeAt(0), parseInt(code.slice(1))];
@@ -221,10 +220,26 @@ class Square {
     }
 }
 
+class DiffSquare extends Square {
+    change?: string;
+}
+
 class Board {
     squares: Square[][] = [];
 
     add(sq: Square): void {
+        this.squares[sq.m][sq.n] = sq;
+    }
+}
+
+class Diff {
+    deaths: Square[] = [];
+    captures: Square[] = [];
+    removals: Square[] = [];
+    additions: Square[] = [];
+    squares: DiffSquare[][] = [];
+
+    add(sq: DiffSquare): void {
         this.squares[sq.m][sq.n] = sq;
     }
 }
@@ -241,13 +256,6 @@ class Turn {
         this.added = new Board();
         this.removed = new Board();
     }
-}
-
-class Diff extends Board {
-    deaths: Square[] = [];
-    captures: Square[] = [];
-    removals: Square[] = [];
-    additions: Square[] = [];
 }
 
 class Factory {
@@ -289,9 +297,9 @@ class Factory {
                             rco instanceof HTMLElement) {
                             const apn = this.piece(aco.childNodes);
                             const rpn = this.piece(rco.childNodes);
-                            const dsq = new Square(aco.dataset["square"]);
                             const asq = new Square(aco.dataset["square"]);
                             const rsq = new Square(rco.dataset["square"]);
+                            const dsq = new DiffSquare(aco.dataset["square"]);
                             if (apn) {
                                 asq.piece = Piece.create(apn.attributes["data-piece"].value);
                             }
