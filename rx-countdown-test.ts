@@ -1,4 +1,4 @@
-﻿/// <reference path="./node_modules/rx/ts/rx.d.ts" />
+/// <reference path="./node_modules/rx/ts/rx.d.ts" />
 
 class CountdownHelper {
     counter: number = 60;
@@ -23,7 +23,24 @@ class CountdownHelper {
         return parseFloat(mr.oldValue.trim().split(":")[1]);
     }
 
-    process(mr: MutationRecord): void {
+    reset(mr: MutationRecord): void {
+        if (mr.type === "childList" &&
+            mr.target instanceof HTMLDivElement &&
+            mr.target.classList.length === 0 &&
+            mr.addedNodes.length === 1) {
+            const modal = mr.addedNodes[0];
+            if (modal instanceof HTMLElement &&
+                modal.classList.contains("modal-container")) {
+                const go = modal.querySelector(".game-over-container");
+                if (go) {
+                    this.utterances = [60];
+                    this.counter = 60;
+                }
+            }
+        }
+    }
+
+    utter(mr: MutationRecord): void {
         if (mr.type === "characterData") {
             const timer = mr.target.parentNode.parentNode;
             if (timer) {
@@ -97,18 +114,19 @@ class DomWatcher {
         });
         this.subscription = this.subject
             .subscribe(
-                mr => {
-                    this.records.push(mr);
-                    this.countdown.process(mr);
-                },
-                ex => {
-                    console.log("Rx: Exception: %o", ex);
-                    this.observer.disconnect();
-                },
-                () => {
-                    console.log("Rx: Completed");
-                    this.observer.disconnect();
-                });
+            mr => {
+                this.records.push(mr);
+                this.countdown.reset(mr);
+                this.countdown.utter(mr);
+            },
+            ex => {
+                console.log("Rx: Exception: %o", ex);
+                this.observer.disconnect();
+            },
+            () => {
+                console.log("Rx: Completed");
+                this.observer.disconnect();
+            });
     }
 
     constructor() {
