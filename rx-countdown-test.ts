@@ -114,19 +114,19 @@ class DomWatcher {
         });
         this.subscription = this.subject
             .subscribe(
-            mr => {
-                this.records.push(mr);
-                this.countdown.reset(mr);
-                this.countdown.utter(mr);
-            },
-            ex => {
-                console.log("Rx: Exception: %o", ex);
-                this.observer.disconnect();
-            },
-            () => {
-                console.log("Rx: Completed");
-                this.observer.disconnect();
-            });
+                mr => {
+                    this.records.push(mr);
+                    this.countdown.reset(mr);
+                    this.countdown.utter(mr);
+                },
+                ex => {
+                    console.log("Rx: Exception: %o", ex);
+                    this.observer.disconnect();
+                },
+                () => {
+                    console.log("Rx: Completed");
+                    this.observer.disconnect();
+                });
     }
 
     constructor() {
