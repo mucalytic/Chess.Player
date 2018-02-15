@@ -147,7 +147,6 @@ class DomModifier {
                     }
 
                     anchorOn.addEventListener("click", () => {
-                        console.log("On clicked");
                         this.countdownHelper.enabled = true;
                         btnOff.style.display = "block";
                         btnOn.style.display = "none";
