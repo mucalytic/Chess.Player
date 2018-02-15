@@ -1,53 +1,119 @@
 var CountdownHelper = (function () {
     function CountdownHelper() {
-        var _this = this;
-        this.options = {
+        this.counter = 60;
+        this.enabled = false;
+        this.utterances = [60];
+    }
+    CountdownHelper.prototype.username = function () {
+        return document.getElementById("four-player-username").innerText;
+    };
+    CountdownHelper.prototype.avatar = function (nodes) {
+        for (var i = 0; i < nodes.length; i++) {
+            var node = nodes[i];
+            if (node instanceof HTMLElement &&
+                node.classList.contains("player-avatar")) {
+                return node;
+            }
+        }
+        return undefined;
+    };
+    CountdownHelper.prototype.current = function (mr) {
+        return parseFloat(mr.oldValue.trim().split(":")[1]);
+    };
+    CountdownHelper.prototype.reset = function (mr) {
+        if (mr.type === "childList" &&
+            mr.target instanceof HTMLDivElement &&
+            mr.target.classList.length === 0 &&
+            mr.addedNodes.length === 1) {
+            var modal = mr.addedNodes[0];
+            if (modal instanceof HTMLElement &&
+                modal.classList.contains("modal-container")) {
+                var go = modal.querySelector(".game-over-container");
+                if (go) {
+                    console.log("Reset happened");
+                    this.utterances = [60];
+                    this.counter = 60;
+                }
+            }
+        }
+    };
+    CountdownHelper.prototype.utter = function (mr) {
+        if (this.enabled) {
+            if (mr.type === "characterData") {
+                var timer = mr.target.parentNode.parentNode;
+                if (timer) {
+                    if (timer instanceof HTMLElement &&
+                        timer.classList.contains("player-clock-timer")) {
+                        var avatar = this.avatar(timer.childNodes);
+                        if (avatar) {
+                            if (avatar instanceof HTMLAnchorElement) {
+                                if (avatar.pathname === "/member/" + this.username()) {
+                                    var c = this.current(mr);
+                                    if (this.counter - c > 0 &&
+                                        this.counter - c <= 1) {
+                                        this.counter = c;
+                                    }
+                                    if (this.counter % 5 === 0 &&
+                                        this.counter !== this.utterances[0]) {
+                                        var words = this.counter + " seconds left";
+                                        var utterance = new SpeechSynthesisUtterance(words);
+                                        utterance.rate = 1.8;
+                                        window.speechSynthesis.speak(utterance);
+                                        this.utterances.unshift(this.counter);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    };
+    return CountdownHelper;
+}());
+var DomWatcher = (function () {
+    function DomWatcher() {
+        this.records = [];
+        this.countdown = new CountdownHelper();
+        this.init = {
+            characterDataOldValue: true,
+            attributeOldValue: true,
             characterData: true,
             attributes: true,
             childList: true,
             subtree: true
         };
-        this.record = [];
-        this.username = document.getElementById("four-player-username").innerText;
-        this.gameover = new MutationObserver(function (mutations) {
-            mutations.forEach(function (mutation) {
-                _this.record.push(mutation);
-            });
-        });
+        this.createDocumentBodyObserverSubscription();
+        this.observer.observe(document.body, this.init);
     }
-    CountdownHelper.prototype.start = function () {
-        this.reset();
-        this.gameover.observe(document.body, this.options);
-        console.log("observers started");
+    DomWatcher.prototype.createDocumentBodyObserverSubscription = function () {
+        var _this = this;
+        this.subject = new Rx.Subject();
+        this.observer = new MutationObserver(function (mrs) {
+            mrs.forEach(function (mr) { return _this.subject.onNext(mr); });
+        });
+        this.subscription = this.subject
+            .subscribe(function (mr) {
+            _this.records.push(mr);
+            _this.countdown.reset(mr);
+            _this.countdown.utter(mr);
+        }, function (ex) {
+            console.log("Rx: Exception: %o", ex);
+            _this.observer.disconnect();
+        }, function () {
+            console.log("Rx: Completed");
+            _this.observer.disconnect();
+        });
     };
-    CountdownHelper.prototype.stop = function () {
-        this.gameover.disconnect();
-        console.log("observers stopped");
-    };
-    CountdownHelper.prototype.reset = function () {
-        this.counter = 60;
-        this.utterances = [60];
-        console.log("counters reset");
-    };
-    return CountdownHelper;
+    return DomWatcher;
 }());
 var DomModifier = (function () {
     function DomModifier() {
-        this.src = "https://rawgit.com/Reactive-Extensions/RxJS/master/dist/rx.all.min.js";
         this.countdownHelper = new CountdownHelper();
+        this.domWatcher = new DomWatcher();
+        this.rightAlignStartButton();
+        this.addStartAiButton();
     }
-    DomModifier.prototype.addRx = function () {
-        var scripts = document.getElementsByTagName("script");
-        for (var i = 0; i < scripts.length; i++) {
-            if (scripts[i].src === this.src) {
-                return this;
-            }
-        }
-        var script = document.createElement("script");
-        document.body.appendChild(script);
-        script.src = this.src;
-        return this;
-    };
     DomModifier.prototype.addStartAiButton = function () {
         var _this = this;
         var btnNewGame = document.getElementsByClassName("btns-container")[0];
@@ -75,16 +141,16 @@ var DomModifier = (function () {
                             anchorOff.style.borderBottom = "#272422";
                             anchorOff.style.backgroundColor = "#272422";
                             anchorOff.addEventListener("click", function () {
+                                _this.countdownHelper.enabled = false;
                                 btnOn_1.style.display = "block";
                                 btnOff_1.style.display = "none";
-                                _this.countdownHelper.stop();
                             });
                         }
                     }
                     anchorOn.addEventListener("click", function () {
+                        _this.countdownHelper.enabled = true;
                         btnOff_1.style.display = "block";
                         btnOn_1.style.display = "none";
-                        _this.countdownHelper.start();
                     });
                 }
                 btnNewGame.parentNode.appendChild(btnOn_1);
@@ -108,7 +174,4 @@ var DomModifier = (function () {
     };
     return DomModifier;
 }());
-var modifier = new DomModifier()
-    .rightAlignStartButton()
-    .addStartAiButton()
-    .addRx();
+var modifier = new DomModifier();

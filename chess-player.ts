@@ -1,122 +1,127 @@
-class CountdownHelper {
-    private readonly gameover: MutationObserver;
-    //private readonly countdown: MutationObserver;
+/// <reference path="./node_modules/rx/ts/rx.d.ts" />
 
-    options: MutationObserverInit = {
+class CountdownHelper {
+    counter: number = 60;
+    enabled: boolean = false;
+    utterances: number[] = [60];
+
+    username(): string {
+        return document.getElementById("four-player-username").innerText;
+    }
+
+    avatar(nodes: NodeList): Node {
+        for (let i = 0; i < nodes.length; i++) {
+            const node = nodes[i];
+            if (node instanceof HTMLElement &&
+                node.classList.contains("player-avatar")) {
+                return node;
+            }
+        }
+        return undefined;
+    }
+
+    current(mr: MutationRecord): number {
+        return parseFloat(mr.oldValue.trim().split(":")[1]);
+    }
+
+    reset(mr: MutationRecord): void {
+        if (mr.type === "childList" &&
+            mr.target instanceof HTMLDivElement &&
+            mr.target.classList.length === 0 &&
+            mr.addedNodes.length === 1) {
+            const modal = mr.addedNodes[0];
+            if (modal instanceof HTMLElement &&
+                modal.classList.contains("modal-container")) {
+                const go = modal.querySelector(".game-over-container");
+                if (go) {
+                    console.log("Reset happened");
+                    this.utterances = [60];
+                    this.counter = 60;
+                }
+            }
+        }
+    }
+
+    utter(mr: MutationRecord): void {
+        if (this.enabled) {
+            if (mr.type === "characterData") {
+                const timer = mr.target.parentNode.parentNode;
+                if (timer) {
+                    if (timer instanceof HTMLElement &&
+                        timer.classList.contains("player-clock-timer")) {
+                        const avatar = this.avatar(timer.childNodes);
+                        if (avatar) {
+                            if (avatar instanceof HTMLAnchorElement) {
+                                if (avatar.pathname === "/member/" + this.username()) {
+                                    const c = this.current(mr);
+                                    if (this.counter - c > 0 &&
+                                        this.counter - c <= 1) {
+                                        this.counter = c;
+                                    }
+                                    if (this.counter % 5 === 0 &&
+                                        this.counter !== this.utterances[0]) {
+                                        const words = this.counter + " seconds left";
+                                        const utterance = new SpeechSynthesisUtterance(words);
+                                        utterance.rate = 1.8;
+                                        window.speechSynthesis.speak(utterance);
+                                        this.utterances.unshift(this.counter);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+class DomWatcher {
+    observer: MutationObserver;
+    subscription: Rx.IDisposable;
+    records: MutationRecord[] = [];
+    countdown = new CountdownHelper();
+    subject: Rx.Subject<MutationRecord>;
+    init: MutationObserverInit = {
+        characterDataOldValue: true,
+        attributeOldValue: true,
         characterData: true,
         attributes: true,
         childList: true,
         subtree: true
     };
 
-    record: MutationRecord[] = [];
-    utterances: number[];
-    username: string;
-    counter: number;
-
-    //clock(): HTMLDivElement {
-    //    const avatars = document.getElementsByClassName("player-avatar");
-    //    console.log("avatars: %o", avatars);
-    //    for (let i = 0; i < avatars.length; i++) {
-    //        const avatar = avatars[i];
-    //        console.log("avatar[%i]: %o", i, avatar);
-    //        if (avatar instanceof HTMLAnchorElement) {
-    //            console.log("avatar.pathname: %s", avatar.pathname);
-    //            if (avatar.pathname === "/member/" + name) {
-    //                const clock = avatar.nextElementSibling;
-    //                console.log("avatar.nextElementSibling: %o", clock);
-    //                if (clock instanceof HTMLDivElement) {
-    //                    if (clock.classList.contains("clock")) {
-    //                        console.log("clock: %o", clock);
-    //                        return clock;
-    //                    }
-    //                }
-    //            }
-    //        }
-    //    }
-    //    return null;
-    //}
-
-    start(): void {
-        this.reset();
-        //const clock = this.clock();
-        //this.countdown.observe(clock, this.options);
-        this.gameover.observe(document.body, this.options);
-        console.log("observers started");
-    }
-
-    stop(): void {
-        this.gameover.disconnect();
-        //this.countdown.disconnect();
-        console.log("observers stopped");
-    }
-
-    reset(): void {
-        this.counter = 60;
-        this.utterances = [60];
-        console.log("counters reset");
+    createDocumentBodyObserverSubscription(): void {
+        this.subject = new Rx.Subject<MutationRecord>();
+        this.observer = new MutationObserver(mrs => {
+            mrs.forEach(mr => this.subject.onNext(mr));
+        });
+        this.subscription = this.subject
+            .subscribe(
+                mr => {
+                    this.records.push(mr);
+                    this.countdown.reset(mr);
+                    this.countdown.utter(mr);
+                },
+                ex => {
+                    console.log("Rx: Exception: %o", ex);
+                    this.observer.disconnect();
+                },
+                () => {
+                    console.log("Rx: Completed");
+                    this.observer.disconnect();
+                });
     }
 
     constructor() {
-        this.username = document.getElementById("four-player-username").innerText;
-        //this.countdown = new MutationObserver(mutations => {
-        //    mutations.forEach(mutation => {
-        //        const target = mutation.target;
-        //        if (target instanceof HTMLDivElement) {
-        //            console.log("cd: %o", target);
-        //            const c = parseFloat(target.innerText.trim().split(":")[1]);
-        //            if (this.counter - c > 0 && this.counter - c <= 1) {
-        //                this.counter = c;
-        //            }
-        //            if (this.counter % 5 === 0 &&
-        //                this.counter !== this.utterances[0]) {
-        //                const words = this.counter + " seconds left";
-        //                const utterance = new SpeechSynthesisUtterance(words);
-        //                utterance.rate = 1.8;
-        //                window.speechSynthesis.speak(utterance);
-        //                this.utterances.unshift(this.counter);
-        //            }
-        //        }
-        //    });
-        //});
-        //this.gameover = new MutationObserver(mutations => {
-        //    mutations.forEach(mutation => {
-        //        if (mutation.type === "childList" &&
-        //            mutation.addedNodes.length === 1) {
-        //            const node = mutation.addedNodes[0];
-        //            if (node instanceof HTMLElement) {
-        //                console.log("go: %o", node);
-        //                if (node.classList.contains("game-over-container")) {
-        //                    this.reset();
-        //                }
-        //            }
-        //        }
-        //    });
-        //});
-        this.gameover = new MutationObserver(mutations => {
-            mutations.forEach(mutation => {
-                this.record.push(mutation);
-            });
-        });
+        this.createDocumentBodyObserverSubscription();
+        this.observer.observe(document.body, this.init);
     }
 }
 
 class DomModifier {
-    src: string = "https://rawgit.com/Reactive-Extensions/RxJS/master/dist/rx.all.min.js";
+    domWatcher: DomWatcher;
     countdownHelper: CountdownHelper;
-
-    addRx(): DomModifier {
-        const scripts: NodeListOf<HTMLScriptElement> = document.getElementsByTagName("script");
-        for (let i = 0; i < scripts.length; i++) {
-            if (scripts[i].src === this.src) {
-                return this;
-            }
-        }
-        const script = document.createElement("script");
-        document.body.appendChild(script);
-        script.src = this.src;
-        return this;
-    }
 
     addStartAiButton(): DomModifier {
         const btnNewGame = document.getElementsByClassName("btns-container")[0];
@@ -148,17 +153,17 @@ class DomModifier {
                             anchorOff.style.borderBottom = "#272422";
                             anchorOff.style.backgroundColor = "#272422";
                             anchorOff.addEventListener("click", () => {
+                                this.countdownHelper.enabled = false;
                                 btnOn.style.display = "block";
                                 btnOff.style.display = "none";
-                                this.countdownHelper.stop();
                             });
                         }
                     }
 
                     anchorOn.addEventListener("click", () => {
+                        this.countdownHelper.enabled = true;
                         btnOff.style.display = "block";
                         btnOn.style.display = "none";
-                        this.countdownHelper.start();
                     });
                 }
 
@@ -185,10 +190,10 @@ class DomModifier {
 
     constructor() {
         this.countdownHelper = new CountdownHelper();
+        this.domWatcher = new DomWatcher();
+        this.rightAlignStartButton();
+        this.addStartAiButton();
     }
 }
 
-var modifier = new DomModifier()
-    .rightAlignStartButton()
-    .addStartAiButton()
-    .addRx();
+var modifier = new DomModifier();

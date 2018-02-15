@@ -33,6 +33,7 @@ class CountdownHelper {
                 modal.classList.contains("modal-container")) {
                 const go = modal.querySelector(".game-over-container");
                 if (go) {
+                    console.log("Reset happened");
                     this.utterances = [60];
                     this.counter = 60;
                 }

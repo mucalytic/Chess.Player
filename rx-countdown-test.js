@@ -19,7 +19,24 @@ var CountdownHelper = (function () {
     CountdownHelper.prototype.current = function (mr) {
         return parseFloat(mr.oldValue.trim().split(":")[1]);
     };
-    CountdownHelper.prototype.process = function (mr) {
+    CountdownHelper.prototype.reset = function (mr) {
+        if (mr.type === "childList" &&
+            mr.target instanceof HTMLDivElement &&
+            mr.target.classList.length === 0 &&
+            mr.addedNodes.length === 1) {
+            var modal = mr.addedNodes[0];
+            if (modal instanceof HTMLElement &&
+                modal.classList.contains("modal-container")) {
+                var go = modal.querySelector(".game-over-container");
+                if (go) {
+                    console.log("Reset happened");
+                    this.utterances = [60];
+                    this.counter = 60;
+                }
+            }
+        }
+    };
+    CountdownHelper.prototype.utter = function (mr) {
         if (mr.type === "characterData") {
             var timer = mr.target.parentNode.parentNode;
             if (timer) {
@@ -93,7 +110,8 @@ var DomWatcher = (function () {
         this.subscription = this.subject
             .subscribe(function (mr) {
             _this.records.push(mr);
-            _this.countdown.process(mr);
+            _this.countdown.reset(mr);
+            _this.countdown.utter(mr);
         }, function (ex) {
             console.log("Rx: Exception: %o", ex);
             _this.observer.disconnect();
