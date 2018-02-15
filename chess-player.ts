@@ -34,7 +34,7 @@ class CountdownHelper {
                 modal.classList.contains("modal-container")) {
                 const go = modal.querySelector(".game-over-container");
                 if (go) {
-                    console.log("Reset happened");
+                    console.log("countdown helper counter reset");
                     this.utterances = [60];
                     this.counter = 60;
                 }
@@ -43,6 +43,7 @@ class CountdownHelper {
     }
 
     utter(mr: MutationRecord): void {
+        console.log(this.enabled);
         if (this.enabled) {
             if (mr.type === "characterData") {
                 const timer = mr.target.parentNode.parentNode;
@@ -79,7 +80,7 @@ class CountdownHelper {
 class DomWatcher {
     observer: MutationObserver;
     records: MutationRecord[] = [];
-    countdown = new CountdownHelper();
+    helper = new CountdownHelper();
     init: MutationObserverInit = {
         characterDataOldValue: true,
         attributeOldValue: true,
@@ -92,8 +93,8 @@ class DomWatcher {
     createDocumentBodyObserverSubscription(): void {
         this.observer = new MutationObserver(mrs => {
             mrs.forEach(mr => {
-                this.countdown.reset(mr);
-                this.countdown.utter(mr);
+                this.helper.reset(mr);
+                this.helper.utter(mr);
                 this.records.push(mr);
             });
         });
@@ -107,7 +108,6 @@ class DomWatcher {
 
 class DomModifier {
     domWatcher: DomWatcher;
-    countdownHelper: CountdownHelper;
 
     addStartAiButton(): DomModifier {
         const btnNewGame = document.getElementsByClassName("btns-container")[0];
@@ -139,7 +139,7 @@ class DomModifier {
                             anchorOff.style.borderBottom = "#272422";
                             anchorOff.style.backgroundColor = "#272422";
                             anchorOff.addEventListener("click", () => {
-                                this.countdownHelper.enabled = false;
+                                this.domWatcher.helper.enabled = false;
                                 btnOff.style.display = "none";
                                 btnOn.style.display = "block";
                             });
@@ -147,7 +147,7 @@ class DomModifier {
                     }
 
                     anchorOn.addEventListener("click", () => {
-                        this.countdownHelper.enabled = true;
+                        this.domWatcher.helper.enabled = true;
                         btnOff.style.display = "block";
                         btnOn.style.display = "none";
                     });
@@ -175,7 +175,6 @@ class DomModifier {
     }
 
     constructor() {
-        this.countdownHelper = new CountdownHelper();
         this.domWatcher = new DomWatcher();
         this.rightAlignStartButton();
         this.addStartAiButton();
