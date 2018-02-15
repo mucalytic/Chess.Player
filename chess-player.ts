@@ -43,7 +43,6 @@ class CountdownHelper {
     }
 
     utter(mr: MutationRecord): void {
-        console.log(this.enabled);
         if (this.enabled) {
             if (mr.type === "characterData") {
                 const timer = mr.target.parentNode.parentNode;
