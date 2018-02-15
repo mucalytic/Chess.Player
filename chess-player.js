@@ -4,6 +4,12 @@ var CountdownHelper = (function () {
         this.enabled = false;
         this.utterances = [60];
     }
+    CountdownHelper.prototype.enable = function () {
+        this.enabled = true;
+    };
+    CountdownHelper.prototype.disable = function () {
+        this.enabled = false;
+    };
     CountdownHelper.prototype.username = function () {
         return document.getElementById("four-player-username").innerText;
     };
@@ -141,14 +147,14 @@ var DomModifier = (function () {
                             anchorOff.style.borderBottom = "#272422";
                             anchorOff.style.backgroundColor = "#272422";
                             anchorOff.addEventListener("click", function () {
-                                _this.countdownHelper.enabled = false;
+                                _this.countdownHelper.enable();
                                 btnOn_1.style.display = "block";
                                 btnOff_1.style.display = "none";
                             });
                         }
                     }
                     anchorOn.addEventListener("click", function () {
-                        _this.countdownHelper.enabled = true;
+                        _this.countdownHelper.disable();
                         btnOff_1.style.display = "block";
                         btnOn_1.style.display = "none";
                     });
