@@ -92,10 +92,8 @@ class CountdownHelper {
 
 class DomWatcher {
     observer: MutationObserver;
-    subscription: Rx.IDisposable;
     records: MutationRecord[] = [];
     countdown = new CountdownHelper();
-    subject: Rx.Subject<MutationRecord>;
     init: MutationObserverInit = {
         characterDataOldValue: true,
         attributeOldValue: true,
@@ -106,25 +104,13 @@ class DomWatcher {
     };
 
     createDocumentBodyObserverSubscription(): void {
-        this.subject = new Rx.Subject<MutationRecord>();
         this.observer = new MutationObserver(mrs => {
-            mrs.forEach(mr => this.subject.onNext(mr));
+            mrs.forEach(mr => {
+                this.countdown.reset(mr);
+                this.countdown.utter(mr);
+                this.records.push(mr);
+            });
         });
-        this.subscription = this.subject
-            .subscribe(
-                mr => {
-                    this.records.push(mr);
-                    this.countdown.reset(mr);
-                    this.countdown.utter(mr);
-                },
-                ex => {
-                    console.log("Rx: Exception: %o", ex);
-                    this.observer.disconnect();
-                },
-                () => {
-                    console.log("Rx: Completed");
-                    this.observer.disconnect();
-                });
     }
 
     constructor() {
