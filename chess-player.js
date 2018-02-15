@@ -4,12 +4,6 @@ var CountdownHelper = (function () {
         this.enabled = false;
         this.utterances = [60];
     }
-    CountdownHelper.prototype.enable = function () {
-        this.enabled = true;
-    };
-    CountdownHelper.prototype.disable = function () {
-        this.enabled = false;
-    };
     CountdownHelper.prototype.username = function () {
         return document.getElementById("four-player-username").innerText;
     };
@@ -36,7 +30,7 @@ var CountdownHelper = (function () {
                 modal.classList.contains("modal-container")) {
                 var go = modal.querySelector(".game-over-container");
                 if (go) {
-                    console.log("Reset happened");
+                    console.log("countdown helper counter reset");
                     this.utterances = [60];
                     this.counter = 60;
                 }
@@ -80,7 +74,7 @@ var CountdownHelper = (function () {
 var DomWatcher = (function () {
     function DomWatcher() {
         this.records = [];
-        this.countdown = new CountdownHelper();
+        this.helper = new CountdownHelper();
         this.init = {
             characterDataOldValue: true,
             attributeOldValue: true,
@@ -96,8 +90,8 @@ var DomWatcher = (function () {
         var _this = this;
         this.observer = new MutationObserver(function (mrs) {
             mrs.forEach(function (mr) {
-                _this.countdown.reset(mr);
-                _this.countdown.utter(mr);
+                _this.helper.reset(mr);
+                _this.helper.utter(mr);
                 _this.records.push(mr);
             });
         });
@@ -106,7 +100,6 @@ var DomWatcher = (function () {
 }());
 var DomModifier = (function () {
     function DomModifier() {
-        this.countdownHelper = new CountdownHelper();
         this.domWatcher = new DomWatcher();
         this.rightAlignStartButton();
         this.addStartAiButton();
@@ -138,14 +131,14 @@ var DomModifier = (function () {
                             anchorOff.style.borderBottom = "#272422";
                             anchorOff.style.backgroundColor = "#272422";
                             anchorOff.addEventListener("click", function () {
-                                _this.countdownHelper.enable();
-                                btnOn_1.style.display = "block";
+                                _this.domWatcher.helper.enabled = false;
                                 btnOff_1.style.display = "none";
+                                btnOn_1.style.display = "block";
                             });
                         }
                     }
                     anchorOn.addEventListener("click", function () {
-                        _this.countdownHelper.disable();
+                        _this.domWatcher.helper.enabled = true;
                         btnOff_1.style.display = "block";
                         btnOn_1.style.display = "none";
                     });
