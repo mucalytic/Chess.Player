@@ -1,17 +1,9 @@
 /// <reference path="./node_modules/rx/ts/rx.d.ts" />
 
 class CountdownHelper {
-    utterances: number[];
-    enabled: boolean;
-    counter: number;
-
-    enable(): void {
-        this.enabled = true;
-    }
-
-    disable(): void {
-        this.enabled = false;
-    }
+    counter: number = 60;
+    enabled: boolean = false;
+    utterances: number[] = [60];
 
     username(): string {
         return document.getElementById("four-player-username").innerText;
@@ -82,12 +74,6 @@ class CountdownHelper {
             }
         }
     }
-
-    constructor() {
-        this.counter = 60;
-        this.enabled = false;
-        this.utterances = [60];
-    }
 }
 
 class DomWatcher {
@@ -153,15 +139,16 @@ class DomModifier {
                             anchorOff.style.borderBottom = "#272422";
                             anchorOff.style.backgroundColor = "#272422";
                             anchorOff.addEventListener("click", () => {
-                                this.countdownHelper.enable();
-                                btnOn.style.display = "block";
+                                this.countdownHelper.enabled = false;
                                 btnOff.style.display = "none";
+                                btnOn.style.display = "block";
                             });
                         }
                     }
 
                     anchorOn.addEventListener("click", () => {
-                        this.countdownHelper.disable();
+                        console.log("On clicked");
+                        this.countdownHelper.enabled = true;
                         btnOff.style.display = "block";
                         btnOn.style.display = "none";
                     });
