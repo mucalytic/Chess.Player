@@ -9,29 +9,91 @@ var __extends = (this && this.__extends) || (function () {
     };
 })();
 var Player = (function () {
-    function Player(dp) {
+    function Player() {
+    }
+    Player.create = function (dp) {
         switch (dp.charAt(0)) {
             case "w":
-                this.name = "Red";
-                break;
+                return new Red();
             case "g":
-                this.name = "Blue";
-                break;
-            case "d":
-                this.name = "Dead";
-                break;
-            case "r":
-                this.name = "Green";
-                break;
+                return new Blue();
             case "b":
-                this.name = "Yellow";
-                break;
+                return new Yellow();
+            case "r":
+                return new Green();
+            case "d":
+                return new Dead();
             default:
-                this.name = undefined;
+                return undefined;
         }
-    }
+    };
     return Player;
 }());
+var Red = (function (_super) {
+    __extends(Red, _super);
+    function Red() {
+        var _this = _super !== null && _super.apply(this, arguments) || this;
+        _this.name = "Red";
+        _this.turn = 1;
+        return _this;
+    }
+    Red.prototype.transform = function (x, y) {
+        return [x, y];
+    };
+    return Red;
+}(Player));
+var Blue = (function (_super) {
+    __extends(Blue, _super);
+    function Blue() {
+        var _this = _super !== null && _super.apply(this, arguments) || this;
+        _this.name = "Blue";
+        _this.turn = 2;
+        return _this;
+    }
+    Blue.prototype.transform = function (x, y) {
+        return [-y, x];
+    };
+    return Blue;
+}(Player));
+var Yellow = (function (_super) {
+    __extends(Yellow, _super);
+    function Yellow() {
+        var _this = _super !== null && _super.apply(this, arguments) || this;
+        _this.name = "Yellow";
+        _this.turn = 3;
+        return _this;
+    }
+    Yellow.prototype.transform = function (x, y) {
+        return [-x, -y];
+    };
+    return Yellow;
+}(Player));
+var Green = (function (_super) {
+    __extends(Green, _super);
+    function Green() {
+        var _this = _super !== null && _super.apply(this, arguments) || this;
+        _this.name = "Green";
+        _this.turn = 4;
+        return _this;
+    }
+    Green.prototype.transform = function (x, y) {
+        return [y, -x];
+    };
+    return Green;
+}(Player));
+var Dead = (function (_super) {
+    __extends(Dead, _super);
+    function Dead() {
+        var _this = _super !== null && _super.apply(this, arguments) || this;
+        _this.name = "Dead";
+        _this.turn = 0;
+        return _this;
+    }
+    Dead.prototype.transform = function (x, y) {
+        throw new Error("Not implemented");
+    };
+    return Dead;
+}(Player));
 var Vector = (function () {
     function Vector(dx, dy) {
         this.dx = dx;
@@ -62,7 +124,7 @@ var Radius = (function () {
 }());
 var Piece = (function () {
     function Piece(dp) {
-        this.player = new Player(dp);
+        this.player = Player.create(dp);
         this.dp = dp;
     }
     Piece.create = function (dp) {
@@ -92,6 +154,10 @@ var Rook = (function (_super) {
         _this.name = "Rook";
         _this.jump = false;
         _this.radius = new Radius();
+        _this.attack = [new Vector(function (x, r) { return x + r; }, function (y) { return y; }),
+            new Vector(function (x, r) { return x - r; }, function (y) { return y; }),
+            new Vector(function (x) { return x; }, function (y, r) { return y + r; }),
+            new Vector(function (x) { return x; }, function (y, r) { return y - r; })];
         _this.mobility = [new Vector(function (x, r) { return x + r; }, function (y) { return y; }),
             new Vector(function (x, r) { return x - r; }, function (y) { return y; }),
             new Vector(function (x) { return x; }, function (y, r) { return y + r; }),
@@ -107,6 +173,8 @@ var Pawn = (function (_super) {
         _this.name = "Pawn";
         _this.jump = false;
         _this.radius = new Radius(2);
+        _this.attack = [new Vector(function (x) { return x + 1; }, function (y) { return y + 1; }),
+            new Vector(function (x) { return x - 1; }, function (y) { return y + 1; })];
         _this.mobility = [new Vector(function (x) { return x; }, function (y, r) { return y + r; })];
         return _this;
     }
@@ -119,6 +187,14 @@ var King = (function (_super) {
         _this.name = "King";
         _this.jump = false;
         _this.radius = new Radius(1);
+        _this.attack = [new Vector(function (x) { return x + 1; }, function (y) { return y; }),
+            new Vector(function (x) { return x - 1; }, function (y) { return y; }),
+            new Vector(function (x) { return x; }, function (y) { return y + 1; }),
+            new Vector(function (x) { return x; }, function (y) { return y - 1; }),
+            new Vector(function (x) { return x + 1; }, function (y) { return y + 1; }),
+            new Vector(function (x) { return x + 1; }, function (y) { return y - 1; }),
+            new Vector(function (x) { return x - 1; }, function (y) { return y + 1; }),
+            new Vector(function (x) { return x - 1; }, function (y) { return y - 1; })];
         _this.mobility = [new Vector(function (x) { return x + 1; }, function (y) { return y; }),
             new Vector(function (x) { return x - 1; }, function (y) { return y; }),
             new Vector(function (x) { return x; }, function (y) { return y + 1; }),
@@ -138,6 +214,14 @@ var Queen = (function (_super) {
         _this.name = "Queen";
         _this.jump = false;
         _this.radius = new Radius();
+        _this.attack = [new Vector(function (x, r) { return x + r; }, function (y) { return y; }),
+            new Vector(function (x, r) { return x - r; }, function (y) { return y; }),
+            new Vector(function (x) { return x; }, function (y, r) { return y + r; }),
+            new Vector(function (x) { return x; }, function (y, r) { return y - r; }),
+            new Vector(function (x, r) { return x + r; }, function (y, r) { return y + r; }),
+            new Vector(function (x, r) { return x + r; }, function (y, r) { return y - r; }),
+            new Vector(function (x, r) { return x - r; }, function (y, r) { return y + r; }),
+            new Vector(function (x, r) { return x - r; }, function (y, r) { return y - r; })];
         _this.mobility = [new Vector(function (x, r) { return x + r; }, function (y) { return y; }),
             new Vector(function (x, r) { return x - r; }, function (y) { return y; }),
             new Vector(function (x) { return x; }, function (y, r) { return y + r; }),
@@ -157,6 +241,10 @@ var Bishop = (function (_super) {
         _this.name = "Bishop";
         _this.jump = false;
         _this.radius = new Radius();
+        _this.attack = [new Vector(function (x, r) { return x + r; }, function (y, r) { return y + r; }),
+            new Vector(function (x, r) { return x + r; }, function (y, r) { return y - r; }),
+            new Vector(function (x, r) { return x - r; }, function (y, r) { return y + r; }),
+            new Vector(function (x, r) { return x - r; }, function (y, r) { return y - r; })];
         _this.mobility = [new Vector(function (x, r) { return x + r; }, function (y, r) { return y + r; }),
             new Vector(function (x, r) { return x + r; }, function (y, r) { return y - r; }),
             new Vector(function (x, r) { return x - r; }, function (y, r) { return y + r; }),
@@ -172,6 +260,14 @@ var Knight = (function (_super) {
         _this.name = "Knight";
         _this.jump = true;
         _this.radius = new Radius(1);
+        _this.attack = [new Vector(function (x) { return x + 2; }, function (y) { return y + 1; }),
+            new Vector(function (x) { return x + 2; }, function (y) { return y - 1; }),
+            new Vector(function (x) { return x - 2; }, function (y) { return y + 1; }),
+            new Vector(function (x) { return x - 2; }, function (y) { return y - 1; }),
+            new Vector(function (x) { return x + 1; }, function (y) { return y + 2; }),
+            new Vector(function (x) { return x + 1; }, function (y) { return y - 2; }),
+            new Vector(function (x) { return x - 1; }, function (y) { return y + 2; }),
+            new Vector(function (x) { return x - 1; }, function (y) { return y - 2; })];
         _this.mobility = [new Vector(function (x) { return x + 2; }, function (y) { return y + 1; }),
             new Vector(function (x) { return x + 2; }, function (y) { return y - 1; }),
             new Vector(function (x) { return x - 2; }, function (y) { return y + 1; }),

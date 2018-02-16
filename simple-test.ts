@@ -11,29 +11,72 @@ interface Iterator<T> {
     throw?(e?: any): IteratorResult<T>;
 }
 
-class Player {
-    name: string;
+abstract class Player {
+    abstract name: string;
+    abstract turn: number;
 
-    constructor(dp: string) {
+    abstract transform(x: number, y: number): [number, number];
+
+    static create(dp: string): Player {
         switch (dp.charAt(0)) {
             case "w":
-                this.name = "Red";
-                break;
+                return new Red();
             case "g":
-                this.name = "Blue";
-                break;
-            case "d":
-                this.name = "Dead";
-                break;
-            case "r":
-                this.name = "Green";
-                break;
+                return new Blue();
             case "b":
-                this.name = "Yellow";
-                break;
+                return new Yellow();
+            case "r":
+                return new Green();
+            case "d":
+                return new Dead();
             default:
-                this.name = undefined;
+                return undefined;
         }
+    }
+}
+
+class Red extends Player {
+    name: string = "Red";
+    turn: number = 1;
+
+    transform(x: number, y: number): [number, number] {
+        return [x, y];
+    }
+}
+
+class Blue extends Player {
+    name: string = "Blue";
+    turn: number = 2;
+
+    transform(x: number, y: number): [number, number] {
+        return [-y, x];
+    }
+}
+
+class Yellow extends Player {
+    name: string = "Yellow";
+    turn: number = 3;
+
+    transform(x: number, y: number): [number, number] {
+        return [-x, -y];
+    }
+}
+
+class Green extends Player {
+    name: string = "Green";
+    turn: number = 4;
+
+    transform(x: number, y: number): [number, number] {
+        return [y, -x];
+    }
+}
+
+class Dead extends Player {
+    name: string = "Dead";
+    turn: number = 0;
+
+    transform(x: number, y: number): [number, number] {
+        throw new Error("Not implemented");
     }
 }
 
@@ -76,8 +119,9 @@ abstract class Piece {
     dp: string;
 
     abstract name: string;
-    abstract radius: Radius;
     abstract jump: boolean;
+    abstract radius: Radius;
+    abstract attack: Vector[];
     abstract mobility: Vector[];
 
     static create(dp: string): Piece {
@@ -100,7 +144,7 @@ abstract class Piece {
     }
 
     protected constructor(dp: string) {
-        this.player = new Player(dp);
+        this.player = Player.create(dp);
         this.dp = dp;
     }
 }
@@ -109,6 +153,11 @@ class Rook extends Piece {
     name: string = "Rook";
     jump: boolean = false;
     radius = new Radius();
+    attack: Vector[] =
+        [new Vector((x, r) => x + r, (y) => y),
+         new Vector((x, r) => x - r, (y) => y),
+         new Vector((x) => x, (y, r) => y + r),
+         new Vector((x) => x, (y, r) => y - r)];
     mobility: Vector[] =
         [new Vector((x, r) => x + r, (y) => y),
          new Vector((x, r) => x - r, (y) => y),
@@ -124,6 +173,9 @@ class Pawn extends Piece {
     name: string = "Pawn";
     jump: boolean = false;
     radius = new Radius(2);
+    attack: Vector[] = 
+        [new Vector((x) => x + 1, (y) => y + 1),
+         new Vector((x) => x - 1, (y) => y + 1)];
     mobility: Vector[] =
         [new Vector((x) => x, (y, r) => y + r)];
 
@@ -136,6 +188,15 @@ class King extends Piece {
     name: string = "King";
     jump: boolean = false;
     radius = new Radius(1);
+    attack: Vector[] =
+        [new Vector((x) => x + 1, (y) => y),
+         new Vector((x) => x - 1, (y) => y),
+         new Vector((x) => x, (y) => y + 1),
+         new Vector((x) => x, (y) => y - 1),
+         new Vector((x) => x + 1, (y) => y + 1),
+         new Vector((x) => x + 1, (y) => y - 1),
+         new Vector((x) => x - 1, (y) => y + 1),
+         new Vector((x) => x - 1, (y) => y - 1)];
     mobility: Vector[] =
         [new Vector((x) => x + 1, (y) => y),
          new Vector((x) => x - 1, (y) => y),
@@ -155,6 +216,15 @@ class Queen extends Piece {
     name: string = "Queen";
     jump: boolean = false;
     radius = new Radius();
+    attack: Vector[] =
+        [new Vector((x, r) => x + r, (y) => y),
+         new Vector((x, r) => x - r, (y) => y),
+         new Vector((x) => x, (y, r) => y + r),
+         new Vector((x) => x, (y, r) => y - r),
+         new Vector((x, r) => x + r, (y, r) => y + r),
+         new Vector((x, r) => x + r, (y, r) => y - r),
+         new Vector((x, r) => x - r, (y, r) => y + r),
+         new Vector((x, r) => x - r, (y, r) => y - r)];
     mobility: Vector[] =
         [new Vector((x, r) => x + r, (y) => y),
          new Vector((x, r) => x - r, (y) => y),
@@ -174,6 +244,11 @@ class Bishop extends Piece {
     name: string = "Bishop";
     jump: boolean = false;
     radius = new Radius();
+    attack: Vector[] =
+        [new Vector((x, r) => x + r, (y, r) => y + r),
+         new Vector((x, r) => x + r, (y, r) => y - r),
+         new Vector((x, r) => x - r, (y, r) => y + r),
+         new Vector((x, r) => x - r, (y, r) => y - r)];
     mobility: Vector[] =
         [new Vector((x, r) => x + r, (y, r) => y + r),
          new Vector((x, r) => x + r, (y, r) => y - r),
@@ -189,8 +264,17 @@ class Knight extends Piece {
     name: string = "Knight";
     jump: boolean = true;
     radius = new Radius(1);
-    mobility: Vector[] =
+    attack: Vector[] =
         [new Vector((x) => x + 2, (y) => y + 1),
+         new Vector((x) => x + 2, (y) => y - 1),
+         new Vector((x) => x - 2, (y) => y + 1),
+         new Vector((x) => x - 2, (y) => y - 1),
+         new Vector((x) => x + 1, (y) => y + 2),
+         new Vector((x) => x + 1, (y) => y - 2),
+         new Vector((x) => x - 1, (y) => y + 2),
+         new Vector((x) => x - 1, (y) => y - 2)];
+    mobility: Vector[] =
+       [new Vector((x) => x + 2, (y) => y + 1),
          new Vector((x) => x + 2, (y) => y - 1),
          new Vector((x) => x - 2, (y) => y + 1),
          new Vector((x) => x - 2, (y) => y - 1),
