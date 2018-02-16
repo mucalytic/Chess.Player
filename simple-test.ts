@@ -307,7 +307,7 @@ class Square {
         return `${this.char(n)}${m + 1}`;
     }
 
-    acessibile(m: number, n: number): boolean {
+    accessible(m: number, n: number): boolean {
         return (m >= 4 && m <= 11 && n >= 1 && n <= 3) ||
                (m >= 1 && m <= 14 && n >= 4 && n <= 11) ||
                (m >= 4 && m <= 11 && n >= 12 && n <= 14);

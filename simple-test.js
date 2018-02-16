@@ -297,7 +297,7 @@ var Square = (function () {
     Square.prototype.code = function (m, n) {
         return "" + this.char(n) + (m + 1);
     };
-    Square.prototype.acessibile = function (m, n) {
+    Square.prototype.accessible = function (m, n) {
         return (m >= 4 && m <= 11 && n >= 1 && n <= 3) ||
             (m >= 1 && m <= 14 && n >= 4 && n <= 11) ||
             (m >= 4 && m <= 11 && n >= 12 && n <= 14);
