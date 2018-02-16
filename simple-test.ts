@@ -389,7 +389,7 @@ class Factory {
         return undefined;
     }
 
-    createAddedAndRemovedBoards(turn: Turn, mr: MutationRecord): void {
+    createBoards(turn: Turn, mr: MutationRecord): void {
         const rro = mr.removedNodes;
         const aro = mr.addedNodes;
         if (aro.length >= 14 &&
@@ -456,21 +456,18 @@ class Factory {
         }
     }
 
-    process(changes: MutationRecord[]): Factory {
-        Rx.Observable.fromArray(changes)
-            .filter(mr => mr.type === "childList" &&
-                          mr.target instanceof HTMLElement &&
-                          mr.target.className.indexOf("board-") === 0)
-            .scan((mrc: [MutationRecord, number], mr: MutationRecord) => {
-                const res: [MutationRecord, number] = [mr, ++mrc[1]];
-                return res;
-            }, [undefined, 0])
-            .subscribe(mrc => {
-                const turn = new Turn(mrc[1]);
-                this.createAddedAndRemovedBoards(turn, mrc[0]);
+    process(mrs: MutationRecord[]): Factory {
+        let index = 0;
+        for (let mr of mrs) {
+            if (mr => mr.type === "childList" &&
+                      mr.target instanceof HTMLElement &&
+                      mr.target.className.indexOf("board-") === 0) {
+                const turn = new Turn(++index);
+                this.createBoards(turn, mr);
                 this.createDiffBoard(turn);
                 this.turns.push(turn);
-            });
+            }
+        }
         return this;
     }
 
