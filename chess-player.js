@@ -71,8 +71,10 @@ var CountdownHelper = (function () {
                                         this.counter - c <= 1) {
                                         this.counter = c;
                                     }
-                                    if ((this.counter <= 5 ||
-                                        this.counter % 5 === 0) &&
+                                    if (((this.counter <= 5 &&
+                                        this.counter % 1 === 0) ||
+                                        (this.counter > 5 &&
+                                            this.counter % 5 === 0)) &&
                                         this.counter !== this.utterances[0]) {
                                         window.speechSynthesis.speak(this.utterance());
                                         this.utterances.unshift(this.counter);

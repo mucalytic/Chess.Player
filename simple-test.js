@@ -282,7 +282,6 @@ var Knight = (function (_super) {
 }(Piece));
 var Square = (function () {
     function Square(m, n) {
-        this.code = this.codegen(m, n);
         this.m = m;
         this.n = n;
         return this;
@@ -295,8 +294,13 @@ var Square = (function () {
     Square.prototype.char = function (n) {
         return String.fromCharCode(n + 97);
     };
-    Square.prototype.codegen = function (m, n) {
+    Square.prototype.code = function (m, n) {
         return "" + this.char(n) + (m + 1);
+    };
+    Square.prototype.acessibile = function (m, n) {
+        return (m >= 4 && m <= 11 && n >= 1 && n <= 3) ||
+            (m >= 1 && m <= 14 && n >= 4 && n <= 11) ||
+            (m >= 4 && m <= 11 && n >= 12 && n <= 14);
     };
     return Square;
 }());

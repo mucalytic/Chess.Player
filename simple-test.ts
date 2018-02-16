@@ -291,7 +291,6 @@ class Knight extends Piece {
 class Square {
     m: number;
     n: number;
-    code: string;
     piece?: Piece;
 
     static coords(code: string): [number, number] {
@@ -304,12 +303,17 @@ class Square {
         return String.fromCharCode(n + 97);
     }
 
-    codegen(m: number, n: number): string {
+    code(m: number, n: number): string {
         return `${this.char(n)}${m + 1}`;
     }
 
+    acessibile(m: number, n: number): boolean {
+        return (m >= 4 && m <= 11 && n >= 1 && n <= 3) ||
+               (m >= 1 && m <= 14 && n >= 4 && n <= 11) ||
+               (m >= 4 && m <= 11 && n >= 12 && n <= 14);
+    }
+
     constructor(m: number, n: number) {
-        this.code = this.codegen(m, n);
         this.m = m;
         this.n = n;
         return this;
