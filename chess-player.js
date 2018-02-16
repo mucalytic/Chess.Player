@@ -37,6 +37,24 @@ var CountdownHelper = (function () {
             }
         }
     };
+    CountdownHelper.prototype.words = function () {
+        return this.counter <= 5
+            ? this.counter.toString()
+            : this.counter + " seconds left";
+    };
+    CountdownHelper.prototype.utterance = function () {
+        return this.rate(new SpeechSynthesisUtterance(this.words()));
+    };
+    CountdownHelper.prototype.rate = function (utterance) {
+        utterance.rate = 1.8;
+        return this.pitch(utterance);
+    };
+    CountdownHelper.prototype.pitch = function (utterance) {
+        utterance.pitch = this.counter <= 5
+            ? (22 - (2 * this.counter)) / 10
+            : 1.0;
+        return utterance;
+    };
     CountdownHelper.prototype.utter = function (mr) {
         if (this.enabled) {
             if (mr.type === "characterData") {
@@ -53,12 +71,10 @@ var CountdownHelper = (function () {
                                         this.counter - c <= 1) {
                                         this.counter = c;
                                     }
-                                    if (this.counter % 5 === 0 &&
+                                    if ((this.counter <= 5 ||
+                                        this.counter % 5 === 0) &&
                                         this.counter !== this.utterances[0]) {
-                                        var words = this.counter + " seconds left";
-                                        var utterance = new SpeechSynthesisUtterance(words);
-                                        utterance.rate = 1.8;
-                                        window.speechSynthesis.speak(utterance);
+                                        window.speechSynthesis.speak(this.utterance());
                                         this.utterances.unshift(this.counter);
                                     }
                                 }
