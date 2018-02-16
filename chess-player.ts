@@ -1,516 +1,204 @@
 /// <reference path="./node_modules/rx/ts/rx.d.ts" />
+class CountdownHelper {
+    counter: number = 60;
+    enabled: boolean = false;
+    utterances: number[] = [60];
 
-interface IteratorResult<T> {
-    done: boolean;
-    value: T;
-}
-
-interface Iterator<T> {
-    next(value?: any): IteratorResult<T>;
-    return?(value?: any): IteratorResult<T>;
-    throw?(e?: any): IteratorResult<T>;
-}
-
-abstract class Player {
-    abstract name: string;
-    abstract turn: number;
-
-    abstract transform(x: number, y: number): [number, number];
-
-    static create(dp: string): Player {
-        switch (dp.charAt(0)) {
-            case "w":
-                return new Red();
-            case "g":
-                return new Blue();
-            case "b":
-                return new Yellow();
-            case "r":
-                return new Green();
-            case "d":
-                return new Dead();
-            default:
-                return undefined;
-        }
-    }
-}
-
-class Red extends Player {
-    name: string = "Red";
-    turn: number = 1;
-
-    transform(x: number, y: number): [number, number] {
-        return [x, y];
-    }
-}
-
-class Blue extends Player {
-    name: string = "Blue";
-    turn: number = 2;
-
-    transform(x: number, y: number): [number, number] {
-        return [-y, x];
-    }
-}
-
-class Yellow extends Player {
-    name: string = "Yellow";
-    turn: number = 3;
-
-    transform(x: number, y: number): [number, number] {
-        return [-x, -y];
-    }
-}
-
-class Green extends Player {
-    name: string = "Green";
-    turn: number = 4;
-
-    transform(x: number, y: number): [number, number] {
-        return [y, -x];
-    }
-}
-
-class Dead extends Player {
-    name: string = "Dead";
-    turn: number = 0;
-
-    transform(x: number, y: number): [number, number] {
-        throw new Error("Not implemented");
-    }
-}
-
-class Vector {
-    dx: (x: number, r?: number) => number;
-    dy: (y: number, r?: number) => number;
-
-    constructor(dx: (x: number, r?: number) => number,
-                dy: (y: number, r?: number) => number) {
-        this.dx = dx;
-        this.dy = dy;
-    }
-}
-
-class Radius implements Iterator<number> {
-    counter: number = 0;
-    max?: number;
-
-    next(): IteratorResult<number> {
-        if (!this.max || (this.max && this.max >= ++this.counter)) {
-            return {
-                value: this.counter,
-                done: false
-            };
-        } else {
-            return {
-                value: null,
-                done: true
-            };
-        }
+    username(): string {
+        return document.getElementById("four-player-username").innerText;
     }
 
-    constructor(max?: number) {
-        this.max = max;
-    }
-}
-
-abstract class Piece {
-    player: Player;
-    dp: string;
-
-    abstract name: string;
-    abstract jump: boolean;
-    abstract radius: Radius;
-    abstract attack: Vector[];
-    abstract mobility: Vector[];
-
-    static create(dp: string): Piece {
-        switch (dp.charAt(1)) {
-            case "R":
-                return new Rook(dp);
-            case "P":
-                return new Pawn(dp);
-            case "K":
-                return new King(dp);
-            case "Q":
-                return new Queen(dp);
-            case "B":
-                return new Bishop(dp);
-            case "N":
-                return new Knight(dp);
-            default:
-                return undefined;
-        }
-    }
-
-    protected constructor(dp: string) {
-        this.player = Player.create(dp);
-        this.dp = dp;
-    }
-}
-
-class Rook extends Piece {
-    name: string = "Rook";
-    jump: boolean = false;
-    radius = new Radius();
-    attack: Vector[] =
-        [new Vector((x, r) => x + r, (y) => y),
-         new Vector((x, r) => x - r, (y) => y),
-         new Vector((x) => x, (y, r) => y + r),
-         new Vector((x) => x, (y, r) => y - r)];
-    mobility: Vector[] =
-        [new Vector((x, r) => x + r, (y) => y),
-         new Vector((x, r) => x - r, (y) => y),
-         new Vector((x) => x, (y, r) => y + r),
-         new Vector((x) => x, (y, r) => y - r)];
-
-    constructor(dp: string) {
-        super(dp);
-    }
-}
-
-class Pawn extends Piece {
-    name: string = "Pawn";
-    jump: boolean = false;
-    radius = new Radius(2);
-    attack: Vector[] = 
-        [new Vector((x) => x + 1, (y) => y + 1),
-         new Vector((x) => x - 1, (y) => y + 1)];
-    mobility: Vector[] =
-        [new Vector((x) => x, (y, r) => y + r)];
-
-    constructor(dp: string) {
-        super(dp);
-    }
-}
-
-class King extends Piece {
-    name: string = "King";
-    jump: boolean = false;
-    radius = new Radius(1);
-    attack: Vector[] =
-        [new Vector((x) => x + 1, (y) => y),
-         new Vector((x) => x - 1, (y) => y),
-         new Vector((x) => x, (y) => y + 1),
-         new Vector((x) => x, (y) => y - 1),
-         new Vector((x) => x + 1, (y) => y + 1),
-         new Vector((x) => x + 1, (y) => y - 1),
-         new Vector((x) => x - 1, (y) => y + 1),
-         new Vector((x) => x - 1, (y) => y - 1)];
-    mobility: Vector[] =
-        [new Vector((x) => x + 1, (y) => y),
-         new Vector((x) => x - 1, (y) => y),
-         new Vector((x) => x, (y) => y + 1),
-         new Vector((x) => x, (y) => y - 1),
-         new Vector((x) => x + 1, (y) => y + 1),
-         new Vector((x) => x + 1, (y) => y - 1),
-         new Vector((x) => x - 1, (y) => y + 1),
-         new Vector((x) => x - 1, (y) => y - 1)];
-
-    constructor(dp: string) {
-        super(dp);
-    }
-}
-
-class Queen extends Piece {
-    name: string = "Queen";
-    jump: boolean = false;
-    radius = new Radius();
-    attack: Vector[] =
-        [new Vector((x, r) => x + r, (y) => y),
-         new Vector((x, r) => x - r, (y) => y),
-         new Vector((x) => x, (y, r) => y + r),
-         new Vector((x) => x, (y, r) => y - r),
-         new Vector((x, r) => x + r, (y, r) => y + r),
-         new Vector((x, r) => x + r, (y, r) => y - r),
-         new Vector((x, r) => x - r, (y, r) => y + r),
-         new Vector((x, r) => x - r, (y, r) => y - r)];
-    mobility: Vector[] =
-        [new Vector((x, r) => x + r, (y) => y),
-         new Vector((x, r) => x - r, (y) => y),
-         new Vector((x) => x, (y, r) => y + r),
-         new Vector((x) => x, (y, r) => y - r),
-         new Vector((x, r) => x + r, (y, r) => y + r),
-         new Vector((x, r) => x + r, (y, r) => y - r),
-         new Vector((x, r) => x - r, (y, r) => y + r),
-         new Vector((x, r) => x - r, (y, r) => y - r)];
-
-    constructor(dp: string) {
-        super(dp);
-    }
-}
-
-class Bishop extends Piece {
-    name: string = "Bishop";
-    jump: boolean = false;
-    radius = new Radius();
-    attack: Vector[] =
-        [new Vector((x, r) => x + r, (y, r) => y + r),
-         new Vector((x, r) => x + r, (y, r) => y - r),
-         new Vector((x, r) => x - r, (y, r) => y + r),
-         new Vector((x, r) => x - r, (y, r) => y - r)];
-    mobility: Vector[] =
-        [new Vector((x, r) => x + r, (y, r) => y + r),
-         new Vector((x, r) => x + r, (y, r) => y - r),
-         new Vector((x, r) => x - r, (y, r) => y + r),
-         new Vector((x, r) => x - r, (y, r) => y - r)];
-
-    constructor(dp: string) {
-        super(dp);
-    }
-}
-
-class Knight extends Piece {
-    name: string = "Knight";
-    jump: boolean = true;
-    radius = new Radius(1);
-    attack: Vector[] =
-        [new Vector((x) => x + 2, (y) => y + 1),
-         new Vector((x) => x + 2, (y) => y - 1),
-         new Vector((x) => x - 2, (y) => y + 1),
-         new Vector((x) => x - 2, (y) => y - 1),
-         new Vector((x) => x + 1, (y) => y + 2),
-         new Vector((x) => x + 1, (y) => y - 2),
-         new Vector((x) => x - 1, (y) => y + 2),
-         new Vector((x) => x - 1, (y) => y - 2)];
-    mobility: Vector[] =
-       [new Vector((x) => x + 2, (y) => y + 1),
-         new Vector((x) => x + 2, (y) => y - 1),
-         new Vector((x) => x - 2, (y) => y + 1),
-         new Vector((x) => x - 2, (y) => y - 1),
-         new Vector((x) => x + 1, (y) => y + 2),
-         new Vector((x) => x + 1, (y) => y - 2),
-         new Vector((x) => x - 1, (y) => y + 2),
-         new Vector((x) => x - 1, (y) => y - 2)];
-
-    constructor(dp: string) {
-        super(dp);
-    }
-}
-
-class Square {
-    m: number;
-    n: number;
-    piece?: Piece;
-
-    static coords(code: string): [number, number] {
-        const m = parseInt(code.slice(1)) - 1;
-        const n = code.charCodeAt(0) - 97;
-        return [m, n];
-    }
-
-    char(n: number): string {
-        return String.fromCharCode(n + 97);
-    }
-
-    code(m: number, n: number): string {
-        return `${this.char(n)}${m + 1}`;
-    }
-
-    accessible(m: number, n: number): boolean {
-        return (m >= 4 && m <= 11 && n >= 1 && n <= 3) ||
-               (m >= 1 && m <= 14 && n >= 4 && n <= 11) ||
-               (m >= 4 && m <= 11 && n >= 12 && n <= 14);
-    }
-
-    constructor(m: number, n: number) {
-        this.m = m;
-        this.n = n;
-        return this;
-    }
-}
-
-class DiffSquare extends Square {
-    change?: string;
-}
-
-class Board {
-    squares: Square[][] = [];
-
-    square(code: string): Square {
-        const c = Square.coords(code);
-        return this.squares[c[0]][c[1]];
-    }
-
-    constructor() {
-        for (let m = 0; m < 14; m++) {
-            this.squares[m] = [];
-            for (let n = 0; n < 14; n++) {
-                this.squares[m][n] = new Square(m, n);
-            }
-        }
-    }
-}
-
-class Diff {
-    deaths: Square[] = [];
-    captures: Square[] = [];
-    removals: Square[] = [];
-    additions: Square[] = [];
-    squares: DiffSquare[][] = [];
-
-    square(code: string): DiffSquare {
-        const c = DiffSquare.coords(code);
-        return this.squares[c[0]][c[1]];
-    }
-
-    constructor() {
-        for (let m = 0; m < 14; m++) {
-            this.squares[m] = [];
-            for (let n = 0; n < 14; n++) {
-                this.squares[m][n] = new DiffSquare(m, n);
-            }
-        }
-    }
-}
-
-class Turn {
-    index: number;
-    diff = new Diff();
-    added = new Board();
-    removed = new Board();
-
-    constructor(index: number) {
-        this.index = index;
-    }
-}
-
-class Factory {
-    turns: Turn[] = [];
-
-    piece(nodes: NodeList): Node {
+    avatar(nodes: NodeList): Node {
         for (let i = 0; i < nodes.length; i++) {
             const node = nodes[i];
             if (node instanceof HTMLElement &&
-                node.className.indexOf("piece-") === 0) {
+                node.classList.contains("player-avatar")) {
                 return node;
             }
         }
         return undefined;
     }
 
-    createBoards(turn: Turn, mr: MutationRecord): void {
-        const rro = mr.removedNodes;
-        const aro = mr.addedNodes;
-        if (aro.length >= 14 &&
-            rro.length >= 14) {
-            for (let m = 0; m < 14; m++) {
-                for (let n = 0; n < 14; n++) {
-                    const aco = aro[m].childNodes[n];
-                    const rco = rro[m].childNodes[n];
-                    if (aco instanceof HTMLElement &&
-                        rco instanceof HTMLElement) {
-                        const apn = this.piece(aco.childNodes);
-                        const rpn = this.piece(rco.childNodes);
-                        if (apn) {
-                            const dp = apn.attributes["data-piece"];
-                            const ds = aco.attributes["data-square"];
-                            if (dp && ds) {
-                                const pc = Piece.create(dp.value);
-                                turn.added.square(ds.value).piece = pc;
-                            }
-                        }
-                        if (rpn) {
-                            const dp = rpn.attributes["data-piece"];
-                            const ds = rco.attributes["data-square"];
-                            if (dp && ds) {
-                                const pc = Piece.create(dp.value);
-                                turn.removed.square(ds.value).piece = pc;
+    current(mr: MutationRecord): number {
+        return parseFloat(mr.oldValue.trim().split(":")[1]);
+    }
+
+    reset(mr: MutationRecord): void {
+        if (mr.type === "childList" &&
+            mr.target instanceof HTMLDivElement &&
+            mr.target.classList.length === 0 &&
+            mr.addedNodes.length === 1) {
+            const modal = mr.addedNodes[0];
+            if (modal instanceof HTMLElement &&
+                modal.classList.contains("modal-container")) {
+                const go = modal.querySelector(".game-over-container");
+                if (go) {
+                    console.log("countdown helper counter reset");
+                    this.utterances = [60];
+                    this.counter = 60;
+                }
+            }
+        }
+    }
+
+    words(): string {
+        return this.counter <= 5
+            ? this.counter.toString()
+            : `${this.counter} seconds left`;
+    }
+
+    utterance(): SpeechSynthesisUtterance {
+        return this.rate(new SpeechSynthesisUtterance(this.words()));
+    }
+
+    rate(utterance: SpeechSynthesisUtterance): SpeechSynthesisUtterance {
+        utterance.rate = 1.8;
+        return this.pitch(utterance);
+    }
+
+    pitch(utterance: SpeechSynthesisUtterance): SpeechSynthesisUtterance {
+        utterance.pitch = this.counter <= 5
+            ? (22 - (2 * this.counter)) / 10
+            : 1.0;
+        return utterance;
+    }
+
+    utter(mr: MutationRecord): void {
+        if (this.enabled) {
+            if (mr.type === "characterData") {
+                const timer = mr.target.parentNode.parentNode;
+                if (timer) {
+                    if (timer instanceof HTMLElement &&
+                        timer.classList.contains("player-clock-timer")) {
+                        const avatar = this.avatar(timer.childNodes);
+                        if (avatar) {
+                            if (avatar instanceof HTMLAnchorElement) {
+                                if (avatar.pathname === "/member/" + this.username()) {
+                                    const c = this.current(mr);
+                                    if (this.counter - c > 0 &&
+                                        this.counter - c <= 1) {
+                                        this.counter = c;
+                                    }
+                                    if (((this.counter <= 5 &&
+                                          this.counter % 1 === 0) ||
+                                         (this.counter > 5 &&
+                                          this.counter % 5 === 0)) &&
+                                          this.counter !== this.utterances[0]) {
+                                        window.speechSynthesis.speak(this.utterance());
+                                        this.utterances.unshift(this.counter);
+                                    }
+                                }
                             }
                         }
                     }
                 }
             }
         }
-    }
-
-    createDiffBoard(turn: Turn): void {
-        for (let m = 0; m < 14; m++) {
-            for (let n = 0; n < 14; n++) {
-                const rsq = turn.removed.squares[m][n];
-                const asq = turn.added.squares[m][n];
-                const dsq = turn.diff.squares[m][n];
-                if (!rsq.piece && asq.piece) {
-                    turn.diff.additions.push(asq);
-                    dsq.piece = asq.piece;
-                    dsq.change = "+";
-                }
-                if (rsq.piece && !asq.piece) {
-                    turn.diff.removals.push(rsq);
-                    dsq.piece = rsq.piece;
-                    dsq.change = "-";
-                }
-                if (rsq.piece && asq.piece) {
-                    if (rsq.piece.dp !== asq.piece.dp) {
-                        dsq.piece = asq.piece;
-                        if (asq.piece.player.name === "Dead") {
-                            turn.diff.deaths.push(asq);
-                            dsq.change = "x";
-                        } else {
-                            turn.diff.captures.push(asq);
-                            dsq.change = "*";
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    process(mrs: MutationRecord[]): Factory {
-        let index = 0;
-        for (let mr of mrs) {
-            if (mr => mr.type === "childList" &&
-                      mr.target instanceof HTMLElement &&
-                      mr.target.className.indexOf("board-") === 0) {
-                const turn = new Turn(++index);
-                this.createBoards(turn, mr);
-                this.createDiffBoard(turn);
-                this.turns.push(turn);
-            }
-        }
-        return this;
-    }
-
-    header(turn: Turn): string {
-        return "Index: " +
-               turn.index +
-               "; Additions: " +
-               turn.diff.additions.length +
-               "; Removals: " +
-                turn.diff.removals.length +
-               "; Captures: " +
-                turn.diff.captures.length +
-               "; Deaths: " +
-                turn.diff.deaths.length;
-    }
-
-    show(turns: number): Factory {
-        for (let i = 1; i < Math.min(this.turns.length, turns); i++) {
-            const turn = this.turns[i];
-            console.group(this.header(turn));
-            for (let m = 0; m < 14; m++) {
-                const row: string[] = ["|"];
-                for (let n = 0; n < 14; n++) {
-                    const square = turn.added.squares[m][n];
-                    row.push(square.piece ? square.piece.dp : "[]");
-                }
-                row.push("|");
-                for (let n = 0; n < 14; n++) {
-                    const square = turn.removed.squares[m][n];
-                    row.push(square.piece ? square.piece.dp : "[]");
-                }
-                row.push("|");
-                for (let n = 0; n < 14; n++) {
-                    const square = turn.diff.squares[m][n];
-                    row.push(square.piece ? square.piece.dp + square.change : "[ ]");
-                }
-                row.push("|");
-                console.log(row.join(" "));
-            }
-            console.groupEnd();
-        }
-        return this;
     }
 }
 
-//new Factory().process(watcher.records).show(500);
+class DomWatcher {
+    observer: MutationObserver;
+    records: MutationRecord[] = [];
+    helper = new CountdownHelper();
+    init: MutationObserverInit = {
+        characterDataOldValue: true,
+        attributeOldValue: true,
+        characterData: true,
+        attributes: true,
+        childList: true,
+        subtree: true
+    };
+
+    createDocumentBodyObserverSubscription(): void {
+        this.observer = new MutationObserver(mrs => {
+            mrs.forEach(mr => {
+                this.helper.reset(mr);
+                this.helper.utter(mr);
+                this.records.push(mr);
+            });
+        });
+    }
+
+    constructor() {
+        this.createDocumentBodyObserverSubscription();
+        this.observer.observe(document.body, this.init);
+    }
+}
+
+class DomModifier {
+    domWatcher: DomWatcher;
+
+    addStartAiButton(): DomModifier {
+        const btnNewGame = document.getElementsByClassName("btns-container")[0];
+        if (btnNewGame instanceof HTMLElement) {
+            btnNewGame.style.cssFloat = "right";
+
+            const btnOn = btnNewGame.cloneNode(true);
+            if (btnOn instanceof HTMLElement) {
+                btnOn.style.cssFloat = "left";
+                btnOn.style.marginRight = "12px";
+
+                const anchorOn = btnOn.firstChild;
+                if (anchorOn.nodeName === "A") {
+                    if (anchorOn instanceof HTMLElement) {
+                        anchorOn.innerText = "Start AI";
+                        anchorOn.classList.remove("new-game-btn");
+                    }
+                }
+
+                const btnOff = btnOn.cloneNode(true);
+                if (btnOff instanceof HTMLElement) {
+                    btnOff.style.display = "none";
+
+                    const anchorOff = btnOff.firstChild;
+                    if (anchorOff.nodeName === "A") {
+                        if (anchorOff instanceof HTMLElement) {
+                            anchorOff.innerText = "Stop AI";
+                            anchorOff.style.color = "#b4b4b3";
+                            anchorOff.style.borderBottom = "#272422";
+                            anchorOff.style.backgroundColor = "#272422";
+                            anchorOff.addEventListener("click", () => {
+                                this.domWatcher.helper.enabled = false;
+                                btnOff.style.display = "none";
+                                btnOn.style.display = "block";
+                            });
+                        }
+                    }
+
+                    anchorOn.addEventListener("click", () => {
+                        this.domWatcher.helper.enabled = true;
+                        btnOff.style.display = "block";
+                        btnOn.style.display = "none";
+                    });
+                }
+
+                btnNewGame.parentNode.appendChild(btnOn);
+                btnNewGame.parentNode.appendChild(btnOff);
+            }
+        }
+        return this;
+    }
+
+    rightAlignStartButton(): DomModifier {
+        const head = document.getElementsByTagName("head")[0];
+        if (head instanceof HTMLElement) {
+            const text = document.createTextNode(".btns-container { float: right; }");
+            const style = document.createElement("style");
+            if (style instanceof HTMLElement) {
+                style.type = "text/css";
+                style.appendChild(text);
+            }
+            head.appendChild(style);
+        }
+        return this;
+    }
+
+    constructor() {
+        this.domWatcher = new DomWatcher();
+        this.rightAlignStartButton();
+        this.addStartAiButton();
+    }
+}
+
+var modifier = new DomModifier();
