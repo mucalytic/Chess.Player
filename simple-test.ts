@@ -496,11 +496,6 @@ class Factory {
                 }
                 row.push("|");
                 for (let n = 0; n < 14; n++) {
-                    const square = turn.removed.squares[m][n];
-                    row.push(square.piece ? square.piece.dp : "[]");
-                }
-                row.push("|");
-                for (let n = 0; n < 14; n++) {
                     const square = turn.diff.squares[m][n];
                     row.push(square.piece ? square.piece.dp + square.change : "[ ]");
                 }

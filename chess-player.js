@@ -47,12 +47,6 @@ var CountdownHelper = (function () {
     };
     CountdownHelper.prototype.rate = function (utterance) {
         utterance.rate = 1.8;
-        return this.pitch(utterance);
-    };
-    CountdownHelper.prototype.pitch = function (utterance) {
-        utterance.pitch = this.counter <= 5
-            ? (22 - (2 * this.counter)) / 10
-            : 1.0;
         return utterance;
     };
     CountdownHelper.prototype.utter = function (mr) {

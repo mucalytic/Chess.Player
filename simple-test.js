@@ -475,11 +475,6 @@ var Factory = (function () {
                 }
                 row.push("|");
                 for (var n = 0; n < 14; n++) {
-                    var square = turn.removed.squares[m][n];
-                    row.push(square.piece ? square.piece.dp : "[]");
-                }
-                row.push("|");
-                for (var n = 0; n < 14; n++) {
                     var square = turn.diff.squares[m][n];
                     row.push(square.piece ? square.piece.dp + square.change : "[ ]");
                 }

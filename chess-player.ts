@@ -53,13 +53,6 @@ class CountdownHelper {
 
     rate(utterance: SpeechSynthesisUtterance): SpeechSynthesisUtterance {
         utterance.rate = 1.8;
-        return this.pitch(utterance);
-    }
-
-    pitch(utterance: SpeechSynthesisUtterance): SpeechSynthesisUtterance {
-        utterance.pitch = this.counter <= 5
-            ? (22 - (2 * this.counter)) / 10
-            : 1.0;
         return utterance;
     }
 
