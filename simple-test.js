@@ -488,36 +488,38 @@ var Factory = (function () {
                 for (var n = 0; n < 14; n++) {
                     console.group("n:%i", n);
                     var square = board.squares[m][n];
-                    var piece = square.piece;
-                    if (piece) {
-                        console.group("piece:%O", piece);
-                        var player = piece.player;
-                        var _a = player.transform(n, m), x = _a[0], y = _a[1];
-                        console.log("x:%i,y:%i", x, y);
-                        for (var _i = 0, _b = piece.mobility; _i < _b.length; _i++) {
-                            var move = _b[_i];
-                            var restricted = false;
-                            var result = piece.radius.next();
-                            while (!result.done && !restricted) {
-                                var radius = result.value;
-                                var dy = move.dy(y, radius);
-                                var dx = move.dx(x, radius);
-                                var target = board.squares[dy][dx];
-                                console.log("radius:%i, dx:%i, dy:%i, target:%O", radius, dx, dy, target);
-                                result = piece.radius.next();
-                                if (target.accessible()) {
-                                    var code = target.code();
-                                    var goal = analysis.square(code);
-                                    console.log("code:%s, goal:%O", code, goal);
-                                    goal.candidates.push(piece);
-                                    if (!target.piece) {
-                                        continue;
+                    if (square.accessible()) {
+                        var piece = square.piece;
+                        if (piece) {
+                            console.group("piece:%O", piece);
+                            var player = piece.player;
+                            var _a = player.transform(n, m), x = _a[0], y = _a[1];
+                            console.log("x:%i,y:%i", x, y);
+                            for (var _i = 0, _b = piece.mobility; _i < _b.length; _i++) {
+                                var move = _b[_i];
+                                var restricted = false;
+                                var result = piece.radius.next();
+                                while (!result.done && !restricted) {
+                                    var radius = result.value;
+                                    var dy = move.dy(y, radius);
+                                    var dx = move.dx(x, radius);
+                                    var target = board.squares[dy][dx];
+                                    console.log("radius:%i, dx:%i, dy:%i, target:%O", radius, dx, dy, target);
+                                    result = piece.radius.next();
+                                    if (target.accessible()) {
+                                        var code = target.code();
+                                        var goal = analysis.square(code);
+                                        console.log("code:%s, goal:%O", code, goal);
+                                        goal.candidates.push(piece);
+                                        if (!target.piece) {
+                                            continue;
+                                        }
+                                        restricted = true;
                                     }
-                                    restricted = true;
                                 }
                             }
+                            console.groupEnd();
                         }
-                        console.groupEnd();
                     }
                     console.groupEnd();
                 }
