@@ -459,9 +459,9 @@ class Factory {
     process(mrs: MutationRecord[]): Factory {
         let index = 0;
         for (let mr of mrs) {
-            if (mr => mr.type === "childList" &&
-                      mr.target instanceof HTMLElement &&
-                      mr.target.className.indexOf("board-") === 0) {
+            if (mr.type === "childList" &&
+                mr.target instanceof HTMLElement &&
+                mr.target.className.indexOf("board-") === 0) {
                 const turn = new Turn(++index);
                 this.createBoards(turn, mr);
                 this.createDiffBoard(turn);
@@ -513,4 +513,4 @@ class Factory {
     }
 }
 
-//new Factory().process(watcher.records).show(500);
+//new Factory().process(modifier.domWatcher.records).show(500);

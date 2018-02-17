@@ -370,7 +370,7 @@ var Factory = (function () {
         }
         return undefined;
     };
-    Factory.prototype.createAddedAndRemovedBoards = function (turn, mr) {
+    Factory.prototype.createBoards = function (turn, mr) {
         var rro = mr.removedNodes;
         var aro = mr.addedNodes;
         if (aro.length >= 14 &&
@@ -436,22 +436,19 @@ var Factory = (function () {
             }
         }
     };
-    Factory.prototype.process = function (changes) {
-        var _this = this;
-        Rx.Observable.fromArray(changes)
-            .filter(function (mr) { return mr.type === "childList" &&
-            mr.target instanceof HTMLElement &&
-            mr.target.className.indexOf("board-") === 0; })
-            .scan(function (mrc, mr) {
-            var res = [mr, ++mrc[1]];
-            return res;
-        }, [undefined, 0])
-            .subscribe(function (mrc) {
-            var turn = new Turn(mrc[1]);
-            _this.createAddedAndRemovedBoards(turn, mrc[0]);
-            _this.createDiffBoard(turn);
-            _this.turns.push(turn);
-        });
+    Factory.prototype.process = function (mrs) {
+        var index = 0;
+        for (var _i = 0, mrs_1 = mrs; _i < mrs_1.length; _i++) {
+            var mr = mrs_1[_i];
+            if (mr.type === "childList" &&
+                mr.target instanceof HTMLElement &&
+                mr.target.className.indexOf("board-") === 0) {
+                var turn = new Turn(++index);
+                this.createBoards(turn, mr);
+                this.createDiffBoard(turn);
+                this.turns.push(turn);
+            }
+        }
         return this;
     };
     Factory.prototype.header = function (turn) {
