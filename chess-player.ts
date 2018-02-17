@@ -1,4 +1,5 @@
 /// <reference path="./node_modules/rx/ts/rx.d.ts" />
+
 class CountdownHelper {
     counter: number = 60;
     enabled: boolean = false;
