@@ -92,24 +92,27 @@ class Vector {
 }
 
 class Radius implements Iterator<number> {
-    counter: number = 1;
+    counter: number;
     max?: number;
 
     next(): IteratorResult<number> {
-        if (!this.max || (this.max && this.max >= ++this.counter)) {
+        if (!this.max || this.max >= this.counter) {
+            this.counter++;
             return {
                 value: this.counter,
                 done: false
             };
         } else {
+            this.counter = 0;
             return {
-                value: null,
+                value: undefined,
                 done: true
             };
         }
     }
 
     constructor(max?: number) {
+        this.counter = 0;
         this.max = max;
     }
 }
@@ -498,19 +501,16 @@ class Factory {
     }
 
     analyse(): Factory {
-//      for (let i = 1; i < this.turns.length; i++) {
-//          console.group("turn:%i", i);
+        for (let i = 1; i < this.turns.length; i++) {
+            console.group("turn:%i", i);
             const analysis = new Analysis();
-//          const turn = this.turns[i];
-            const turn = this.turns[0];
+            const turn = this.turns[i];
             const board = turn.added;
-            const m = 0
-            const n = 6;
             console.log("analysing")
-//          for (let m = 0; m < 14; m++) {
-//              console.group("m:%i", m);
-//              for (let n = 0; n < 14; n++) {
-//                  console.group("n:%i", n);
+            for (let m = 0; m < 14; m++) {
+                console.log("m:%i", m);
+                    for (let n = 0; n < 14; n++) {
+                    console.log("n:%i", n);
                     const square = board.squares[m][n];
                     console.log("square:%O", square);
                     console.log("accessible:%s", square.accessible());
@@ -518,50 +518,53 @@ class Factory {
                         const piece = square.piece;
                         console.log("piece:%O", piece);
                         if (piece) {
-                            console.group("piece:%O", piece);
                             const player = piece.player;
-                            const [x, y] = player.transform(n, m);
-                            console.log("x:%i,y:%i", x, y);
-                            for (let move of piece.mobility) {
-                                let restricted = false;
-                                let result = piece.radius.next();
-                                while (!result.done && !restricted) {
-                                    const radius = result.value;
-                                    result = piece.radius.next();
-                                    const dy = move.dy(y, radius);
-                                    const dx = move.dx(x, radius);
-                                    console.log("radius:%i, dx:%i, dy:%i", radius, dx, dy);
-                                    if (board.valid(dx, dy)) {
-                                        const target = board.squares[dy][dx];
-                                        console.log("target:%O", target);
-                                        result = piece.radius.next();
-                                        if (target.accessible()) {
-                                            const code = target.code();
-                                            const goal = analysis.square(code);
-                                            console.log("code:%s, goal:%O", code, goal);
-                                            goal.candidates.push(piece);
-                                            console.log("candidates:%O", goal.candidates);
-                                            if (target.piece) {
+                            console.log("player:%O", player);
+                            if (!(player instanceof Dead)) {
+                                const [x, y] = player.transform(n, m);
+                                console.log("x:%i,y:%i", x, y);
+                                for (let move of piece.mobility) {
+                                    let restricted = false;
+                                    let result = piece.radius.next();
+                                    while (!result.done && !restricted) {
+                                        console.log("restricted:%s", restricted);
+                                        console.log("result.done:%s", result.done);
+                                        const radius = result.value;
+                                        const dy = move.dy(y, radius);
+                                        const dx = move.dx(x, radius);
+                                        console.log("radius:%i, dx:%i, dy:%i", radius, dx, dy);
+                                        if (board.valid(dx, dy)) {
+                                            const target = board.squares[dy][dx];
+                                            console.log("target:%O", target);
+                                            if (target.accessible()) {
+                                                const code = target.code();
+                                                const goal = analysis.square(code);
+                                                console.log("code:%s, goal:%O", code, goal);
+                                                goal.candidates.push(piece);
+                                                console.log("candidates:%O", goal.candidates);
+                                                if (goal.piece) {
+                                                    restricted = true;
+                                                    console.log("restricted set to true");
+                                                }
+                                            } else {
                                                 restricted = true;
+                                                console.log("restricted set to true");
                                             }
                                         } else {
                                             restricted = true;
+                                            console.log("restricted set to true");
                                         }
-                                    } else {
-                                        restricted = true;
+                                        result = piece.radius.next();
                                     }
                                 }
                             }
-                            console.groupEnd();
                         }
                     }
-//                  console.groupEnd();
-//              }
-//              console.groupEnd();
-//          }
+                }
+            }
             turn.analysis = analysis;
-//          console.groupEnd();
-//      }
+            console.groupEnd();
+        }
         return this;
     }
 
@@ -579,9 +582,8 @@ class Factory {
     }
 
     show(turns: number): Factory {
-//      for (let i = 1; i < Math.min(this.turns.length, turns); i++) {
-//          const turn = this.turns[i];
-            const turn = this.turns[0];
+        for (let i = 1; i < Math.min(this.turns.length, turns); i++) {
+            const turn = this.turns[i];
             console.group(this.header(turn));
             console.log("                                      " +
                         "                                      " +
@@ -607,7 +609,7 @@ class Factory {
                        s[m][10], s[m][11], s[m][12], s[m][13]);
             }
             console.groupEnd();
-//      }
+        }
         return this;
     }
 }

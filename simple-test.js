@@ -103,19 +103,21 @@ var Vector = (function () {
 }());
 var Radius = (function () {
     function Radius(max) {
-        this.counter = 1;
+        this.counter = 0;
         this.max = max;
     }
     Radius.prototype.next = function () {
-        if (!this.max || (this.max && this.max >= ++this.counter)) {
+        if (!this.max || this.max >= this.counter) {
+            this.counter++;
             return {
                 value: this.counter,
                 done: false
             };
         }
         else {
+            this.counter = 0;
             return {
-                value: null,
+                value: undefined,
                 done: true
             };
         }
@@ -481,60 +483,73 @@ var Factory = (function () {
         return this;
     };
     Factory.prototype.analyse = function () {
-        var analysis = new Analysis();
-        var turn = this.turns[0];
-        var board = turn.added;
-        var m = 0;
-        var n = 6;
-        console.log("analysing");
-        var square = board.squares[m][n];
-        console.log("square:%O", square);
-        console.log("accessible:%s", square.accessible());
-        if (square.accessible()) {
-            var piece = square.piece;
-            console.log("piece:%O", piece);
-            if (piece) {
-                console.group("piece:%O", piece);
-                var player = piece.player;
-                var _a = player.transform(n, m), x = _a[0], y = _a[1];
-                console.log("x:%i,y:%i", x, y);
-                for (var _i = 0, _b = piece.mobility; _i < _b.length; _i++) {
-                    var move = _b[_i];
-                    var restricted = false;
-                    var result = piece.radius.next();
-                    while (!result.done && !restricted) {
-                        var radius = result.value;
-                        result = piece.radius.next();
-                        var dy = move.dy(y, radius);
-                        var dx = move.dx(x, radius);
-                        console.log("radius:%i, dx:%i, dy:%i", radius, dx, dy);
-                        if (board.valid(dx, dy)) {
-                            var target = board.squares[dy][dx];
-                            console.log("target:%O", target);
-                            result = piece.radius.next();
-                            if (target.accessible()) {
-                                var code = target.code();
-                                var goal = analysis.square(code);
-                                console.log("code:%s, goal:%O", code, goal);
-                                goal.candidates.push(piece);
-                                console.log("candidates:%O", goal.candidates);
-                                if (target.piece) {
-                                    restricted = true;
+        for (var i = 1; i < this.turns.length; i++) {
+            console.group("turn:%i", i);
+            var analysis = new Analysis();
+            var turn = this.turns[i];
+            var board = turn.added;
+            console.log("analysing");
+            for (var m = 0; m < 14; m++) {
+                console.log("m:%i", m);
+                for (var n = 0; n < 14; n++) {
+                    console.log("n:%i", n);
+                    var square = board.squares[m][n];
+                    console.log("square:%O", square);
+                    console.log("accessible:%s", square.accessible());
+                    if (square.accessible()) {
+                        var piece = square.piece;
+                        console.log("piece:%O", piece);
+                        if (piece) {
+                            var player = piece.player;
+                            console.log("player:%O", player);
+                            if (!(player instanceof Dead)) {
+                                var _a = player.transform(n, m), x = _a[0], y = _a[1];
+                                console.log("x:%i,y:%i", x, y);
+                                for (var _i = 0, _b = piece.mobility; _i < _b.length; _i++) {
+                                    var move = _b[_i];
+                                    var restricted = false;
+                                    var result = piece.radius.next();
+                                    while (!result.done && !restricted) {
+                                        console.log("restricted:%s", restricted);
+                                        console.log("result.done:%s", result.done);
+                                        var radius = result.value;
+                                        var dy = move.dy(y, radius);
+                                        var dx = move.dx(x, radius);
+                                        console.log("radius:%i, dx:%i, dy:%i", radius, dx, dy);
+                                        if (board.valid(dx, dy)) {
+                                            var target = board.squares[dy][dx];
+                                            console.log("target:%O", target);
+                                            if (target.accessible()) {
+                                                var code = target.code();
+                                                var goal = analysis.square(code);
+                                                console.log("code:%s, goal:%O", code, goal);
+                                                goal.candidates.push(piece);
+                                                console.log("candidates:%O", goal.candidates);
+                                                if (goal.piece) {
+                                                    restricted = true;
+                                                    console.log("restricted set to true");
+                                                }
+                                            }
+                                            else {
+                                                restricted = true;
+                                                console.log("restricted set to true");
+                                            }
+                                        }
+                                        else {
+                                            restricted = true;
+                                            console.log("restricted set to true");
+                                        }
+                                        result = piece.radius.next();
+                                    }
                                 }
                             }
-                            else {
-                                restricted = true;
-                            }
-                        }
-                        else {
-                            restricted = true;
                         }
                     }
                 }
-                console.groupEnd();
             }
+            turn.analysis = analysis;
+            console.groupEnd();
         }
-        turn.analysis = analysis;
         return this;
     };
     Factory.prototype.header = function (turn) {
@@ -550,29 +565,31 @@ var Factory = (function () {
             turn.diff.deaths.length;
     };
     Factory.prototype.show = function (turns) {
-        var turn = this.turns[0];
-        console.group(this.header(turn));
-        console.log("                                      " +
-            "                                      " +
-            "                              0   1   " +
-            "2   3   4   5   6   7   8   9  10  11  12  13");
-        for (var m = 0; m < 14; m++) {
-            var row = ["|"];
-            for (var n = 0; n < 14; n++) {
-                var square = turn.added.squares[m][n];
-                row.push(square.piece ? square.piece.dp : "[]");
+        for (var i = 1; i < Math.min(this.turns.length, turns); i++) {
+            var turn = this.turns[i];
+            console.group(this.header(turn));
+            console.log("                                      " +
+                "                                      " +
+                "                              0   1   " +
+                "2   3   4   5   6   7   8   9  10  11  12  13");
+            for (var m = 0; m < 14; m++) {
+                var row = ["|"];
+                for (var n = 0; n < 14; n++) {
+                    var square = turn.added.squares[m][n];
+                    row.push(square.piece ? square.piece.dp : "[]");
+                }
+                row.push("|");
+                for (var n = 0; n < 14; n++) {
+                    var square = turn.diff.squares[m][n];
+                    row.push(square.piece ? square.piece.dp + square.change : "[ ]");
+                }
+                row.push("|");
+                var s = turn.analysis.squares;
+                console.log(row.join(" ") +
+                    "%i %O %O %O %O %O %O %O %O %O %O %O %O %O %O |", m, s[m][0], s[m][1], s[m][2], s[m][3], s[m][4], s[m][5], s[m][6], s[m][7], s[m][8], s[m][9], s[m][10], s[m][11], s[m][12], s[m][13]);
             }
-            row.push("|");
-            for (var n = 0; n < 14; n++) {
-                var square = turn.diff.squares[m][n];
-                row.push(square.piece ? square.piece.dp + square.change : "[ ]");
-            }
-            row.push("|");
-            var s = turn.analysis.squares;
-            console.log(row.join(" ") +
-                "%i %O %O %O %O %O %O %O %O %O %O %O %O %O %O |", m, s[m][0], s[m][1], s[m][2], s[m][3], s[m][4], s[m][5], s[m][6], s[m][7], s[m][8], s[m][9], s[m][10], s[m][11], s[m][12], s[m][13]);
+            console.groupEnd();
         }
-        console.groupEnd();
         return this;
     };
     return Factory;
