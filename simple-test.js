@@ -294,13 +294,13 @@ var Square = (function () {
     Square.prototype.char = function (n) {
         return String.fromCharCode(n + 97);
     };
-    Square.prototype.code = function (m, n) {
-        return "" + this.char(n) + (m + 1);
+    Square.prototype.code = function () {
+        return "" + this.char(this.n) + (this.m + 1);
     };
-    Square.prototype.accessible = function (m, n) {
-        return (m >= 4 && m <= 11 && n >= 1 && n <= 3) ||
-            (m >= 1 && m <= 14 && n >= 4 && n <= 11) ||
-            (m >= 4 && m <= 11 && n >= 12 && n <= 14);
+    Square.prototype.accessible = function () {
+        return (this.m >= 4 && this.m <= 11 && this.n >= 1 && this.n <= 3) ||
+            (this.m >= 1 && this.m <= 14 && this.n >= 4 && this.n <= 11) ||
+            (this.m >= 4 && this.m <= 11 && this.n >= 12 && this.n <= 14);
     };
     return Square;
 }());
@@ -310,6 +310,15 @@ var DiffSquare = (function (_super) {
         return _super !== null && _super.apply(this, arguments) || this;
     }
     return DiffSquare;
+}(Square));
+var AnalysisSquare = (function (_super) {
+    __extends(AnalysisSquare, _super);
+    function AnalysisSquare() {
+        var _this = _super !== null && _super.apply(this, arguments) || this;
+        _this.candidates = [];
+        return _this;
+    }
+    return AnalysisSquare;
 }(Square));
 var Board = (function () {
     function Board() {
@@ -347,11 +356,28 @@ var Diff = (function () {
     };
     return Diff;
 }());
+var Analysis = (function () {
+    function Analysis() {
+        this.squares = [];
+        for (var m = 0; m < 14; m++) {
+            this.squares[m] = [];
+            for (var n = 0; n < 14; n++) {
+                this.squares[m][n] = new AnalysisSquare(m, n);
+            }
+        }
+    }
+    Analysis.prototype.square = function (code) {
+        var c = AnalysisSquare.coords(code);
+        return this.squares[c[0]][c[1]];
+    };
+    return Analysis;
+}());
 var Turn = (function () {
     function Turn(index) {
         this.diff = new Diff();
         this.added = new Board();
         this.removed = new Board();
+        this.analysis = new Analysis();
         this.index = index;
     }
     return Turn;
@@ -423,7 +449,7 @@ var Factory = (function () {
                 if (rsq.piece && asq.piece) {
                     if (rsq.piece.dp !== asq.piece.dp) {
                         dsq.piece = asq.piece;
-                        if (asq.piece.player.name === "Dead") {
+                        if (asq.piece.player instanceof Dead) {
                             turn.diff.deaths.push(asq);
                             dsq.change = "x";
                         }
@@ -448,6 +474,57 @@ var Factory = (function () {
                 this.createDiffBoard(turn);
                 this.turns.push(turn);
             }
+        }
+        return this;
+    };
+    Factory.prototype.analyse = function () {
+        for (var i = 1; i < this.turns.length; i++) {
+            console.group("turn:%i", i);
+            var analysis = new Analysis();
+            var turn = this.turns[i];
+            var board = turn.added;
+            for (var m = 0; m < 14; m++) {
+                console.group("m:%i", m);
+                for (var n = 0; n < 14; n++) {
+                    console.group("n:%i", n);
+                    var square = board.squares[m][n];
+                    var piece = square.piece;
+                    if (piece) {
+                        console.group("piece:%O", piece);
+                        var player = piece.player;
+                        var _a = player.transform(n, m), x = _a[0], y = _a[1];
+                        console.log("x:%i,y:%i", x, y);
+                        for (var _i = 0, _b = piece.mobility; _i < _b.length; _i++) {
+                            var move = _b[_i];
+                            var restricted = false;
+                            var result = piece.radius.next();
+                            while (!result.done && !restricted) {
+                                var radius = result.value;
+                                var dy = move.dy(y, radius);
+                                var dx = move.dx(x, radius);
+                                var target = board.squares[dy][dx];
+                                console.log("radius:%i, dx:%i, dy:%i, target:%O", radius, dx, dy, target);
+                                result = piece.radius.next();
+                                if (target.accessible()) {
+                                    var code = target.code();
+                                    var goal = analysis.square(code);
+                                    console.log("code:%s, goal:%O", code, goal);
+                                    goal.candidates.push(piece);
+                                    if (!target.piece) {
+                                        continue;
+                                    }
+                                    restricted = true;
+                                }
+                            }
+                        }
+                        console.groupEnd();
+                    }
+                    console.groupEnd();
+                }
+                console.groupEnd();
+            }
+            turn.analysis = analysis;
+            console.groupEnd();
         }
         return this;
     };
@@ -479,7 +556,9 @@ var Factory = (function () {
                     row.push(square.piece ? square.piece.dp + square.change : "[ ]");
                 }
                 row.push("|");
-                console.log(row.join(" "));
+                var s = turn.analysis.squares;
+                console.log(row.join(" ") +
+                    "%O %O %O %O %O %O %O %O %O %O %O %O %O %O |", s[m][0], s[m][1], s[m][2], s[m][3], s[m][4], s[m][5], s[m][6], s[m][7], s[m][8], s[m][9], s[m][10], s[m][11], s[m][12], s[m][13]);
             }
             console.groupEnd();
         }

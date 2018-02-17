@@ -173,7 +173,7 @@ class Pawn extends Piece {
     name: string = "Pawn";
     jump: boolean = false;
     radius = new Radius(2);
-    attack: Vector[] = 
+    attack: Vector[] =
         [new Vector((x) => x + 1, (y) => y + 1),
          new Vector((x) => x - 1, (y) => y + 1)];
     mobility: Vector[] =
@@ -303,14 +303,14 @@ class Square {
         return String.fromCharCode(n + 97);
     }
 
-    code(m: number, n: number): string {
-        return `${this.char(n)}${m + 1}`;
+    code(): string {
+        return `${this.char(this.n)}${this.m + 1}`;
     }
 
-    accessible(m: number, n: number): boolean {
-        return (m >= 4 && m <= 11 && n >= 1 && n <= 3) ||
-               (m >= 1 && m <= 14 && n >= 4 && n <= 11) ||
-               (m >= 4 && m <= 11 && n >= 12 && n <= 14);
+    accessible(): boolean {
+        return (this.m >= 4 && this.m <= 11 && this.n >= 1 && this.n <= 3) ||
+               (this.m >= 1 && this.m <= 14 && this.n >= 4 && this.n <= 11) ||
+               (this.m >= 4 && this.m <= 11 && this.n >= 12 && this.n <= 14);
     }
 
     constructor(m: number, n: number) {
@@ -322,6 +322,10 @@ class Square {
 
 class DiffSquare extends Square {
     change?: string;
+}
+
+class AnalysisSquare extends Square {
+    candidates: Piece[] = [];
 }
 
 class Board {
@@ -364,11 +368,29 @@ class Diff {
     }
 }
 
+class Analysis {
+    squares: AnalysisSquare[][] = [];
+
+    square(code: string): AnalysisSquare {
+        const c = AnalysisSquare.coords(code);
+        return this.squares[c[0]][c[1]];
+    }
+
+    constructor() {
+        for (let m = 0; m < 14; m++) {
+            this.squares[m] = [];
+            for (let n = 0; n < 14; n++) {
+                this.squares[m][n] = new AnalysisSquare(m, n);
+            }
+        }
+    }}
+
 class Turn {
     index: number;
     diff = new Diff();
     added = new Board();
     removed = new Board();
+    analysis = new Analysis();
 
     constructor(index: number) {
         this.index = index;
@@ -443,7 +465,7 @@ class Factory {
                 if (rsq.piece && asq.piece) {
                     if (rsq.piece.dp !== asq.piece.dp) {
                         dsq.piece = asq.piece;
-                        if (asq.piece.player.name === "Dead") {
+                        if (asq.piece.player instanceof Dead) {
                             turn.diff.deaths.push(asq);
                             dsq.change = "x";
                         } else {
@@ -467,6 +489,58 @@ class Factory {
                 this.createDiffBoard(turn);
                 this.turns.push(turn);
             }
+        }
+        return this;
+    }
+
+    analyse(): Factory {
+        for (let i = 1; i < this.turns.length; i++) {
+            console.group("turn:%i", i);
+            const analysis = new Analysis();
+            const turn = this.turns[i];
+            const board = turn.added;
+            for (let m = 0; m < 14; m++) {
+                console.group("m:%i", m);
+                for (let n = 0; n < 14; n++) {
+                    console.group("n:%i", n);
+                    const square = board.squares[m][n];
+                    const piece = square.piece;
+                    if (piece) {
+                        console.group("piece:%O", piece);
+                        const player = piece.player;
+                        const [x, y] = player.transform(n, m);
+                        console.log("x:%i,y:%i", x, y);
+                        for (let move of piece.mobility) {
+                            let restricted = false;
+                            let result = piece.radius.next();
+                            while (!result.done && !restricted) {
+                                const radius = result.value;
+                                const dy = move.dy(y, radius);
+                                const dx = move.dx(x, radius);
+                                const target = board.squares[dy][dx];
+                                console.log("radius:%i, dx:%i, dy:%i, target:%O",
+                                             radius,    dx,    dy,    target);
+                                result = piece.radius.next();
+                                if (target.accessible()) {
+                                    const code = target.code();
+                                    const goal = analysis.square(code);
+                                    console.log("code:%s, goal:%O", code, goal);
+                                    goal.candidates.push(piece);
+                                    if (!target.piece) {
+                                        continue;
+                                    }
+                                    restricted = true;
+                                }
+                            }
+                        }
+                        console.groupEnd();
+                    }
+                    console.groupEnd();
+                }
+                console.groupEnd();
+            }
+            turn.analysis = analysis;
+            console.groupEnd();
         }
         return this;
     }
@@ -500,7 +574,12 @@ class Factory {
                     row.push(square.piece ? square.piece.dp + square.change : "[ ]");
                 }
                 row.push("|");
-                console.log(row.join(" "));
+                const s = turn.analysis.squares;
+                console.log(row.join(" ") +
+                    "%O %O %O %O %O %O %O %O %O %O %O %O %O %O |",
+                    s[m][0], s[m][1], s[m][2], s[m][3], s[m][4],
+                    s[m][5], s[m][6], s[m][7], s[m][8], s[m][9],
+                    s[m][10], s[m][11], s[m][12], s[m][13]);
             }
             console.groupEnd();
         }
@@ -508,4 +587,4 @@ class Factory {
     }
 }
 
-//new Factory().process(modifier.domWatcher.records).show(500);
+//new Factory().process(modifier.domWatcher.records).analyse().show(500);
