@@ -107,7 +107,7 @@ var Radius = (function () {
         this.max = max;
     }
     Radius.prototype.next = function () {
-        if (!this.max || this.max >= this.counter) {
+        if (!this.max || this.counter < this.max) {
             this.counter++;
             return {
                 value: this.counter,
@@ -121,6 +121,9 @@ var Radius = (function () {
                 done: true
             };
         }
+    };
+    Radius.prototype.reset = function () {
+        this.counter = 0;
     };
     return Radius;
 }());
@@ -155,13 +158,17 @@ var Rook = (function (_super) {
         var _this = _super.call(this, dp) || this;
         _this.name = "Rook";
         _this.radius = new Radius();
-        _this.attack = [];
-        _this.mobility = [new Vector(function (x, r) { return x + r; }, function (y) { return y; }),
-            new Vector(function (x, r) { return x - r; }, function (y) { return y; }),
-            new Vector(function (x) { return x; }, function (y, r) { return y + r; }),
-            new Vector(function (x) { return x; }, function (y, r) { return y - r; })];
         return _this;
     }
+    Rook.prototype.attack = function () {
+        return [];
+    };
+    Rook.prototype.mobility = function () {
+        return [[new Vector(function (x, r) { return x + r; }, function (y) { return y; }), true],
+            [new Vector(function (x, r) { return x - r; }, function (y) { return y; }), true],
+            [new Vector(function (x) { return x; }, function (y, r) { return y + r; }), true],
+            [new Vector(function (x) { return x; }, function (y, r) { return y - r; }), true]];
+    };
     return Rook;
 }(Piece));
 var Pawn = (function (_super) {
@@ -170,11 +177,15 @@ var Pawn = (function (_super) {
         var _this = _super.call(this, dp) || this;
         _this.name = "Pawn";
         _this.radius = new Radius(2);
-        _this.attack = [new Vector(function (x) { return x + 1; }, function (y) { return y + 1; }),
-            new Vector(function (x) { return x - 1; }, function (y) { return y + 1; })];
-        _this.mobility = [new Vector(function (x) { return x; }, function (y, r) { return y + r; })];
         return _this;
     }
+    Pawn.prototype.attack = function () {
+        return [[new Vector(function (x) { return x + 1; }, function (y) { return y + 1; }), true],
+            [new Vector(function (x) { return x - 1; }, function (y) { return y + 1; }), true]];
+    };
+    Pawn.prototype.mobility = function () {
+        return [[new Vector(function (x) { return x; }, function (y, r) { return y + r; }), true]];
+    };
     return Pawn;
 }(Piece));
 var King = (function (_super) {
@@ -183,17 +194,21 @@ var King = (function (_super) {
         var _this = _super.call(this, dp) || this;
         _this.name = "King";
         _this.radius = new Radius(1);
-        _this.attack = [];
-        _this.mobility = [new Vector(function (x) { return x + 1; }, function (y) { return y; }),
-            new Vector(function (x) { return x - 1; }, function (y) { return y; }),
-            new Vector(function (x) { return x; }, function (y) { return y + 1; }),
-            new Vector(function (x) { return x; }, function (y) { return y - 1; }),
-            new Vector(function (x) { return x + 1; }, function (y) { return y + 1; }),
-            new Vector(function (x) { return x + 1; }, function (y) { return y - 1; }),
-            new Vector(function (x) { return x - 1; }, function (y) { return y + 1; }),
-            new Vector(function (x) { return x - 1; }, function (y) { return y - 1; })];
         return _this;
     }
+    King.prototype.attack = function () {
+        return [];
+    };
+    King.prototype.mobility = function () {
+        return [[new Vector(function (x) { return x + 1; }, function (y) { return y; }), true],
+            [new Vector(function (x) { return x - 1; }, function (y) { return y; }), true],
+            [new Vector(function (x) { return x; }, function (y) { return y + 1; }), true],
+            [new Vector(function (x) { return x; }, function (y) { return y - 1; }), true],
+            [new Vector(function (x) { return x + 1; }, function (y) { return y + 1; }), true],
+            [new Vector(function (x) { return x + 1; }, function (y) { return y - 1; }), true],
+            [new Vector(function (x) { return x - 1; }, function (y) { return y + 1; }), true],
+            [new Vector(function (x) { return x - 1; }, function (y) { return y - 1; }), true]];
+    };
     return King;
 }(Piece));
 var Queen = (function (_super) {
@@ -202,17 +217,21 @@ var Queen = (function (_super) {
         var _this = _super.call(this, dp) || this;
         _this.name = "Queen";
         _this.radius = new Radius();
-        _this.attack = [];
-        _this.mobility = [new Vector(function (x, r) { return x + r; }, function (y) { return y; }),
-            new Vector(function (x, r) { return x - r; }, function (y) { return y; }),
-            new Vector(function (x) { return x; }, function (y, r) { return y + r; }),
-            new Vector(function (x) { return x; }, function (y, r) { return y - r; }),
-            new Vector(function (x, r) { return x + r; }, function (y, r) { return y + r; }),
-            new Vector(function (x, r) { return x + r; }, function (y, r) { return y - r; }),
-            new Vector(function (x, r) { return x - r; }, function (y, r) { return y + r; }),
-            new Vector(function (x, r) { return x - r; }, function (y, r) { return y - r; })];
         return _this;
     }
+    Queen.prototype.attack = function () {
+        return [];
+    };
+    Queen.prototype.mobility = function () {
+        return [[new Vector(function (x, r) { return x + r; }, function (y) { return y; }), true],
+            [new Vector(function (x, r) { return x - r; }, function (y) { return y; }), true],
+            [new Vector(function (x) { return x; }, function (y, r) { return y + r; }), true],
+            [new Vector(function (x) { return x; }, function (y, r) { return y - r; }), true],
+            [new Vector(function (x, r) { return x + r; }, function (y, r) { return y + r; }), true],
+            [new Vector(function (x, r) { return x + r; }, function (y, r) { return y - r; }), true],
+            [new Vector(function (x, r) { return x - r; }, function (y, r) { return y + r; }), true],
+            [new Vector(function (x, r) { return x - r; }, function (y, r) { return y - r; }), true]];
+    };
     return Queen;
 }(Piece));
 var Bishop = (function (_super) {
@@ -221,13 +240,17 @@ var Bishop = (function (_super) {
         var _this = _super.call(this, dp) || this;
         _this.name = "Bishop";
         _this.radius = new Radius();
-        _this.attack = [];
-        _this.mobility = [new Vector(function (x, r) { return x + r; }, function (y, r) { return y + r; }),
-            new Vector(function (x, r) { return x + r; }, function (y, r) { return y - r; }),
-            new Vector(function (x, r) { return x - r; }, function (y, r) { return y + r; }),
-            new Vector(function (x, r) { return x - r; }, function (y, r) { return y - r; })];
         return _this;
     }
+    Bishop.prototype.attack = function () {
+        return [];
+    };
+    Bishop.prototype.mobility = function () {
+        return [[new Vector(function (x, r) { return x + r; }, function (y, r) { return y + r; }), true],
+            [new Vector(function (x, r) { return x + r; }, function (y, r) { return y - r; }), true],
+            [new Vector(function (x, r) { return x - r; }, function (y, r) { return y + r; }), true],
+            [new Vector(function (x, r) { return x - r; }, function (y, r) { return y - r; }), true]];
+    };
     return Bishop;
 }(Piece));
 var Knight = (function (_super) {
@@ -236,17 +259,21 @@ var Knight = (function (_super) {
         var _this = _super.call(this, dp) || this;
         _this.name = "Knight";
         _this.radius = new Radius(1);
-        _this.attack = [];
-        _this.mobility = [new Vector(function (x) { return x + 2; }, function (y) { return y + 1; }),
-            new Vector(function (x) { return x + 2; }, function (y) { return y - 1; }),
-            new Vector(function (x) { return x - 2; }, function (y) { return y + 1; }),
-            new Vector(function (x) { return x - 2; }, function (y) { return y - 1; }),
-            new Vector(function (x) { return x + 1; }, function (y) { return y + 2; }),
-            new Vector(function (x) { return x + 1; }, function (y) { return y - 2; }),
-            new Vector(function (x) { return x - 1; }, function (y) { return y + 2; }),
-            new Vector(function (x) { return x - 1; }, function (y) { return y - 2; })];
         return _this;
     }
+    Knight.prototype.attack = function () {
+        return [];
+    };
+    Knight.prototype.mobility = function () {
+        return [[new Vector(function (x) { return x + 2; }, function (y) { return y + 1; }), true],
+            [new Vector(function (x) { return x + 2; }, function (y) { return y - 1; }), true],
+            [new Vector(function (x) { return x - 2; }, function (y) { return y + 1; }), true],
+            [new Vector(function (x) { return x - 2; }, function (y) { return y - 1; }), true],
+            [new Vector(function (x) { return x + 1; }, function (y) { return y + 2; }), true],
+            [new Vector(function (x) { return x + 1; }, function (y) { return y - 2; }), true],
+            [new Vector(function (x) { return x - 1; }, function (y) { return y + 2; }), true],
+            [new Vector(function (x) { return x - 1; }, function (y) { return y - 2; }), true]];
+    };
     return Knight;
 }(Piece));
 var Square = (function () {
@@ -450,75 +477,85 @@ var Factory = (function () {
         return this;
     };
     Factory.prototype.analyse = function () {
-        this.log = [];
         for (var i = 1; i < this.turns.length; i++) {
-            this.log.push("turn:" + i);
+            console.log("turn:" + i);
             var analysis = new Analysis();
             var turn = this.turns[i];
             var board = turn.added;
-            this.log.push("analysing");
+            console.log("analysing");
             for (var m = 0; m < 14; m++) {
                 for (var n = 0; n < 14; n++) {
                     var square = board.squares[m][n];
-                    this.log.push("square:m[" + square.m + "], n[" + square.n + "]");
+                    console.log("square:m[" + square.m + "], n[" + square.n + "]");
                     var accessible = square.accessible();
-                    this.log.push("accessible:" + accessible);
+                    console.log("accessible:" + accessible);
                     if (accessible) {
                         var piece = square.piece;
                         if (piece) {
                             var player = piece.player;
-                            this.log.push("piece:" + player.name + " " + piece.name);
+                            console.log("piece:" + player.name + " " + piece.name);
                             if (!(player instanceof Dead)) {
                                 var _a = player.transform(n, m), x = _a[0], y = _a[1];
-                                this.log.push("x:" + x + ", y:" + y);
-                                for (var _i = 0, _b = piece.mobility; _i < _b.length; _i++) {
-                                    var move = _b[_i];
-                                    this.log.push("begin move loop");
-                                    var restricted = false;
-                                    for (;;) {
-                                        this.log.push("begin radius loop");
-                                        var result = piece.radius.next();
-                                        this.log.push("restricted:" + restricted);
-                                        this.log.push("result.done:" + result.done);
-                                        if (result.done || restricted) {
-                                            this.log.push("breaking out of radius loop");
-                                            break;
+                                console.log("x:" + x + ", y:" + y);
+                                var moves = piece.mobility();
+                                console.log("begin radius loop");
+                                for (;;) {
+                                    var result = piece.radius.next();
+                                    console.log("result.done:" + result.done);
+                                    var remaining = 0;
+                                    for (var j = 0; j < moves.length; j++) {
+                                        if (moves[j][1]) {
+                                            remaining++;
                                         }
-                                        var radius = result.value;
-                                        var dy = move.dy(y, radius);
-                                        var dx = move.dx(x, radius);
-                                        this.log.push("radius:" + radius + ", dx:" + dx + ", dy:" + dy);
-                                        if (board.valid(dx, dy)) {
-                                            var target = board.squares[dy][dx];
-                                            this.log.push("target:m[" + target.m + "], n[" + target.n + "]");
-                                            if (target.accessible()) {
-                                                var code = target.code();
-                                                var goal = analysis.square(code);
-                                                this.log.push("code:" + code + ", goal:m[" + goal.m + "], n[" + goal.n + "]");
-                                                goal.candidates.push(piece);
-                                                var list = [];
-                                                for (var candidate in goal.candidates) {
-                                                    list.push(player.name + " " + piece.name);
+                                    }
+                                    console.log("remaining:" + remaining);
+                                    if (result.done ||
+                                        result.value > 14 ||
+                                        remaining === 0) {
+                                        console.log("breaking out of radius loop");
+                                        piece.radius.reset();
+                                        break;
+                                    }
+                                    var radius = result.value;
+                                    console.log("begin move loop");
+                                    for (var j = 0; j < moves.length; j++) {
+                                        if (moves[j][1]) {
+                                            var dy = moves[j][0].dy(y, radius);
+                                            var dx = moves[j][0].dx(x, radius);
+                                            console.log("radius:" + radius + ", dx:" + dx + ", dy:" + dy);
+                                            if (board.valid(dx, dy)) {
+                                                var target = board.squares[dy][dx];
+                                                console.log("target:m[" + target.m + "], n[" + target.n + "]");
+                                                if (target.accessible()) {
+                                                    var code = target.code();
+                                                    var goal = analysis.square(code);
+                                                    console.log("code:" + code + ", goal:m[" + goal.m + "], n[" + goal.n + "]");
+                                                    goal.candidates.push(piece);
+                                                    var list = [];
+                                                    for (var k = 0; k < goal.candidates.length; k++) {
+                                                        list.push(goal.candidates[k].player.name + " " + goal.candidates[k].name);
+                                                    }
+                                                    var candidates = list.join(", ");
+                                                    console.log("candidates:" + candidates);
+                                                    if (target.piece) {
+                                                        moves[j][1] = false;
+                                                        console.log("target square has a piece");
+                                                    }
                                                 }
-                                                this.log.push("candidates:" + list.join(", "));
-                                                if (target.piece) {
-                                                    restricted = true;
-                                                    this.log.push("goal has a piece. restricted set to true");
+                                                else {
+                                                    moves[j][1] = false;
+                                                    console.log("target square is not accessible");
                                                 }
                                             }
                                             else {
-                                                restricted = true;
-                                                this.log.push("target not accessible. restricted set to true");
+                                                moves[j][1] = false;
+                                                console.log("target square is out of bounds");
                                             }
                                         }
-                                        else {
-                                            restricted = true;
-                                            this.log.push("square not valid. restricted set to true");
-                                        }
-                                        this.log.push("end radius loop");
                                     }
-                                    this.log.push("end move loop");
+                                    console.log("end move loop");
                                 }
+                                console.log("end radius loop");
                             }
                         }
                     }
