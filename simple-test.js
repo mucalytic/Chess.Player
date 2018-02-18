@@ -37,8 +37,8 @@ var Red = (function (_super) {
         _this.turn = 1;
         return _this;
     }
-    Red.prototype.transform = function (x, y) {
-        return [x, y];
+    Red.prototype.transform = function (x, y, x1, y1) {
+        return [x + x1, y + y1];
     };
     return Red;
 }(Player));
@@ -50,8 +50,8 @@ var Blue = (function (_super) {
         _this.turn = 2;
         return _this;
     }
-    Blue.prototype.transform = function (x, y) {
-        return [-y, x];
+    Blue.prototype.transform = function (x, y, x1, y1) {
+        return [x + y1, y - x1];
     };
     return Blue;
 }(Player));
@@ -63,8 +63,8 @@ var Yellow = (function (_super) {
         _this.turn = 3;
         return _this;
     }
-    Yellow.prototype.transform = function (x, y) {
-        return [-x, -y];
+    Yellow.prototype.transform = function (x, y, x1, y1) {
+        return [x - x1, y - y1];
     };
     return Yellow;
 }(Player));
@@ -76,8 +76,8 @@ var Green = (function (_super) {
         _this.turn = 4;
         return _this;
     }
-    Green.prototype.transform = function (x, y) {
-        return [y, -x];
+    Green.prototype.transform = function (x, y, x1, y1) {
+        return [x - y1, y + x1];
     };
     return Green;
 }(Player));
@@ -95,9 +95,9 @@ var Dead = (function (_super) {
     return Dead;
 }(Player));
 var Vector = (function () {
-    function Vector(dx, dy) {
-        this.dx = dx;
-        this.dy = dy;
+    function Vector(x1, y1) {
+        this.x1 = x1;
+        this.y1 = y1;
     }
     return Vector;
 }());
@@ -164,10 +164,10 @@ var Rook = (function (_super) {
         return [];
     };
     Rook.prototype.mobility = function () {
-        return [[new Vector(function (x, r) { return x + r; }, function (y) { return y; }), true],
-            [new Vector(function (x, r) { return x - r; }, function (y) { return y; }), true],
-            [new Vector(function (x) { return x; }, function (y, r) { return y + r; }), true],
-            [new Vector(function (x) { return x; }, function (y, r) { return y - r; }), true]];
+        return [[new Vector(function (r) { return r; }, function (_) { return 0; }), true],
+            [new Vector(function (r) { return -r; }, function (_) { return 0; }), true],
+            [new Vector(function (_) { return 0; }, function (r) { return r; }), true],
+            [new Vector(function (_) { return 0; }, function (r) { return -r; }), true]];
     };
     return Rook;
 }(Piece));
@@ -180,11 +180,11 @@ var Pawn = (function (_super) {
         return _this;
     }
     Pawn.prototype.attack = function () {
-        return [[new Vector(function (x) { return x + 1; }, function (y) { return y + 1; }), true],
-            [new Vector(function (x) { return x - 1; }, function (y) { return y + 1; }), true]];
+        return [[new Vector(function (_) { return 1; }, function (_) { return 1; }), true],
+            [new Vector(function (_) { return -1; }, function (_) { return 1; }), true]];
     };
     Pawn.prototype.mobility = function () {
-        return [[new Vector(function (x) { return x; }, function (y, r) { return y + r; }), true]];
+        return [[new Vector(function (_) { return 0; }, function (r) { return r; }), true]];
     };
     return Pawn;
 }(Piece));
@@ -200,14 +200,14 @@ var King = (function (_super) {
         return [];
     };
     King.prototype.mobility = function () {
-        return [[new Vector(function (x) { return x + 1; }, function (y) { return y; }), true],
-            [new Vector(function (x) { return x - 1; }, function (y) { return y; }), true],
-            [new Vector(function (x) { return x; }, function (y) { return y + 1; }), true],
-            [new Vector(function (x) { return x; }, function (y) { return y - 1; }), true],
-            [new Vector(function (x) { return x + 1; }, function (y) { return y + 1; }), true],
-            [new Vector(function (x) { return x + 1; }, function (y) { return y - 1; }), true],
-            [new Vector(function (x) { return x - 1; }, function (y) { return y + 1; }), true],
-            [new Vector(function (x) { return x - 1; }, function (y) { return y - 1; }), true]];
+        return [[new Vector(function (_) { return 1; }, function (_) { return 0; }), true],
+            [new Vector(function (_) { return -1; }, function (_) { return 0; }), true],
+            [new Vector(function (_) { return 0; }, function (_) { return 1; }), true],
+            [new Vector(function (_) { return 0; }, function (_) { return -1; }), true],
+            [new Vector(function (_) { return 1; }, function (_) { return 1; }), true],
+            [new Vector(function (_) { return 1; }, function (_) { return -1; }), true],
+            [new Vector(function (_) { return -1; }, function (_) { return 1; }), true],
+            [new Vector(function (_) { return -1; }, function (_) { return -1; }), true]];
     };
     return King;
 }(Piece));
@@ -223,14 +223,14 @@ var Queen = (function (_super) {
         return [];
     };
     Queen.prototype.mobility = function () {
-        return [[new Vector(function (x, r) { return x + r; }, function (y) { return y; }), true],
-            [new Vector(function (x, r) { return x - r; }, function (y) { return y; }), true],
-            [new Vector(function (x) { return x; }, function (y, r) { return y + r; }), true],
-            [new Vector(function (x) { return x; }, function (y, r) { return y - r; }), true],
-            [new Vector(function (x, r) { return x + r; }, function (y, r) { return y + r; }), true],
-            [new Vector(function (x, r) { return x + r; }, function (y, r) { return y - r; }), true],
-            [new Vector(function (x, r) { return x - r; }, function (y, r) { return y + r; }), true],
-            [new Vector(function (x, r) { return x - r; }, function (y, r) { return y - r; }), true]];
+        return [[new Vector(function (r) { return r; }, function (_) { return 0; }), true],
+            [new Vector(function (r) { return -r; }, function (_) { return 0; }), true],
+            [new Vector(function (_) { return 0; }, function (r) { return r; }), true],
+            [new Vector(function (_) { return 0; }, function (r) { return -r; }), true],
+            [new Vector(function (r) { return r; }, function (r) { return r; }), true],
+            [new Vector(function (r) { return r; }, function (r) { return -r; }), true],
+            [new Vector(function (r) { return -r; }, function (r) { return r; }), true],
+            [new Vector(function (r) { return -r; }, function (r) { return -r; }), true]];
     };
     return Queen;
 }(Piece));
@@ -246,10 +246,10 @@ var Bishop = (function (_super) {
         return [];
     };
     Bishop.prototype.mobility = function () {
-        return [[new Vector(function (x, r) { return x + r; }, function (y, r) { return y + r; }), true],
-            [new Vector(function (x, r) { return x + r; }, function (y, r) { return y - r; }), true],
-            [new Vector(function (x, r) { return x - r; }, function (y, r) { return y + r; }), true],
-            [new Vector(function (x, r) { return x - r; }, function (y, r) { return y - r; }), true]];
+        return [[new Vector(function (r) { return r; }, function (r) { return r; }), true],
+            [new Vector(function (r) { return r; }, function (r) { return -r; }), true],
+            [new Vector(function (r) { return -r; }, function (r) { return r; }), true],
+            [new Vector(function (r) { return -r; }, function (r) { return -r; }), true]];
     };
     return Bishop;
 }(Piece));
@@ -265,14 +265,14 @@ var Knight = (function (_super) {
         return [];
     };
     Knight.prototype.mobility = function () {
-        return [[new Vector(function (x) { return x + 2; }, function (y) { return y + 1; }), true],
-            [new Vector(function (x) { return x + 2; }, function (y) { return y - 1; }), true],
-            [new Vector(function (x) { return x - 2; }, function (y) { return y + 1; }), true],
-            [new Vector(function (x) { return x - 2; }, function (y) { return y - 1; }), true],
-            [new Vector(function (x) { return x + 1; }, function (y) { return y + 2; }), true],
-            [new Vector(function (x) { return x + 1; }, function (y) { return y - 2; }), true],
-            [new Vector(function (x) { return x - 1; }, function (y) { return y + 2; }), true],
-            [new Vector(function (x) { return x - 1; }, function (y) { return y - 2; }), true]];
+        return [[new Vector(function (_) { return 2; }, function (_) { return 1; }), true],
+            [new Vector(function (_) { return 2; }, function (_) { return -1; }), true],
+            [new Vector(function (_) { return -2; }, function (_) { return 1; }), true],
+            [new Vector(function (_) { return -2; }, function (_) { return -1; }), true],
+            [new Vector(function (_) { return 1; }, function (_) { return 2; }), true],
+            [new Vector(function (_) { return 1; }, function (_) { return -2; }), true],
+            [new Vector(function (_) { return -1; }, function (_) { return 2; }), true],
+            [new Vector(function (_) { return -1; }, function (_) { return -2; }), true]];
     };
     return Knight;
 }(Piece));
@@ -495,8 +495,6 @@ var Factory = (function () {
                             var player = piece.player;
                             console.log("piece:" + player.name + " " + piece.name);
                             if (!(player instanceof Dead)) {
-                                var _a = player.transform(n, m), x = _a[0], y = _a[1];
-                                console.log("x:" + x + ", y:" + y);
                                 var moves = piece.mobility();
                                 console.log("begin radius loop");
                                 for (;;) {
@@ -520,11 +518,14 @@ var Factory = (function () {
                                     console.log("begin move loop");
                                     for (var j = 0; j < moves.length; j++) {
                                         if (moves[j][1]) {
-                                            var dy = moves[j][0].dy(y, radius);
-                                            var dx = moves[j][0].dx(x, radius);
-                                            console.log("radius:" + radius + ", dx:" + dx + ", dy:" + dy);
-                                            if (board.valid(dx, dy)) {
-                                                var target = board.squares[dy][dx];
+                                            console.log("radius:" + radius);
+                                            var x1 = moves[j][0].x1(radius);
+                                            var y1 = moves[j][0].y1(radius);
+                                            console.log("x1:" + x1 + ", y1:" + y1);
+                                            var _a = player.transform(n, m, x1, y1), x2 = _a[0], y2 = _a[1];
+                                            console.log("x2:" + x2 + ", y2:" + y2);
+                                            if (board.valid(x2, y2)) {
+                                                var target = board.squares[y2][x2];
                                                 console.log("target:m[" + target.m + "], n[" + target.n + "]");
                                                 if (target.accessible()) {
                                                     var code = target.code();

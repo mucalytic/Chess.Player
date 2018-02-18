@@ -15,7 +15,7 @@ abstract class Player {
     abstract name: string;
     abstract turn: number;
 
-    abstract transform(x: number, y: number): [number, number];
+    abstract transform(x: number, y: number, x1: number, y1: number): [number, number];
 
     static create(dp: string): Player {
         switch (dp.charAt(0)) {
@@ -39,8 +39,8 @@ class Red extends Player {
     name: string = "Red";
     turn: number = 1;
 
-    transform(x: number, y: number): [number, number] {
-        return [x, y];
+    transform(x: number, y: number, x1: number, y1: number): [number, number] {
+        return [x + x1, y + y1];
     }
 }
 
@@ -48,8 +48,8 @@ class Blue extends Player {
     name: string = "Blue";
     turn: number = 2;
 
-    transform(x: number, y: number): [number, number] {
-        return [-y, x];
+    transform(x: number, y: number, x1: number, y1: number): [number, number] {
+        return [x + y1, y - x1];
     }
 }
 
@@ -57,8 +57,8 @@ class Yellow extends Player {
     name: string = "Yellow";
     turn: number = 3;
 
-    transform(x: number, y: number): [number, number] {
-        return [-x, -y];
+    transform(x: number, y: number, x1: number, y1: number): [number, number] {
+        return [x - x1, y - y1];
     }
 }
 
@@ -66,8 +66,8 @@ class Green extends Player {
     name: string = "Green";
     turn: number = 4;
 
-    transform(x: number, y: number): [number, number] {
-        return [y, -x];
+    transform(x: number, y: number, x1: number, y1: number): [number, number] {
+        return [x - y1, y + x1];
     }
 }
 
@@ -81,13 +81,13 @@ class Dead extends Player {
 }
 
 class Vector {
-    dx: (x: number, r?: number) => number;
-    dy: (y: number, r?: number) => number;
+    x1: (r?: number) => number;
+    y1: (r?: number) => number;
 
-    constructor(dx: (x: number, r?: number) => number,
-                dy: (y: number, r?: number) => number) {
-        this.dx = dx;
-        this.dy = dy;
+    constructor(x1: (r?: number) => number,
+                y1: (r?: number) => number) {
+        this.x1 = x1;
+        this.y1 = y1;
     }
 }
 
@@ -165,10 +165,10 @@ class Rook extends Piece {
     }
 
     mobility(): [Vector, boolean][] {
-        return [[new Vector((x, r) => x + r, (y) => y), true],
-                [new Vector((x, r) => x - r, (y) => y), true],
-                [new Vector((x) => x, (y, r) => y + r), true],
-                [new Vector((x) => x, (y, r) => y - r), true]];
+        return [[new Vector(r =>  r, _ => 0), true],
+                [new Vector(r => -r, _ => 0), true],
+                [new Vector(_ => 0, r =>  r), true],
+                [new Vector(_ => 0, r => -r), true]];
      }
 
     constructor(dp: string) {
@@ -181,12 +181,12 @@ class Pawn extends Piece {
     radius = new Radius(2);
 
     attack(): [Vector, boolean][] {
-        return [[new Vector((x) => x + 1, (y) => y + 1), true],
-                [new Vector((x) => x - 1, (y) => y + 1), true]];
+        return [[new Vector(_ =>  1, _ => 1), true],
+                [new Vector(_ => -1, _ => 1), true]];
     }
 
     mobility(): [Vector, boolean][] {
-        return [[new Vector((x) => x, (y, r) => y + r), true]];
+        return [[new Vector(_ => 0, r => r), true]];
     }
 
     constructor(dp: string) {
@@ -203,14 +203,14 @@ class King extends Piece {
     }
 
     mobility(): [Vector, boolean][] {
-         return [[new Vector((x) => x + 1, (y) => y), true],
-                 [new Vector((x) => x - 1, (y) => y), true],
-                 [new Vector((x) => x, (y) => y + 1), true],
-                 [new Vector((x) => x, (y) => y - 1), true],
-                 [new Vector((x) => x + 1, (y) => y + 1), true],
-                 [new Vector((x) => x + 1, (y) => y - 1), true],
-                 [new Vector((x) => x - 1, (y) => y + 1), true],
-                 [new Vector((x) => x - 1, (y) => y - 1), true]];
+         return [[new Vector(_ =>  1, _ =>  0), true],
+                 [new Vector(_ => -1, _ =>  0), true],
+                 [new Vector(_ =>  0, _ =>  1), true],
+                 [new Vector(_ =>  0, _ => -1), true],
+                 [new Vector(_ =>  1, _ =>  1), true],
+                 [new Vector(_ =>  1, _ => -1), true],
+                 [new Vector(_ => -1, _ =>  1), true],
+                 [new Vector(_ => -1, _ => -1), true]];
     }
 
     constructor(dp: string) {
@@ -227,14 +227,14 @@ class Queen extends Piece {
     }
 
     mobility(): [Vector, boolean][] {
-        return [[new Vector((x, r) => x + r, (y) => y), true],
-                [new Vector((x, r) => x - r, (y) => y), true],
-                [new Vector((x) => x, (y, r) => y + r), true],
-                [new Vector((x) => x, (y, r) => y - r), true],
-                [new Vector((x, r) => x + r, (y, r) => y + r), true],
-                [new Vector((x, r) => x + r, (y, r) => y - r), true],
-                [new Vector((x, r) => x - r, (y, r) => y + r), true],
-                [new Vector((x, r) => x - r, (y, r) => y - r), true]];
+        return [[new Vector(r =>  r, _ =>  0), true],
+                [new Vector(r => -r, _ =>  0), true],
+                [new Vector(_ =>  0, r =>  r), true],
+                [new Vector(_ =>  0, r => -r), true],
+                [new Vector(r =>  r, r =>  r), true],
+                [new Vector(r =>  r, r => -r), true],
+                [new Vector(r => -r, r =>  r), true],
+                [new Vector(r => -r, r => -r), true]];
     }
 
     constructor(dp: string) {
@@ -251,10 +251,10 @@ class Bishop extends Piece {
     }
 
     mobility(): [Vector, boolean][] {
-        return [[new Vector((x, r) => x + r, (y, r) => y + r), true],
-                [new Vector((x, r) => x + r, (y, r) => y - r), true],
-                [new Vector((x, r) => x - r, (y, r) => y + r), true],
-                [new Vector((x, r) => x - r, (y, r) => y - r), true]];
+        return [[new Vector(r =>  r, r =>  r), true],
+                [new Vector(r =>  r, r => -r), true],
+                [new Vector(r => -r, r =>  r), true],
+                [new Vector(r => -r, r => -r), true]];
     }
 
     constructor(dp: string) {
@@ -271,14 +271,14 @@ class Knight extends Piece {
     }
 
     mobility(): [Vector, boolean][] {
-        return [[new Vector((x) => x + 2, (y) => y + 1), true],
-                [new Vector((x) => x + 2, (y) => y - 1), true],
-                [new Vector((x) => x - 2, (y) => y + 1), true],
-                [new Vector((x) => x - 2, (y) => y - 1), true],
-                [new Vector((x) => x + 1, (y) => y + 2), true],
-                [new Vector((x) => x + 1, (y) => y - 2), true],
-                [new Vector((x) => x - 1, (y) => y + 2), true],
-                [new Vector((x) => x - 1, (y) => y - 2), true]];
+        return [[new Vector(_ =>  2, _ =>  1), true],
+                [new Vector(_ =>  2, _ => -1), true],
+                [new Vector(_ => -2, _ =>  1), true],
+                [new Vector(_ => -2, _ => -1), true],
+                [new Vector(_ =>  1, _ =>  2), true],
+                [new Vector(_ =>  1, _ => -2), true],
+                [new Vector(_ => -1, _ =>  2), true],
+                [new Vector(_ => -1, _ => -2), true]];
     }
 
     constructor(dp: string) {
@@ -514,8 +514,6 @@ class Factory {
                             const player = piece.player;
                             console.log(`piece:${player.name} ${piece.name}`);
                             if (!(player instanceof Dead)) {
-                                const [x, y] = player.transform(n, m);
-                                console.log(`x:${x}, y:${y}`);
                                 const moves = piece.mobility();
                                 console.log("begin radius loop");
                                 for (;;) {
@@ -539,11 +537,14 @@ class Factory {
                                     console.log("begin move loop");
                                     for (let j = 0; j < moves.length; j++) {
                                         if (moves[j][1]) {
-                                            const dy = moves[j][0].dy(y, radius);
-                                            const dx = moves[j][0].dx(x, radius);
-                                            console.log(`radius:${radius}, dx:${dx}, dy:${dy}`);
-                                            if (board.valid(dx, dy)) {
-                                                const target = board.squares[dy][dx];
+                                            console.log(`radius:${radius}`);
+                                            const x1 = moves[j][0].x1(radius);
+                                            const y1 = moves[j][0].y1(radius);
+                                            console.log(`x1:${x1}, y1:${y1}`);
+                                            const [x2, y2] = player.transform(n, m, x1, y1);
+                                            console.log(`x2:${x2}, y2:${y2}`);
+                                            if (board.valid(x2, y2)) {
+                                                const target = board.squares[y2][x2];
                                                 console.log(`target:m[${target.m}], n[${target.n}]`);
                                                 if (target.accessible()) {
                                                     const code = target.code();
