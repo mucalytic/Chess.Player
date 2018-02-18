@@ -122,7 +122,6 @@ abstract class Piece {
     dp: string;
 
     abstract name: string;
-    abstract jump: boolean;
     abstract radius: Radius;
     abstract attack: Vector[];
     abstract mobility: Vector[];
@@ -154,13 +153,8 @@ abstract class Piece {
 
 class Rook extends Piece {
     name: string = "Rook";
-    jump: boolean = false;
     radius = new Radius();
-    attack: Vector[] =
-        [new Vector((x, r) => x + r, (y) => y),
-         new Vector((x, r) => x - r, (y) => y),
-         new Vector((x) => x, (y, r) => y + r),
-         new Vector((x) => x, (y, r) => y - r)];
+    attack: Vector[] = [];
     mobility: Vector[] =
         [new Vector((x, r) => x + r, (y) => y),
          new Vector((x, r) => x - r, (y) => y),
@@ -174,7 +168,6 @@ class Rook extends Piece {
 
 class Pawn extends Piece {
     name: string = "Pawn";
-    jump: boolean = false;
     radius = new Radius(2);
     attack: Vector[] =
         [new Vector((x) => x + 1, (y) => y + 1),
@@ -189,17 +182,8 @@ class Pawn extends Piece {
 
 class King extends Piece {
     name: string = "King";
-    jump: boolean = false;
     radius = new Radius(1);
-    attack: Vector[] =
-        [new Vector((x) => x + 1, (y) => y),
-         new Vector((x) => x - 1, (y) => y),
-         new Vector((x) => x, (y) => y + 1),
-         new Vector((x) => x, (y) => y - 1),
-         new Vector((x) => x + 1, (y) => y + 1),
-         new Vector((x) => x + 1, (y) => y - 1),
-         new Vector((x) => x - 1, (y) => y + 1),
-         new Vector((x) => x - 1, (y) => y - 1)];
+    attack: Vector[] = [];
     mobility: Vector[] =
         [new Vector((x) => x + 1, (y) => y),
          new Vector((x) => x - 1, (y) => y),
@@ -217,17 +201,8 @@ class King extends Piece {
 
 class Queen extends Piece {
     name: string = "Queen";
-    jump: boolean = false;
     radius = new Radius();
-    attack: Vector[] =
-        [new Vector((x, r) => x + r, (y) => y),
-         new Vector((x, r) => x - r, (y) => y),
-         new Vector((x) => x, (y, r) => y + r),
-         new Vector((x) => x, (y, r) => y - r),
-         new Vector((x, r) => x + r, (y, r) => y + r),
-         new Vector((x, r) => x + r, (y, r) => y - r),
-         new Vector((x, r) => x - r, (y, r) => y + r),
-         new Vector((x, r) => x - r, (y, r) => y - r)];
+    attack: Vector[] = [];
     mobility: Vector[] =
         [new Vector((x, r) => x + r, (y) => y),
          new Vector((x, r) => x - r, (y) => y),
@@ -245,13 +220,8 @@ class Queen extends Piece {
 
 class Bishop extends Piece {
     name: string = "Bishop";
-    jump: boolean = false;
     radius = new Radius();
-    attack: Vector[] =
-        [new Vector((x, r) => x + r, (y, r) => y + r),
-         new Vector((x, r) => x + r, (y, r) => y - r),
-         new Vector((x, r) => x - r, (y, r) => y + r),
-         new Vector((x, r) => x - r, (y, r) => y - r)];
+    attack: Vector[] = [];
     mobility: Vector[] =
         [new Vector((x, r) => x + r, (y, r) => y + r),
          new Vector((x, r) => x + r, (y, r) => y - r),
@@ -265,19 +235,10 @@ class Bishop extends Piece {
 
 class Knight extends Piece {
     name: string = "Knight";
-    jump: boolean = true;
     radius = new Radius(1);
-    attack: Vector[] =
-        [new Vector((x) => x + 2, (y) => y + 1),
-         new Vector((x) => x + 2, (y) => y - 1),
-         new Vector((x) => x - 2, (y) => y + 1),
-         new Vector((x) => x - 2, (y) => y - 1),
-         new Vector((x) => x + 1, (y) => y + 2),
-         new Vector((x) => x + 1, (y) => y - 2),
-         new Vector((x) => x - 1, (y) => y + 2),
-         new Vector((x) => x - 1, (y) => y - 2)];
+    attack: Vector[] = [];
     mobility: Vector[] =
-       [new Vector((x) => x + 2, (y) => y + 1),
+        [new Vector((x) => x + 2, (y) => y + 1),
          new Vector((x) => x + 2, (y) => y - 1),
          new Vector((x) => x - 2, (y) => y + 1),
          new Vector((x) => x - 2, (y) => y - 1),
@@ -508,25 +469,24 @@ class Factory {
             const board = turn.added;
             console.log("analysing")
             for (let m = 0; m < 14; m++) {
-                console.log("m:%i", m);
-                    for (let n = 0; n < 14; n++) {
-                    console.log("n:%i", n);
+                for (let n = 0; n < 14; n++) {
                     const square = board.squares[m][n];
-                    console.log("square:%O", square);
+                    console.log("square:m[%i], n[%i]", square.m, square.n);
                     console.log("accessible:%s", square.accessible());
                     if (square.accessible()) {
                         const piece = square.piece;
-                        console.log("piece:%O", piece);
                         if (piece) {
                             const player = piece.player;
-                            console.log("player:%O", player);
+                            console.log("piece:%s %s", player.name, piece.name);
                             if (!(player instanceof Dead)) {
                                 const [x, y] = player.transform(n, m);
-                                console.log("x:%i,y:%i", x, y);
+                                console.log("x:%i, y:%i", x, y);
                                 for (let move of piece.mobility) {
+                                    console.log("begin move loop");
                                     let restricted = false;
                                     let result = piece.radius.next();
                                     while (!result.done && !restricted) {
+                                        console.log("begin radius loop");
                                         console.log("restricted:%s", restricted);
                                         console.log("result.done:%s", result.done);
                                         const radius = result.value;
@@ -535,27 +495,34 @@ class Factory {
                                         console.log("radius:%i, dx:%i, dy:%i", radius, dx, dy);
                                         if (board.valid(dx, dy)) {
                                             const target = board.squares[dy][dx];
-                                            console.log("target:%O", target);
+                                            console.log("target:m[%i], n[%i]", target.m, target.n);
                                             if (target.accessible()) {
                                                 const code = target.code();
                                                 const goal = analysis.square(code);
-                                                console.log("code:%s, goal:%O", code, goal);
+                                                console.log("code:%s, goal:m[%i], n[%i]", code, goal.m, goal.n);
                                                 goal.candidates.push(piece);
-                                                console.log("candidates:%O", goal.candidates);
+                                                let list: string[] = [];
+                                                for (let candidate in goal.candidates) {
+                                                    list.push(`${player.name} ${piece.name}`);
+                                                }
+                                                console.log("candidates:", list.join(" "));
                                                 if (goal.piece) {
                                                     restricted = true;
-                                                    console.log("restricted set to true");
+                                                    console.log("goal has piece. restricted set to true");
                                                 }
                                             } else {
                                                 restricted = true;
-                                                console.log("restricted set to true");
+                                                console.log("target not accessible. restricted set to true");
                                             }
                                         } else {
                                             restricted = true;
-                                            console.log("restricted set to true");
+                                            console.log("square not valid. restricted set to true");
                                         }
                                         result = piece.radius.next();
+                                        console.log("new result. done:%s, value:%s", result.done, result.value);
+                                        console.log("end radius loop");
                                     }
+                                    console.log("end move loop");
                                 }
                             }
                         }
