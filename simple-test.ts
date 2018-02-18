@@ -366,6 +366,7 @@ class Turn {
 }
 
 class Factory {
+    log: string[];
     turns: Turn[] = [];
 
     piece(nodes: NodeList): Node {
@@ -462,67 +463,71 @@ class Factory {
     }
 
     analyse(): Factory {
+        this.log = [];
         for (let i = 1; i < this.turns.length; i++) {
-            console.group("turn:%i", i);
+            this.log.push(`turn:${i}`);
             const analysis = new Analysis();
             const turn = this.turns[i];
             const board = turn.added;
-            console.log("analysing")
+            this.log.push("analysing")
             for (let m = 0; m < 14; m++) {
                 for (let n = 0; n < 14; n++) {
                     const square = board.squares[m][n];
-                    console.log("square:m[%i], n[%i]", square.m, square.n);
-                    console.log("accessible:%s", square.accessible());
-                    if (square.accessible()) {
+                    this.log.push(`square:m[${square.m}], n[${square.n}]`);
+                    const accessible = square.accessible();
+                    this.log.push(`accessible:${accessible}`);
+                    if (accessible) {
                         const piece = square.piece;
                         if (piece) {
                             const player = piece.player;
-                            console.log("piece:%s %s", player.name, piece.name);
+                            this.log.push(`piece:${player.name} ${piece.name}`);
                             if (!(player instanceof Dead)) {
                                 const [x, y] = player.transform(n, m);
-                                console.log("x:%i, y:%i", x, y);
+                                this.log.push(`x:${x}, y:${y}`);
                                 for (let move of piece.mobility) {
-                                    console.log("begin move loop");
+                                    this.log.push("begin move loop");
                                     let restricted = false;
-                                    let result = piece.radius.next();
-                                    while (!result.done && !restricted) {
-                                        console.log("begin radius loop");
-                                        console.log("restricted:%s", restricted);
-                                        console.log("result.done:%s", result.done);
+                                    for (;;) {
+                                        this.log.push("begin radius loop");
+                                        let result = piece.radius.next();
+                                        this.log.push(`restricted:${restricted}`);
+                                        this.log.push(`result.done:${result.done}`);
+                                        if (result.done || restricted) {
+                                            this.log.push("breaking out of radius loop");
+                                            break;
+                                        }
                                         const radius = result.value;
                                         const dy = move.dy(y, radius);
                                         const dx = move.dx(x, radius);
-                                        console.log("radius:%i, dx:%i, dy:%i", radius, dx, dy);
+                                        this.log.push(`radius:${radius}, dx:${dx}, dy:${dy}`);
                                         if (board.valid(dx, dy)) {
                                             const target = board.squares[dy][dx];
-                                            console.log("target:m[%i], n[%i]", target.m, target.n);
+                                            this.log.push(`target:m[${target.m}], n[${target.n}]`);
                                             if (target.accessible()) {
                                                 const code = target.code();
                                                 const goal = analysis.square(code);
-                                                console.log("code:%s, goal:m[%i], n[%i]", code, goal.m, goal.n);
+                                                this.log.push(`code:${code}, goal:m[${goal.m}], n[${goal.n}]`);
                                                 goal.candidates.push(piece);
                                                 let list: string[] = [];
                                                 for (let candidate in goal.candidates) {
                                                     list.push(`${player.name} ${piece.name}`);
                                                 }
-                                                console.log("candidates:", list.join(" "));
-                                                if (goal.piece) {
+                                                this.log.push(`candidates:${list.join(", ")}`);
+                                                if (target.piece) {
                                                     restricted = true;
-                                                    console.log("goal has piece. restricted set to true");
+                                                    this.log.push("goal has a piece. restricted set to true");
                                                 }
                                             } else {
                                                 restricted = true;
-                                                console.log("target not accessible. restricted set to true");
+                                                this.log.push("target not accessible. restricted set to true");
                                             }
                                         } else {
                                             restricted = true;
-                                            console.log("square not valid. restricted set to true");
+                                            this.log.push("square not valid. restricted set to true");
                                         }
-                                        result = piece.radius.next();
-                                        console.log("new result. done:%s, value:%s", result.done, result.value);
-                                        console.log("end radius loop");
+                                        this.log.push("end radius loop");
                                     }
-                                    console.log("end move loop");
+                                    this.log.push("end move loop");
                                 }
                             }
                         }
@@ -530,7 +535,6 @@ class Factory {
                 }
             }
             turn.analysis = analysis;
-            console.groupEnd();
         }
         return this;
     }
