@@ -419,6 +419,7 @@ var Factory = (function () {
     Factory.prototype.attacks = function (turn, piece, m, n) {
     };
     Factory.prototype.moves = function (turn, piece, m, n) {
+        var attacks = piece.attack();
         var moves = piece.mobility();
         for (;;) {
             var radius = piece.radius.next();
@@ -434,9 +435,14 @@ var Factory = (function () {
                     var _a = piece.player.transform(n, m, x1, y1), x2 = _a[0], y2 = _a[1];
                     if (turn.board.valid(x2, y2) &&
                         turn.board.squares[y2][x2].accessible()) {
-                        turn.board.squares[y2][x2].candidates.push(piece);
                         if (turn.board.squares[y2][x2].piece) {
+                            if (attacks.length === 0) {
+                                turn.board.squares[y2][x2].candidates.push(piece);
+                            }
                             moves[j][1] = false;
+                        }
+                        else {
+                            turn.board.squares[y2][x2].candidates.push(piece);
                         }
                     }
                     else {

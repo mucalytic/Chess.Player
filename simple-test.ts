@@ -430,6 +430,7 @@ class Factory {
     }
 
     moves(turn: Turn, piece: Piece, m: number, n: number): void {
+        const attacks = piece.attack();
         const moves = piece.mobility();
         for (;;) {
             let radius = piece.radius.next();
@@ -445,9 +446,13 @@ class Factory {
                     const [x2, y2] = piece.player.transform(n, m, x1, y1);
                     if (turn.board.valid(x2, y2) &&
                         turn.board.squares[y2][x2].accessible()) {
-                        turn.board.squares[y2][x2].candidates.push(piece);
                         if (turn.board.squares[y2][x2].piece) {
+                            if (attacks.length === 0) {
+                                turn.board.squares[y2][x2].candidates.push(piece);
+                            }
                             moves[j][1] = false;
+                        } else {
+                            turn.board.squares[y2][x2].candidates.push(piece);
                         }
                     } else {
                         moves[j][1] = false;
