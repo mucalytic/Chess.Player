@@ -122,35 +122,51 @@ class Radius implements Iterator<number> {
 }
 
 abstract class Piece {
+    coords: [number, number];
     player: Player;
     dp: string;
 
     abstract name: string;
     abstract radius: Radius;
+    abstract home: [number, number][];
 
     abstract attack(): [Vector, boolean][];
     abstract mobility(): [Vector, boolean][];
 
-    static create(dp: string): Piece {
+    moved(): boolean {
+        let moved = true;
+        const [x2, y2] = this.player.transform(this.coords[0], this.coords[1], 0, 0);
+        for (let i = 0; i < this.home.length; i++) {
+            if (this.home[i][0] === y2 &&
+                this.home[i][1] === x2) {
+                moved = false;
+                break;
+            }
+        }
+        return moved;
+    }
+
+    static create(dp: string, code: string): Piece {
         switch (dp.charAt(1)) {
             case "R":
-                return new Rook(dp);
+                return new Rook(dp, code);
             case "P":
-                return new Pawn(dp);
+                return new Pawn(dp, code);
             case "K":
-                return new King(dp);
+                return new King(dp, code);
             case "Q":
-                return new Queen(dp);
+                return new Queen(dp, code);
             case "B":
-                return new Bishop(dp);
+                return new Bishop(dp, code);
             case "N":
-                return new Knight(dp);
+                return new Knight(dp, code);
             default:
                 return undefined;
         }
     }
 
-    protected constructor(dp: string) {
+    protected constructor(dp: string, code: string) {
+        this.coords = Square.coords(code);
         this.player = Player.create(dp);
         this.dp = dp;
     }
@@ -159,6 +175,8 @@ abstract class Piece {
 class Rook extends Piece {
     name: string = "Rook";
     radius = new Radius();
+    home: [number, number][] =
+        [[0, 3], [0, 10]];
 
     attack(): [Vector, boolean][] {
         return [];
@@ -170,15 +188,13 @@ class Rook extends Piece {
                 [new Vector(_ => 0, r =>  r), true],
                 [new Vector(_ => 0, r => -r), true]];
      }
-
-    constructor(dp: string) {
-        super(dp);
-    }
 }
 
 class Pawn extends Piece {
     name: string = "Pawn";
-    radius = new Radius(2);
+    radius = new Radius(1);
+    home: [number, number][] =
+        [[1, 3], [1, 4], [1, 5], [1, 6], [1, 7], [1, 8], [1, 9], [1, 10]];
 
     attack(): [Vector, boolean][] {
         return [[new Vector(_ =>  1, _ => 1), true],
@@ -186,17 +202,21 @@ class Pawn extends Piece {
     }
 
     mobility(): [Vector, boolean][] {
-        return [[new Vector(_ => 0, r => r), true]];
-    }
-
-    constructor(dp: string) {
-        super(dp);
+        return this.moved()
+            ? [[new Vector(_ => 0, _ => 1), true],
+               [new Vector(_ => 0, _ => 2), true]]
+            : [[new Vector(_ => 0, _ => 1), true]];
     }
 }
 
 class King extends Piece {
     name: string = "King";
     radius = new Radius(1);
+    home: [number, number][] =
+        this.player instanceof Red ||
+        this.player instanceof Yellow
+            ? [[0, 7]]
+            : [[0, 6]];
 
     attack(): [Vector, boolean][] {
          return [];
@@ -212,15 +232,16 @@ class King extends Piece {
                  [new Vector(_ => -1, _ =>  1), true],
                  [new Vector(_ => -1, _ => -1), true]];
     }
-
-    constructor(dp: string) {
-        super(dp);
-    }
 }
 
 class Queen extends Piece {
     name: string = "Queen";
     radius = new Radius();
+    home: [number, number][] =
+        this.player instanceof Red ||
+        this.player instanceof Yellow
+            ? [[0, 6]]
+            : [[0, 7]];
 
     attack(): [Vector, boolean][] {
          return [];
@@ -236,15 +257,13 @@ class Queen extends Piece {
                 [new Vector(r => -r, r =>  r), true],
                 [new Vector(r => -r, r => -r), true]];
     }
-
-    constructor(dp: string) {
-        super(dp);
-    }
 }
 
 class Bishop extends Piece {
     name: string = "Bishop";
     radius = new Radius();
+    home: [number, number][] =
+        [[0, 5], [0, 8]];
 
     attack(): [Vector, boolean][] {
          return [];
@@ -256,15 +275,13 @@ class Bishop extends Piece {
                 [new Vector(r => -r, r =>  r), true],
                 [new Vector(r => -r, r => -r), true]];
     }
-
-    constructor(dp: string) {
-        super(dp);
-    }
 }
 
 class Knight extends Piece {
     name: string = "Knight";
     radius = new Radius(1);
+    home: [number, number][] =
+        [[0, 4], [0, 9]];
 
     attack(): [Vector, boolean][] {
          return [];
@@ -279,10 +296,6 @@ class Knight extends Piece {
                 [new Vector(_ =>  1, _ => -2), true],
                 [new Vector(_ => -1, _ =>  2), true],
                 [new Vector(_ => -1, _ => -2), true]];
-    }
-
-    constructor(dp: string) {
-        super(dp);
     }
 }
 
@@ -376,7 +389,7 @@ class Factory {
                             const dp = node.attributes["data-piece"];
                             const ds = col.attributes["data-square"];
                             if (dp && ds) {
-                                const piece = Piece.create(dp.value);
+                                const piece = Piece.create(dp.value, ds.value);
                                 turn.board.square(ds.value).piece = piece;
                             }
                         }
@@ -413,62 +426,35 @@ class Factory {
         return remaining;
     }
 
-    candidates(square: Square): void {
-        let candidates: string[] = [];
-        for (let k = 0; k < square.candidates.length; k++) {
-            candidates.push(`${square.candidates[k].player.name} ${square.candidates[k].name}`);
-        }
-        console.log(`candidates:${candidates.join(", ")}`);
-    }
-
     attacks(turn: Turn, piece: Piece, m: number, n: number): void {
     }
 
     moves(turn: Turn, piece: Piece, m: number, n: number): void {
         const moves = piece.mobility();
-        console.log("begin radius loop");
         for (;;) {
             let radius = piece.radius.next();
-            console.log(`radius.done:${radius.done}`);
-            console.log(`radius.value:${radius.value}`);
             const remaining = this.remaining(moves);
-            console.log(`remaining:${remaining}`);
             if (radius.done || radius.value > 14 || remaining === 0) {
-                console.log("breaking out of radius loop");
                 piece.radius.reset();
                 break;
             }
-            console.log("begin move loop");
             for (let j = 0; j < moves.length; j++) {
                 if (moves[j][1]) {
                     const x1 = moves[j][0].x1(radius.value);
                     const y1 = moves[j][0].y1(radius.value);
-                    console.log(`x1:${x1}, y1:${y1}`);
                     const [x2, y2] = piece.player.transform(n, m, x1, y1);
-                    console.log(`x2:${x2}, y2:${y2}`);
-                    if (turn.board.valid(x2, y2)) {
-                        const target = turn.board.squares[y2][x2];
-                        if (target.accessible()) {
-                            console.log(`target:m[${target.m}], n[${target.n}], code:${target.code()}`);
-                            target.candidates.push(piece);
-                            this.candidates(target);
-                            if (target.piece) {
-                                moves[j][1] = false;
-                                console.log("target square has a piece");
-                            }
-                        } else {
+                    if (turn.board.valid(x2, y2) &&
+                        turn.board.squares[y2][x2].accessible()) {
+                        turn.board.squares[y2][x2].candidates.push(piece);
+                        if (turn.board.squares[y2][x2].piece) {
                             moves[j][1] = false;
-                            console.log("target square is not accessible");
                         }
                     } else {
                         moves[j][1] = false;
-                        console.log("target square is out of bounds");
                     }
                 }
             }
-            console.log("end move loop");
         }
-        console.log("end radius loop");
     }
 
     analyse(turn: Turn): void {

@@ -128,24 +128,37 @@ var Radius = (function () {
     return Radius;
 }());
 var Piece = (function () {
-    function Piece(dp) {
+    function Piece(dp, code) {
+        this.coords = Square.coords(code);
         this.player = Player.create(dp);
         this.dp = dp;
     }
-    Piece.create = function (dp) {
+    Piece.prototype.moved = function () {
+        var moved = true;
+        var _a = this.player.transform(this.coords[0], this.coords[1], 0, 0), x2 = _a[0], y2 = _a[1];
+        for (var i = 0; i < this.home.length; i++) {
+            if (this.home[i][0] === y2 &&
+                this.home[i][1] === x2) {
+                moved = false;
+                break;
+            }
+        }
+        return moved;
+    };
+    Piece.create = function (dp, code) {
         switch (dp.charAt(1)) {
             case "R":
-                return new Rook(dp);
+                return new Rook(dp, code);
             case "P":
-                return new Pawn(dp);
+                return new Pawn(dp, code);
             case "K":
-                return new King(dp);
+                return new King(dp, code);
             case "Q":
-                return new Queen(dp);
+                return new Queen(dp, code);
             case "B":
-                return new Bishop(dp);
+                return new Bishop(dp, code);
             case "N":
-                return new Knight(dp);
+                return new Knight(dp, code);
             default:
                 return undefined;
         }
@@ -154,10 +167,11 @@ var Piece = (function () {
 }());
 var Rook = (function (_super) {
     __extends(Rook, _super);
-    function Rook(dp) {
-        var _this = _super.call(this, dp) || this;
+    function Rook() {
+        var _this = _super !== null && _super.apply(this, arguments) || this;
         _this.name = "Rook";
         _this.radius = new Radius();
+        _this.home = [[0, 3], [0, 10]];
         return _this;
     }
     Rook.prototype.attack = function () {
@@ -173,10 +187,11 @@ var Rook = (function (_super) {
 }(Piece));
 var Pawn = (function (_super) {
     __extends(Pawn, _super);
-    function Pawn(dp) {
-        var _this = _super.call(this, dp) || this;
+    function Pawn() {
+        var _this = _super !== null && _super.apply(this, arguments) || this;
         _this.name = "Pawn";
-        _this.radius = new Radius(2);
+        _this.radius = new Radius(1);
+        _this.home = [[1, 3], [1, 4], [1, 5], [1, 6], [1, 7], [1, 8], [1, 9], [1, 10]];
         return _this;
     }
     Pawn.prototype.attack = function () {
@@ -184,16 +199,23 @@ var Pawn = (function (_super) {
             [new Vector(function (_) { return -1; }, function (_) { return 1; }), true]];
     };
     Pawn.prototype.mobility = function () {
-        return [[new Vector(function (_) { return 0; }, function (r) { return r; }), true]];
+        return this.moved()
+            ? [[new Vector(function (_) { return 0; }, function (_) { return 1; }), true],
+                [new Vector(function (_) { return 0; }, function (_) { return 2; }), true]]
+            : [[new Vector(function (_) { return 0; }, function (_) { return 1; }), true]];
     };
     return Pawn;
 }(Piece));
 var King = (function (_super) {
     __extends(King, _super);
-    function King(dp) {
-        var _this = _super.call(this, dp) || this;
+    function King() {
+        var _this = _super !== null && _super.apply(this, arguments) || this;
         _this.name = "King";
         _this.radius = new Radius(1);
+        _this.home = _this.player instanceof Red ||
+            _this.player instanceof Yellow
+            ? [[0, 7]]
+            : [[0, 6]];
         return _this;
     }
     King.prototype.attack = function () {
@@ -213,10 +235,14 @@ var King = (function (_super) {
 }(Piece));
 var Queen = (function (_super) {
     __extends(Queen, _super);
-    function Queen(dp) {
-        var _this = _super.call(this, dp) || this;
+    function Queen() {
+        var _this = _super !== null && _super.apply(this, arguments) || this;
         _this.name = "Queen";
         _this.radius = new Radius();
+        _this.home = _this.player instanceof Red ||
+            _this.player instanceof Yellow
+            ? [[0, 6]]
+            : [[0, 7]];
         return _this;
     }
     Queen.prototype.attack = function () {
@@ -236,10 +262,11 @@ var Queen = (function (_super) {
 }(Piece));
 var Bishop = (function (_super) {
     __extends(Bishop, _super);
-    function Bishop(dp) {
-        var _this = _super.call(this, dp) || this;
+    function Bishop() {
+        var _this = _super !== null && _super.apply(this, arguments) || this;
         _this.name = "Bishop";
         _this.radius = new Radius();
+        _this.home = [[0, 5], [0, 8]];
         return _this;
     }
     Bishop.prototype.attack = function () {
@@ -255,10 +282,11 @@ var Bishop = (function (_super) {
 }(Piece));
 var Knight = (function (_super) {
     __extends(Knight, _super);
-    function Knight(dp) {
-        var _this = _super.call(this, dp) || this;
+    function Knight() {
+        var _this = _super !== null && _super.apply(this, arguments) || this;
         _this.name = "Knight";
         _this.radius = new Radius(1);
+        _this.home = [[0, 4], [0, 9]];
         return _this;
     }
     Knight.prototype.attack = function () {
@@ -353,7 +381,7 @@ var Factory = (function () {
                             var dp = node.attributes["data-piece"];
                             var ds = col.attributes["data-square"];
                             if (dp && ds) {
-                                var piece = Piece.create(dp.value);
+                                var piece = Piece.create(dp.value, ds.value);
                                 turn.board.square(ds.value).piece = piece;
                             }
                         }
@@ -388,62 +416,35 @@ var Factory = (function () {
         }
         return remaining;
     };
-    Factory.prototype.candidates = function (square) {
-        var candidates = [];
-        for (var k = 0; k < square.candidates.length; k++) {
-            candidates.push(square.candidates[k].player.name + " " + square.candidates[k].name);
-        }
-        console.log("candidates:" + candidates.join(", "));
-    };
     Factory.prototype.attacks = function (turn, piece, m, n) {
     };
     Factory.prototype.moves = function (turn, piece, m, n) {
         var moves = piece.mobility();
-        console.log("begin radius loop");
         for (;;) {
             var radius = piece.radius.next();
-            console.log("radius.done:" + radius.done);
-            console.log("radius.value:" + radius.value);
             var remaining = this.remaining(moves);
-            console.log("remaining:" + remaining);
             if (radius.done || radius.value > 14 || remaining === 0) {
-                console.log("breaking out of radius loop");
                 piece.radius.reset();
                 break;
             }
-            console.log("begin move loop");
             for (var j = 0; j < moves.length; j++) {
                 if (moves[j][1]) {
                     var x1 = moves[j][0].x1(radius.value);
                     var y1 = moves[j][0].y1(radius.value);
-                    console.log("x1:" + x1 + ", y1:" + y1);
                     var _a = piece.player.transform(n, m, x1, y1), x2 = _a[0], y2 = _a[1];
-                    console.log("x2:" + x2 + ", y2:" + y2);
-                    if (turn.board.valid(x2, y2)) {
-                        var target = turn.board.squares[y2][x2];
-                        if (target.accessible()) {
-                            console.log("target:m[" + target.m + "], n[" + target.n + "], code:" + target.code());
-                            target.candidates.push(piece);
-                            this.candidates(target);
-                            if (target.piece) {
-                                moves[j][1] = false;
-                                console.log("target square has a piece");
-                            }
-                        }
-                        else {
+                    if (turn.board.valid(x2, y2) &&
+                        turn.board.squares[y2][x2].accessible()) {
+                        turn.board.squares[y2][x2].candidates.push(piece);
+                        if (turn.board.squares[y2][x2].piece) {
                             moves[j][1] = false;
-                            console.log("target square is not accessible");
                         }
                     }
                     else {
                         moves[j][1] = false;
-                        console.log("target square is out of bounds");
                     }
                 }
             }
-            console.log("end move loop");
         }
-        console.log("end radius loop");
     };
     Factory.prototype.analyse = function (turn) {
         for (var m = 0; m < 14; m++) {
