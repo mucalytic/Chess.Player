@@ -13,7 +13,8 @@ abstract class Player {
     abstract name: string;
     abstract turn: number;
 
-    abstract transform(x: number, y: number, x1: number, y1: number): [number, number];
+    abstract transform(x: number,  y: number,
+                      x1: number, y1: number): [number, number];
 
     static create(dp: string): Player {
         switch (dp.charAt(0)) {
@@ -37,7 +38,8 @@ class Red extends Player {
     name: string = "Red";
     turn: number = 1;
 
-    transform(x: number, y: number, x1: number, y1: number): [number, number] {
+    transform(x: number,  y: number,
+             x1: number, y1: number): [number, number] {
         return [x + x1, y + y1];
     }
 }
@@ -46,7 +48,8 @@ class Blue extends Player {
     name: string = "Blue";
     turn: number = 2;
 
-    transform(x: number, y: number, x1: number, y1: number): [number, number] {
+    transform(x: number,  y: number,
+             x1: number, y1: number): [number, number] {
         return [x + y1, y - x1];
     }
 }
@@ -55,7 +58,8 @@ class Yellow extends Player {
     name: string = "Yellow";
     turn: number = 3;
 
-    transform(x: number, y: number, x1: number, y1: number): [number, number] {
+    transform(x: number,  y: number,
+             x1: number, y1: number): [number, number] {
         return [x - x1, y - y1];
     }
 }
@@ -64,7 +68,8 @@ class Green extends Player {
     name: string = "Green";
     turn: number = 4;
 
-    transform(x: number, y: number, x1: number, y1: number): [number, number] {
+    transform(x: number,  y: number,
+             x1: number, y1: number): [number, number] {
         return [x - y1, y + x1];
     }
 }
@@ -181,11 +186,11 @@ class Rook extends Piece {
     }
 
     mobility(): [Vector, boolean][] {
-        return [[new Vector(r =>  r, _ => 0), true],
-                [new Vector(r => -r, _ => 0), true],
-                [new Vector(_ => 0, r =>  r), true],
-                [new Vector(_ => 0, r => -r), true]];
-     }
+        return [[new Vector(r =>  r, _ =>  0), true],
+                [new Vector(r => -r, _ =>  0), true],
+                [new Vector(_ =>  0, r =>  r), true],
+                [new Vector(_ =>  0, r => -r), true]];
+    }
 }
 
 class Pawn extends Piece {
@@ -217,18 +222,18 @@ class King extends Piece {
             : [[0, 6]];
 
     attack(): [Vector, boolean][] {
-         return [];
+        return [];
     }
 
     mobility(): [Vector, boolean][] {
-         return [[new Vector(_ =>  1, _ =>  0), true],
-                 [new Vector(_ => -1, _ =>  0), true],
-                 [new Vector(_ =>  0, _ =>  1), true],
-                 [new Vector(_ =>  0, _ => -1), true],
-                 [new Vector(_ =>  1, _ =>  1), true],
-                 [new Vector(_ =>  1, _ => -1), true],
-                 [new Vector(_ => -1, _ =>  1), true],
-                 [new Vector(_ => -1, _ => -1), true]];
+        return [[new Vector(_ =>  1, _ =>  0), true],
+                [new Vector(_ => -1, _ =>  0), true],
+                [new Vector(_ =>  0, _ =>  1), true],
+                [new Vector(_ =>  0, _ => -1), true],
+                [new Vector(_ =>  1, _ =>  1), true],
+                [new Vector(_ =>  1, _ => -1), true],
+                [new Vector(_ => -1, _ =>  1), true],
+                [new Vector(_ => -1, _ => -1), true]];
     }
 }
 
@@ -242,7 +247,7 @@ class Queen extends Piece {
             : [[0, 7]];
 
     attack(): [Vector, boolean][] {
-         return [];
+        return [];
     }
 
     mobility(): [Vector, boolean][] {
@@ -264,7 +269,7 @@ class Bishop extends Piece {
         [[0, 5], [0, 8]];
 
     attack(): [Vector, boolean][] {
-         return [];
+        return [];
     }
 
     mobility(): [Vector, boolean][] {
@@ -282,7 +287,7 @@ class Knight extends Piece {
         [[0, 4], [0, 9]];
 
     attack(): [Vector, boolean][] {
-         return [];
+        return [];
     }
 
     mobility(): [Vector, boolean][] {
@@ -414,7 +419,7 @@ class Factory {
         return this;
     }
 
-    remaining(moves: [Vector, boolean][]) : number {
+    remaining(moves: [Vector, boolean][]): number {
         let remaining = 0;
         for (let i = 0; i < moves.length; i++) {
             if (moves[i][1]) {
@@ -424,38 +429,39 @@ class Factory {
         return remaining;
     }
 
-    attacks(turn: Turn, piece: Piece, m: number, n: number): void {
-    }
-
-    moves(turn: Turn, piece: Piece, m: number, n: number): void {
-        const attacks = piece.attack();
-        const moves = piece.mobility();
-        for (;;) {
+    radius(turn: Turn, piece: Piece, vectors: [Vector, boolean][],
+           noAttacks: boolean, m: number, n: number): void {
+        for (; ;) {
             let radius = piece.radius.next();
-            const remaining = this.remaining(moves);
+            const remaining = this.remaining(vectors);
             if (radius.done || radius.value > 14 || remaining === 0) {
                 piece.radius.reset();
                 break;
             }
-            for (let j = 0; j < moves.length; j++) {
-                if (moves[j][1]) {
-                    const x1 = moves[j][0].x1(radius.value);
-                    const y1 = moves[j][0].y1(radius.value);
-                    const [x2, y2] = piece.player.transform(n, m, x1, y1);
-                    if (turn.board.valid(x2, y2) &&
-                        turn.board.squares[y2][x2].accessible()) {
-                        if (turn.board.squares[y2][x2].piece) {
-                            if (attacks.length === 0) {
-                                turn.board.squares[y2][x2].candidates.push(piece);
-                            }
-                            moves[j][1] = false;
-                        } else {
-                            turn.board.squares[y2][x2].candidates.push(piece);
-                        }
-                    } else {
-                        moves[j][1] = false;
+            for (let j = 0; j < vectors.length; j++) {
+                this.vector(turn, piece, vectors[j], noAttacks, m, n, radius.value);
+            }
+        }
+    }
+
+    vector(turn: Turn, piece: Piece, vector: [Vector, boolean],
+           noAttacks: boolean, m: number, n: number, radius: number): void {
+        if (vector[1]) {
+            const x1 = vector[0].x1(radius);
+            const y1 = vector[0].y1(radius);
+            const [x2, y2] = piece.player.transform(n, m, x1, y1);
+            if (turn.board.valid(x2, y2) &&
+                turn.board.squares[y2][x2].accessible()) {
+                if (turn.board.squares[y2][x2].piece) {
+                    if (noAttacks) {
+                        turn.board.squares[y2][x2].candidates.push(piece);
                     }
+                    vector[1] = false;
+                } else {
+                    turn.board.squares[y2][x2].candidates.push(piece);
                 }
+            } else {
+                vector[1] = false;
             }
         }
     }
@@ -464,16 +470,13 @@ class Factory {
         for (let m = 0; m < 14; m++) {
             for (let n = 0; n < 14; n++) {
                 const square = turn.board.squares[m][n];
-                console.log(`square:m[${square.m}], n[${square.n}]`);
                 const accessible = square.accessible();
-                console.log(`accessible:${accessible}`);
                 if (accessible) {
                     const piece = square.piece;
                     if (piece) {
-                        console.log(`piece:${piece.player.name} ${piece.name}`);
                         if (!(piece.player instanceof Dead)) {
-                            this.attacks(turn, piece, m, n);
-                            this.moves(turn, piece, m, n);
+                            this.radius(turn, piece, piece.mobility(), true, m, n);
+                            this.radius(turn, piece, piece.attack(), false, m, n);
                         }
                     }
                 }
@@ -486,7 +489,11 @@ class Factory {
             const row: string[] = ["|"];
             for (let n = 0; n < 14; n++) {
                 const square = turn.board.squares[m][n];
-                row.push(square.piece ? square.piece.dp : "[]");
+                if (square.accessible()) {
+                    row.push(square.piece ? square.piece.dp : "[]");
+                } else {
+                    row.push("  ");
+                }
             }
             row.push("|");
             const s = turn.board.squares;
