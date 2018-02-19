@@ -135,10 +135,10 @@ var Piece = (function () {
     }
     Piece.prototype.moved = function () {
         var moved = true;
-        var _a = this.player.transform(this.coords[0], this.coords[1], 0, 0), x2 = _a[0], y2 = _a[1];
+        var _a = this.player.transform(this.coords[1], this.coords[0], 0, 0), x2 = _a[0], y2 = _a[1];
         for (var i = 0; i < this.home.length; i++) {
-            if (this.home[i][0] === y2 &&
-                this.home[i][1] === x2) {
+            if (this.home[i][0] === x2 &&
+                this.home[i][1] === y2) {
                 moved = false;
                 break;
             }
