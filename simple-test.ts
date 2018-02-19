@@ -1,5 +1,3 @@
-/// <reference path="./node_modules/rx/ts/rx.d.ts" />
-
 interface IteratorResult<T> {
     done: boolean;
     value: T;
