@@ -278,6 +278,7 @@ var Knight = (function (_super) {
 }(Piece));
 var Square = (function () {
     function Square(m, n) {
+        this.candidates = [];
         this.m = m;
         this.n = n;
         return this;
@@ -300,22 +301,6 @@ var Square = (function () {
     };
     return Square;
 }());
-var DiffSquare = (function (_super) {
-    __extends(DiffSquare, _super);
-    function DiffSquare() {
-        return _super !== null && _super.apply(this, arguments) || this;
-    }
-    return DiffSquare;
-}(Square));
-var AnalysisSquare = (function (_super) {
-    __extends(AnalysisSquare, _super);
-    function AnalysisSquare() {
-        var _this = _super !== null && _super.apply(this, arguments) || this;
-        _this.candidates = [];
-        return _this;
-    }
-    return AnalysisSquare;
-}(Square));
 var Board = (function () {
     function Board() {
         this.squares = [];
@@ -335,48 +320,9 @@ var Board = (function () {
     };
     return Board;
 }());
-var Diff = (function () {
-    function Diff() {
-        this.deaths = [];
-        this.captures = [];
-        this.removals = [];
-        this.additions = [];
-        this.squares = [];
-        for (var m = 0; m < 14; m++) {
-            this.squares[m] = [];
-            for (var n = 0; n < 14; n++) {
-                this.squares[m][n] = new DiffSquare(m, n);
-            }
-        }
-    }
-    Diff.prototype.square = function (code) {
-        var c = DiffSquare.coords(code);
-        return this.squares[c[0]][c[1]];
-    };
-    return Diff;
-}());
-var Analysis = (function () {
-    function Analysis() {
-        this.squares = [];
-        for (var m = 0; m < 14; m++) {
-            this.squares[m] = [];
-            for (var n = 0; n < 14; n++) {
-                this.squares[m][n] = new AnalysisSquare(m, n);
-            }
-        }
-    }
-    Analysis.prototype.square = function (code) {
-        var c = AnalysisSquare.coords(code);
-        return this.squares[c[0]][c[1]];
-    };
-    return Analysis;
-}());
 var Turn = (function () {
     function Turn(index) {
-        this.diff = new Diff();
-        this.added = new Board();
-        this.removed = new Board();
-        this.analysis = new Analysis();
+        this.board = new Board();
         this.index = index;
     }
     return Turn;
@@ -395,66 +341,21 @@ var Factory = (function () {
         }
         return undefined;
     };
-    Factory.prototype.createBoards = function (turn, mr) {
-        var rro = mr.removedNodes;
-        var aro = mr.addedNodes;
-        if (aro.length >= 14 &&
-            rro.length >= 14) {
+    Factory.prototype.create = function (turn, mr) {
+        var row = mr.addedNodes;
+        if (row.length >= 14) {
             for (var m = 0; m < 14; m++) {
                 for (var n = 0; n < 14; n++) {
-                    var aco = aro[m].childNodes[n];
-                    var rco = rro[m].childNodes[n];
-                    if (aco instanceof HTMLElement &&
-                        rco instanceof HTMLElement) {
-                        var apn = this.piece(aco.childNodes);
-                        var rpn = this.piece(rco.childNodes);
-                        if (apn) {
-                            var dp = apn.attributes["data-piece"];
-                            var ds = aco.attributes["data-square"];
+                    var col = row[m].childNodes[n];
+                    if (col instanceof HTMLElement) {
+                        var node = this.piece(col.childNodes);
+                        if (node) {
+                            var dp = node.attributes["data-piece"];
+                            var ds = col.attributes["data-square"];
                             if (dp && ds) {
-                                var pc = Piece.create(dp.value);
-                                turn.added.square(ds.value).piece = pc;
+                                var piece = Piece.create(dp.value);
+                                turn.board.square(ds.value).piece = piece;
                             }
-                        }
-                        if (rpn) {
-                            var dp = rpn.attributes["data-piece"];
-                            var ds = rco.attributes["data-square"];
-                            if (dp && ds) {
-                                var pc = Piece.create(dp.value);
-                                turn.removed.square(ds.value).piece = pc;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    };
-    Factory.prototype.createDiffBoard = function (turn) {
-        for (var m = 0; m < 14; m++) {
-            for (var n = 0; n < 14; n++) {
-                var rsq = turn.removed.squares[m][n];
-                var asq = turn.added.squares[m][n];
-                var dsq = turn.diff.squares[m][n];
-                if (!rsq.piece && asq.piece) {
-                    turn.diff.additions.push(asq);
-                    dsq.piece = asq.piece;
-                    dsq.change = "+";
-                }
-                if (rsq.piece && !asq.piece) {
-                    turn.diff.removals.push(rsq);
-                    dsq.piece = rsq.piece;
-                    dsq.change = "-";
-                }
-                if (rsq.piece && asq.piece) {
-                    if (rsq.piece.dp !== asq.piece.dp) {
-                        dsq.piece = asq.piece;
-                        if (asq.piece.player instanceof Dead) {
-                            turn.diff.deaths.push(asq);
-                            dsq.change = "x";
-                        }
-                        else {
-                            turn.diff.captures.push(asq);
-                            dsq.change = "*";
                         }
                     }
                 }
@@ -469,142 +370,114 @@ var Factory = (function () {
                 mr.target instanceof HTMLElement &&
                 mr.target.className.indexOf("board-") === 0) {
                 var turn = new Turn(++index);
-                this.createBoards(turn, mr);
-                this.createDiffBoard(turn);
+                console.log("turn:" + index);
+                this.create(turn, mr);
+                this.analyse(turn);
+                this.show(turn);
                 this.turns.push(turn);
             }
         }
         return this;
     };
-    Factory.prototype.analyse = function () {
-        for (var i = 1; i < this.turns.length; i++) {
-            console.log("turn:" + i);
-            var analysis = new Analysis();
-            var turn = this.turns[i];
-            var board = turn.added;
-            console.log("analysing");
-            for (var m = 0; m < 14; m++) {
-                for (var n = 0; n < 14; n++) {
-                    var square = board.squares[m][n];
-                    console.log("square:m[" + square.m + "], n[" + square.n + "]");
-                    var accessible = square.accessible();
-                    console.log("accessible:" + accessible);
-                    if (accessible) {
-                        var piece = square.piece;
-                        if (piece) {
-                            var player = piece.player;
-                            console.log("piece:" + player.name + " " + piece.name);
-                            if (!(player instanceof Dead)) {
-                                var moves = piece.mobility();
-                                console.log("begin radius loop");
-                                for (;;) {
-                                    var result = piece.radius.next();
-                                    console.log("result.done:" + result.done);
-                                    var remaining = 0;
-                                    for (var j = 0; j < moves.length; j++) {
-                                        if (moves[j][1]) {
-                                            remaining++;
-                                        }
-                                    }
-                                    console.log("remaining:" + remaining);
-                                    if (result.done ||
-                                        result.value > 14 ||
-                                        remaining === 0) {
-                                        console.log("breaking out of radius loop");
-                                        piece.radius.reset();
-                                        break;
-                                    }
-                                    var radius = result.value;
-                                    console.log("begin move loop");
-                                    for (var j = 0; j < moves.length; j++) {
-                                        if (moves[j][1]) {
-                                            console.log("radius:" + radius);
-                                            var x1 = moves[j][0].x1(radius);
-                                            var y1 = moves[j][0].y1(radius);
-                                            console.log("x1:" + x1 + ", y1:" + y1);
-                                            var _a = player.transform(n, m, x1, y1), x2 = _a[0], y2 = _a[1];
-                                            console.log("x2:" + x2 + ", y2:" + y2);
-                                            if (board.valid(x2, y2)) {
-                                                var target = board.squares[y2][x2];
-                                                console.log("target:m[" + target.m + "], n[" + target.n + "]");
-                                                if (target.accessible()) {
-                                                    var code = target.code();
-                                                    var goal = analysis.square(code);
-                                                    console.log("code:" + code + ", goal:m[" + goal.m + "], n[" + goal.n + "]");
-                                                    goal.candidates.push(piece);
-                                                    var list = [];
-                                                    for (var k = 0; k < goal.candidates.length; k++) {
-                                                        list.push(goal.candidates[k].player.name + " " + goal.candidates[k].name);
-                                                    }
-                                                    var candidates = list.join(", ");
-                                                    console.log("candidates:" + candidates);
-                                                    if (target.piece) {
-                                                        moves[j][1] = false;
-                                                        console.log("target square has a piece");
-                                                    }
-                                                }
-                                                else {
-                                                    moves[j][1] = false;
-                                                    console.log("target square is not accessible");
-                                                }
-                                            }
-                                            else {
-                                                moves[j][1] = false;
-                                                console.log("target square is out of bounds");
-                                            }
-                                        }
-                                    }
-                                    console.log("end move loop");
-                                }
-                                console.log("end radius loop");
+    Factory.prototype.remaining = function (moves) {
+        var remaining = 0;
+        for (var i = 0; i < moves.length; i++) {
+            if (moves[i][1]) {
+                remaining++;
+            }
+        }
+        return remaining;
+    };
+    Factory.prototype.candidates = function (square) {
+        var candidates = [];
+        for (var k = 0; k < square.candidates.length; k++) {
+            candidates.push(square.candidates[k].player.name + " " + square.candidates[k].name);
+        }
+        console.log("candidates:" + candidates.join(", "));
+    };
+    Factory.prototype.attacks = function (turn, piece, m, n) {
+    };
+    Factory.prototype.moves = function (turn, piece, m, n) {
+        var moves = piece.mobility();
+        console.log("begin radius loop");
+        for (;;) {
+            var radius = piece.radius.next();
+            console.log("radius.done:" + radius.done);
+            console.log("radius.value:" + radius.value);
+            var remaining = this.remaining(moves);
+            console.log("remaining:" + remaining);
+            if (radius.done || radius.value > 14 || remaining === 0) {
+                console.log("breaking out of radius loop");
+                piece.radius.reset();
+                break;
+            }
+            console.log("begin move loop");
+            for (var j = 0; j < moves.length; j++) {
+                if (moves[j][1]) {
+                    var x1 = moves[j][0].x1(radius.value);
+                    var y1 = moves[j][0].y1(radius.value);
+                    console.log("x1:" + x1 + ", y1:" + y1);
+                    var _a = piece.player.transform(n, m, x1, y1), x2 = _a[0], y2 = _a[1];
+                    console.log("x2:" + x2 + ", y2:" + y2);
+                    if (turn.board.valid(x2, y2)) {
+                        var target = turn.board.squares[y2][x2];
+                        if (target.accessible()) {
+                            console.log("target:m[" + target.m + "], n[" + target.n + "], code:" + target.code());
+                            target.candidates.push(piece);
+                            this.candidates(target);
+                            if (target.piece) {
+                                moves[j][1] = false;
+                                console.log("target square has a piece");
                             }
+                        }
+                        else {
+                            moves[j][1] = false;
+                            console.log("target square is not accessible");
+                        }
+                    }
+                    else {
+                        moves[j][1] = false;
+                        console.log("target square is out of bounds");
+                    }
+                }
+            }
+            console.log("end move loop");
+        }
+        console.log("end radius loop");
+    };
+    Factory.prototype.analyse = function (turn) {
+        for (var m = 0; m < 14; m++) {
+            for (var n = 0; n < 14; n++) {
+                var square = turn.board.squares[m][n];
+                console.log("square:m[" + square.m + "], n[" + square.n + "]");
+                var accessible = square.accessible();
+                console.log("accessible:" + accessible);
+                if (accessible) {
+                    var piece = square.piece;
+                    if (piece) {
+                        console.log("piece:" + piece.player.name + " " + piece.name);
+                        if (!(piece.player instanceof Dead)) {
+                            this.attacks(turn, piece, m, n);
+                            this.moves(turn, piece, m, n);
                         }
                     }
                 }
             }
-            turn.analysis = analysis;
         }
-        return this;
     };
-    Factory.prototype.header = function (turn) {
-        return "Index: " +
-            turn.index +
-            "; Additions: " +
-            turn.diff.additions.length +
-            "; Removals: " +
-            turn.diff.removals.length +
-            "; Captures: " +
-            turn.diff.captures.length +
-            "; Deaths: " +
-            turn.diff.deaths.length;
-    };
-    Factory.prototype.show = function (turns) {
-        for (var i = 1; i < Math.min(this.turns.length, turns); i++) {
-            var turn = this.turns[i];
-            console.group(this.header(turn));
-            console.log("                                      " +
-                "                                      " +
-                "                              0   1   " +
-                "2   3   4   5   6   7   8   9  10  11  12  13");
-            for (var m = 0; m < 14; m++) {
-                var row = ["|"];
-                for (var n = 0; n < 14; n++) {
-                    var square = turn.added.squares[m][n];
-                    row.push(square.piece ? square.piece.dp : "[]");
-                }
-                row.push("|");
-                for (var n = 0; n < 14; n++) {
-                    var square = turn.diff.squares[m][n];
-                    row.push(square.piece ? square.piece.dp + square.change : "[ ]");
-                }
-                row.push("|");
-                var s = turn.analysis.squares;
-                console.log(row.join(" ") +
-                    "%i %O %O %O %O %O %O %O %O %O %O %O %O %O %O |", m, s[m][0], s[m][1], s[m][2], s[m][3], s[m][4], s[m][5], s[m][6], s[m][7], s[m][8], s[m][9], s[m][10], s[m][11], s[m][12], s[m][13]);
+    Factory.prototype.show = function (turn) {
+        for (var m = 0; m < 14; m++) {
+            var row = ["|"];
+            for (var n = 0; n < 14; n++) {
+                var square = turn.board.squares[m][n];
+                row.push(square.piece ? square.piece.dp : "[]");
             }
-            console.groupEnd();
+            row.push("|");
+            var s = turn.board.squares;
+            console.log(row.join(" ") +
+                "%O %O %O %O %O %O %O %O %O %O %O %O %O %O |", s[m][0], s[m][1], s[m][2], s[m][3], s[m][4], s[m][5], s[m][6], s[m][7], s[m][8], s[m][9], s[m][10], s[m][11], s[m][12], s[m][13]);
         }
-        return this;
+        console.groupEnd();
     };
     return Factory;
 }());

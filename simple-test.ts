@@ -290,6 +290,7 @@ class Square {
     m: number;
     n: number;
     piece?: Piece;
+    candidates: Piece[] = [];
 
     static coords(code: string): [number, number] {
         const m = parseInt(code.slice(1)) - 1;
@@ -318,14 +319,6 @@ class Square {
     }
 }
 
-class DiffSquare extends Square {
-    change?: string;
-}
-
-class AnalysisSquare extends Square {
-    candidates: Piece[] = [];
-}
-
 class Board {
     squares: Square[][] = [];
 
@@ -348,51 +341,9 @@ class Board {
     }
 }
 
-class Diff {
-    deaths: Square[] = [];
-    captures: Square[] = [];
-    removals: Square[] = [];
-    additions: Square[] = [];
-    squares: DiffSquare[][] = [];
-
-    square(code: string): DiffSquare {
-        const c = DiffSquare.coords(code);
-        return this.squares[c[0]][c[1]];
-    }
-
-    constructor() {
-        for (let m = 0; m < 14; m++) {
-            this.squares[m] = [];
-            for (let n = 0; n < 14; n++) {
-                this.squares[m][n] = new DiffSquare(m, n);
-            }
-        }
-    }
-}
-
-class Analysis {
-    squares: AnalysisSquare[][] = [];
-
-    square(code: string): AnalysisSquare {
-        const c = AnalysisSquare.coords(code);
-        return this.squares[c[0]][c[1]];
-    }
-
-    constructor() {
-        for (let m = 0; m < 14; m++) {
-            this.squares[m] = [];
-            for (let n = 0; n < 14; n++) {
-                this.squares[m][n] = new AnalysisSquare(m, n);
-            }
-        }
-    }}
-
 class Turn {
     index: number;
-    diff = new Diff();
-    added = new Board();
-    removed = new Board();
-    analysis = new Analysis();
+    board = new Board();
 
     constructor(index: number) {
         this.index = index;
@@ -413,66 +364,21 @@ class Factory {
         return undefined;
     }
 
-    createBoards(turn: Turn, mr: MutationRecord): void {
-        const rro = mr.removedNodes;
-        const aro = mr.addedNodes;
-        if (aro.length >= 14 &&
-            rro.length >= 14) {
+    create(turn: Turn, mr: MutationRecord): void {
+        const row = mr.addedNodes;
+        if (row.length >= 14) {
             for (let m = 0; m < 14; m++) {
                 for (let n = 0; n < 14; n++) {
-                    const aco = aro[m].childNodes[n];
-                    const rco = rro[m].childNodes[n];
-                    if (aco instanceof HTMLElement &&
-                        rco instanceof HTMLElement) {
-                        const apn = this.piece(aco.childNodes);
-                        const rpn = this.piece(rco.childNodes);
-                        if (apn) {
-                            const dp = apn.attributes["data-piece"];
-                            const ds = aco.attributes["data-square"];
+                    const col = row[m].childNodes[n];
+                    if (col instanceof HTMLElement) {
+                        const node = this.piece(col.childNodes);
+                        if (node) {
+                            const dp = node.attributes["data-piece"];
+                            const ds = col.attributes["data-square"];
                             if (dp && ds) {
-                                const pc = Piece.create(dp.value);
-                                turn.added.square(ds.value).piece = pc;
+                                const piece = Piece.create(dp.value);
+                                turn.board.square(ds.value).piece = piece;
                             }
-                        }
-                        if (rpn) {
-                            const dp = rpn.attributes["data-piece"];
-                            const ds = rco.attributes["data-square"];
-                            if (dp && ds) {
-                                const pc = Piece.create(dp.value);
-                                turn.removed.square(ds.value).piece = pc;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    createDiffBoard(turn: Turn): void {
-        for (let m = 0; m < 14; m++) {
-            for (let n = 0; n < 14; n++) {
-                const rsq = turn.removed.squares[m][n];
-                const asq = turn.added.squares[m][n];
-                const dsq = turn.diff.squares[m][n];
-                if (!rsq.piece && asq.piece) {
-                    turn.diff.additions.push(asq);
-                    dsq.piece = asq.piece;
-                    dsq.change = "+";
-                }
-                if (rsq.piece && !asq.piece) {
-                    turn.diff.removals.push(rsq);
-                    dsq.piece = rsq.piece;
-                    dsq.change = "-";
-                }
-                if (rsq.piece && asq.piece) {
-                    if (rsq.piece.dp !== asq.piece.dp) {
-                        dsq.piece = asq.piece;
-                        if (asq.piece.player instanceof Dead) {
-                            turn.diff.deaths.push(asq);
-                            dsq.change = "x";
-                        } else {
-                            turn.diff.captures.push(asq);
-                            dsq.change = "*";
                         }
                     }
                 }
@@ -487,147 +393,122 @@ class Factory {
                 mr.target instanceof HTMLElement &&
                 mr.target.className.indexOf("board-") === 0) {
                 const turn = new Turn(++index);
-                this.createBoards(turn, mr);
-                this.createDiffBoard(turn);
+                console.log(`turn:${index}`);
+                this.create(turn, mr);
+                this.analyse(turn);
+                this.show(turn);
                 this.turns.push(turn);
             }
         }
         return this;
     }
 
-    analyse(): Factory {
-        for (let i = 1; i < this.turns.length; i++) { // test using 1
-            console.log(`turn:${i}`);
-            const analysis = new Analysis();
-            const turn = this.turns[i];
-            const board = turn.added;
-            console.log("analysing")
-            for (let m = 0; m < 14; m++) {
-                for (let n = 0; n < 14; n++) {
-                    const square = board.squares[m][n];
-                    console.log(`square:m[${square.m}], n[${square.n}]`);
-                    const accessible = square.accessible();
-                    console.log(`accessible:${accessible}`);
-                    if (accessible) {
-                        const piece = square.piece;
-                        if (piece) {
-                            const player = piece.player;
-                            console.log(`piece:${player.name} ${piece.name}`);
-                            if (!(player instanceof Dead)) {
-                                const moves = piece.mobility();
-                                console.log("begin radius loop");
-                                for (;;) {
-                                    let result = piece.radius.next();
-                                    console.log(`result.done:${result.done}`);
-                                    let remaining = 0;
-                                    for (let j = 0; j < moves.length; j++) {
-                                        if (moves[j][1]) {
-                                            remaining++;
-                                        }
-                                    }
-                                    console.log(`remaining:${remaining}`);
-                                    if (result.done ||
-                                        result.value > 14 ||
-                                        remaining === 0) {
-                                        console.log("breaking out of radius loop");
-                                        piece.radius.reset();
-                                        break;
-                                    }
-                                    const radius = result.value;
-                                    console.log("begin move loop");
-                                    for (let j = 0; j < moves.length; j++) {
-                                        if (moves[j][1]) {
-                                            console.log(`radius:${radius}`);
-                                            const x1 = moves[j][0].x1(radius);
-                                            const y1 = moves[j][0].y1(radius);
-                                            console.log(`x1:${x1}, y1:${y1}`);
-                                            const [x2, y2] = player.transform(n, m, x1, y1);
-                                            console.log(`x2:${x2}, y2:${y2}`);
-                                            if (board.valid(x2, y2)) {
-                                                const target = board.squares[y2][x2];
-                                                console.log(`target:m[${target.m}], n[${target.n}]`);
-                                                if (target.accessible()) {
-                                                    const code = target.code();
-                                                    const goal = analysis.square(code);
-                                                    console.log(`code:${code}, goal:m[${goal.m}], n[${goal.n}]`);
-                                                    goal.candidates.push(piece);
-                                                    let list: string[] = [];
-                                                    for (let k = 0; k < goal.candidates.length; k++) {
-                                                        list.push(`${goal.candidates[k].player.name} ${goal.candidates[k].name}`);
-                                                    }
-                                                    const candidates = list.join(", ");
-                                                    console.log(`candidates:${candidates}`);
-                                                    if (target.piece) {
-                                                        moves[j][1] = false;
-                                                        console.log("target square has a piece");
-                                                    }
-                                                } else {
-                                                    moves[j][1] = false;
-                                                    console.log("target square is not accessible");
-                                                }
-                                            } else {
-                                                moves[j][1] = false;
-                                                console.log("target square is out of bounds");
-                                            }
-                                        }
-                                    }
-                                    console.log("end move loop");
-                                }
-                                console.log("end radius loop");
+    remaining(moves: [Vector, boolean][]) : number {
+        let remaining = 0;
+        for (let i = 0; i < moves.length; i++) {
+            if (moves[i][1]) {
+                remaining++;
+            }
+        }
+        return remaining;
+    }
+
+    candidates(square: Square): void {
+        let candidates: string[] = [];
+        for (let k = 0; k < square.candidates.length; k++) {
+            candidates.push(`${square.candidates[k].player.name} ${square.candidates[k].name}`);
+        }
+        console.log(`candidates:${candidates.join(", ")}`);
+    }
+
+    attacks(turn: Turn, piece: Piece, m: number, n: number): void {
+    }
+
+    moves(turn: Turn, piece: Piece, m: number, n: number): void {
+        const moves = piece.mobility();
+        console.log("begin radius loop");
+        for (;;) {
+            let radius = piece.radius.next();
+            console.log(`radius.done:${radius.done}`);
+            console.log(`radius.value:${radius.value}`);
+            const remaining = this.remaining(moves);
+            console.log(`remaining:${remaining}`);
+            if (radius.done || radius.value > 14 || remaining === 0) {
+                console.log("breaking out of radius loop");
+                piece.radius.reset();
+                break;
+            }
+            console.log("begin move loop");
+            for (let j = 0; j < moves.length; j++) {
+                if (moves[j][1]) {
+                    const x1 = moves[j][0].x1(radius.value);
+                    const y1 = moves[j][0].y1(radius.value);
+                    console.log(`x1:${x1}, y1:${y1}`);
+                    const [x2, y2] = piece.player.transform(n, m, x1, y1);
+                    console.log(`x2:${x2}, y2:${y2}`);
+                    if (turn.board.valid(x2, y2)) {
+                        const target = turn.board.squares[y2][x2];
+                        if (target.accessible()) {
+                            console.log(`target:m[${target.m}], n[${target.n}], code:${target.code()}`);
+                            target.candidates.push(piece);
+                            this.candidates(target);
+                            if (target.piece) {
+                                moves[j][1] = false;
+                                console.log("target square has a piece");
                             }
+                        } else {
+                            moves[j][1] = false;
+                            console.log("target square is not accessible");
+                        }
+                    } else {
+                        moves[j][1] = false;
+                        console.log("target square is out of bounds");
+                    }
+                }
+            }
+            console.log("end move loop");
+        }
+        console.log("end radius loop");
+    }
+
+    analyse(turn: Turn): void {
+        for (let m = 0; m < 14; m++) {
+            for (let n = 0; n < 14; n++) {
+                const square = turn.board.squares[m][n];
+                console.log(`square:m[${square.m}], n[${square.n}]`);
+                const accessible = square.accessible();
+                console.log(`accessible:${accessible}`);
+                if (accessible) {
+                    const piece = square.piece;
+                    if (piece) {
+                        console.log(`piece:${piece.player.name} ${piece.name}`);
+                        if (!(piece.player instanceof Dead)) {
+                            this.attacks(turn, piece, m, n);
+                            this.moves(turn, piece, m, n);
                         }
                     }
                 }
             }
-            turn.analysis = analysis;
         }
-        return this;
     }
 
-    header(turn: Turn): string {
-        return "Index: " +
-               turn.index +
-               "; Additions: " +
-               turn.diff.additions.length +
-               "; Removals: " +
-                turn.diff.removals.length +
-               "; Captures: " +
-                turn.diff.captures.length +
-               "; Deaths: " +
-                turn.diff.deaths.length;
-    }
-
-    show(turns: number): Factory {
-        for (let i = 1; i < Math.min(this.turns.length, turns); i++) {
-            const turn = this.turns[i];
-            console.group(this.header(turn));
-            console.log("                                      " +
-                        "                                      " +
-                        "                              0   1   " +
-                        "2   3   4   5   6   7   8   9  10  11  12  13");
-            for (let m = 0; m < 14; m++) {
-                const row: string[] = ["|"];
-                for (let n = 0; n < 14; n++) {
-                    const square = turn.added.squares[m][n];
-                    row.push(square.piece ? square.piece.dp : "[]");
-                }
-                row.push("|");
-                for (let n = 0; n < 14; n++) {
-                    const square = turn.diff.squares[m][n];
-                    row.push(square.piece ? square.piece.dp + square.change : "[ ]");
-                }
-                row.push("|");
-                const s = turn.analysis.squares;
-                console.log(row.join(" ") +
-                    "%i %O %O %O %O %O %O %O %O %O %O %O %O %O %O |",
-                    m, s[m][0], s[m][1], s[m][2], s[m][3], s[m][4],
-                       s[m][5], s[m][6], s[m][7], s[m][8], s[m][9],
-                       s[m][10], s[m][11], s[m][12], s[m][13]);
+    show(turn: Turn): void {
+        for (let m = 0; m < 14; m++) {
+            const row: string[] = ["|"];
+            for (let n = 0; n < 14; n++) {
+                const square = turn.board.squares[m][n];
+                row.push(square.piece ? square.piece.dp : "[]");
             }
-            console.groupEnd();
+            row.push("|");
+            const s = turn.board.squares;
+            console.log(row.join(" ") +
+                "%O %O %O %O %O %O %O %O %O %O %O %O %O %O |",
+                s[m][0], s[m][1], s[m][2], s[m][3], s[m][4],
+                s[m][5], s[m][6], s[m][7], s[m][8], s[m][9],
+                s[m][10], s[m][11], s[m][12], s[m][13]);
         }
-        return this;
+        console.groupEnd();
     }
 }
 
-//new Factory().process(modifier.domWatcher.records).analyse().show(500);
+//new Factory().process(modifier.domWatcher.records);
