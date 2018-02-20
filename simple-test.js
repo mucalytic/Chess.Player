@@ -135,10 +135,12 @@ var Piece = (function () {
     }
     Piece.prototype.moved = function () {
         var moved = true;
-        var _a = this.player.transform(this.coords[1], this.coords[0], 0, 0), x2 = _a[0], y2 = _a[1];
         for (var i = 0; i < this.home.length; i++) {
-            if (this.home[i][0] === x2 &&
-                this.home[i][1] === y2) {
+            var m1 = this.home[i][0] - 6.5;
+            var n1 = this.home[i][1] - 6.5;
+            var _a = this.player.transform(6.5, 6.5, n1, m1), x2 = _a[0], y2 = _a[1];
+            if (this.coords[1] === x2 &&
+                this.coords[0] === y2) {
                 moved = false;
                 break;
             }
@@ -200,9 +202,9 @@ var Pawn = (function (_super) {
     };
     Pawn.prototype.mobility = function () {
         return this.moved()
-            ? [[new Vector(function (_) { return 0; }, function (_) { return 1; }), true],
-                [new Vector(function (_) { return 0; }, function (_) { return 2; }), true]]
-            : [[new Vector(function (_) { return 0; }, function (_) { return 1; }), true]];
+            ? [[new Vector(function (_) { return 0; }, function (_) { return 1; }), true]]
+            : [[new Vector(function (_) { return 0; }, function (_) { return 1; }), true],
+                [new Vector(function (_) { return 0; }, function (_) { return 2; }), true]];
     };
     return Pawn;
 }(Piece));
@@ -416,39 +418,38 @@ var Factory = (function () {
         }
         return remaining;
     };
-    Factory.prototype.attacks = function (turn, piece, m, n) {
-    };
-    Factory.prototype.moves = function (turn, piece, m, n) {
-        var attacks = piece.attack();
-        var moves = piece.mobility();
+    Factory.prototype.radius = function (turn, piece, vectors, noAttacks, m, n) {
         for (;;) {
             var radius = piece.radius.next();
-            var remaining = this.remaining(moves);
+            var remaining = this.remaining(vectors);
             if (radius.done || radius.value > 14 || remaining === 0) {
                 piece.radius.reset();
                 break;
             }
-            for (var j = 0; j < moves.length; j++) {
-                if (moves[j][1]) {
-                    var x1 = moves[j][0].x1(radius.value);
-                    var y1 = moves[j][0].y1(radius.value);
-                    var _a = piece.player.transform(n, m, x1, y1), x2 = _a[0], y2 = _a[1];
-                    if (turn.board.valid(x2, y2) &&
-                        turn.board.squares[y2][x2].accessible()) {
-                        if (turn.board.squares[y2][x2].piece) {
-                            if (attacks.length === 0) {
-                                turn.board.squares[y2][x2].candidates.push(piece);
-                            }
-                            moves[j][1] = false;
-                        }
-                        else {
-                            turn.board.squares[y2][x2].candidates.push(piece);
-                        }
+            for (var j = 0; j < vectors.length; j++) {
+                this.vector(turn, piece, vectors[j], noAttacks, m, n, radius.value);
+            }
+        }
+    };
+    Factory.prototype.vector = function (turn, piece, vector, noAttacks, m, n, radius) {
+        if (vector[1]) {
+            var x1 = vector[0].x1(radius);
+            var y1 = vector[0].y1(radius);
+            var _a = piece.player.transform(n, m, x1, y1), x2 = _a[0], y2 = _a[1];
+            if (turn.board.valid(x2, y2) &&
+                turn.board.squares[y2][x2].accessible()) {
+                if (turn.board.squares[y2][x2].piece) {
+                    if (noAttacks) {
+                        turn.board.squares[y2][x2].candidates.push(piece);
                     }
-                    else {
-                        moves[j][1] = false;
-                    }
+                    vector[1] = false;
                 }
+                else {
+                    turn.board.squares[y2][x2].candidates.push(piece);
+                }
+            }
+            else {
+                vector[1] = false;
             }
         }
     };
@@ -456,16 +457,13 @@ var Factory = (function () {
         for (var m = 0; m < 14; m++) {
             for (var n = 0; n < 14; n++) {
                 var square = turn.board.squares[m][n];
-                console.log("square:m[" + square.m + "], n[" + square.n + "]");
                 var accessible = square.accessible();
-                console.log("accessible:" + accessible);
                 if (accessible) {
                     var piece = square.piece;
                     if (piece) {
-                        console.log("piece:" + piece.player.name + " " + piece.name);
                         if (!(piece.player instanceof Dead)) {
-                            this.attacks(turn, piece, m, n);
-                            this.moves(turn, piece, m, n);
+                            this.radius(turn, piece, piece.mobility(), true, m, n);
+                            this.radius(turn, piece, piece.attack(), false, m, n);
                         }
                     }
                 }
@@ -477,7 +475,12 @@ var Factory = (function () {
             var row = ["|"];
             for (var n = 0; n < 14; n++) {
                 var square = turn.board.squares[m][n];
-                row.push(square.piece ? square.piece.dp : "[]");
+                if (square.accessible()) {
+                    row.push(square.piece ? square.piece.dp : "[]");
+                }
+                else {
+                    row.push("  ");
+                }
             }
             row.push("|");
             var s = turn.board.squares;

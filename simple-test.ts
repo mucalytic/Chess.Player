@@ -125,23 +125,25 @@ class Radius implements Iterator<number> {
 }
 
 abstract class Piece {
-    coords: [number, number];
+    coords: [number, number]; // [m, n] ~ [y, x]
     player: Player;
     dp: string;
 
     abstract name: string;
     abstract radius: Radius;
-    abstract home: [number, number][];
+    abstract home: [number, number][]; // [m, n] ~ [y, x]
 
     abstract attack(): [Vector, boolean][];
     abstract mobility(): [Vector, boolean][];
 
     moved(): boolean {
         let moved = true;
-        const [x2, y2] = this.player.transform(this.coords[1], this.coords[0], 0, 0);
         for (let i = 0; i < this.home.length; i++) {
-            if (this.home[i][0] === x2 &&
-                this.home[i][1] === y2) {
+            const m1 = this.home[i][0] - 6.5;
+            const n1 = this.home[i][1] - 6.5;
+            const [x2, y2] = this.player.transform(6.5, 6.5, n1, m1);
+            if (this.coords[1] === x2 &&
+                this.coords[0] === y2) {
                 moved = false;
                 break;
             }
@@ -206,9 +208,9 @@ class Pawn extends Piece {
 
     mobility(): [Vector, boolean][] {
         return this.moved()
-            ? [[new Vector(_ => 0, _ => 1), true],
-               [new Vector(_ => 0, _ => 2), true]]
-            : [[new Vector(_ => 0, _ => 1), true]];
+            ? [[new Vector(_ => 0, _ => 1), true]]
+            : [[new Vector(_ => 0, _ => 1), true],
+               [new Vector(_ => 0, _ => 2), true]];
     }
 }
 
