@@ -401,6 +401,21 @@ class CountdownHelper {
         }
     }
 
+    words(): string {
+        return this.counter <= 5
+            ? this.counter.toString()
+            : `${this.counter} seconds left`;
+    }
+
+    utterance(): SpeechSynthesisUtterance {
+        return this.rate(new SpeechSynthesisUtterance(this.words()));
+    }
+
+    rate(utterance: SpeechSynthesisUtterance): SpeechSynthesisUtterance {
+        utterance.rate = 1.8;
+        return utterance;
+    }
+
     utter(mr: MutationRecord): void {
         if (this.enabled) {
             if (mr.type === "characterData") {
@@ -417,12 +432,12 @@ class CountdownHelper {
                                         this.counter - c <= 1) {
                                         this.counter = c;
                                     }
-                                    if (this.counter % 5 === 0 &&
-                                        this.counter !== this.utterances[0]) {
-                                        const words = this.counter + " seconds left";
-                                        const utterance = new SpeechSynthesisUtterance(words);
-                                        utterance.rate = 1.8;
-                                        window.speechSynthesis.speak(utterance);
+                                    if (((this.counter <= 5 &&
+                                          this.counter % 1 === 0) ||
+                                         (this.counter > 5 &&
+                                          this.counter % 5 === 0)) &&
+                                          this.counter !== this.utterances[0]) {
+                                        window.speechSynthesis.speak(this.utterance());
                                         this.utterances.unshift(this.counter);
                                     }
                                 }
