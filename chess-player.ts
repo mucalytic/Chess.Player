@@ -460,6 +460,7 @@ class AnalysisHelper {
             this.board = new Board();
             this.create(mr);
             this.analyse();
+            this.show(); // for debug purposes only
         }
     }
 
@@ -602,7 +603,6 @@ class DomWatcher {
                 this.countdown.reset(mr);
                 this.countdown.utter(mr);
                 this.analysis.process(mr);
-                this.analysis.show(); // for debug purposes only
             });
         });
     }
