@@ -400,7 +400,6 @@ var Factory = (function () {
                 mr.target instanceof HTMLElement &&
                 mr.target.className.indexOf("board-") === 0) {
                 var turn = new Turn(++index);
-                console.log("turn:" + index);
                 this.create(turn, mr);
                 this.analyse(turn);
                 this.show(turn);
@@ -471,6 +470,7 @@ var Factory = (function () {
         }
     };
     Factory.prototype.show = function (turn) {
+        console.group("turn:" + turn.index);
         for (var m = 0; m < 14; m++) {
             var row = ["|"];
             for (var n = 0; n < 14; n++) {

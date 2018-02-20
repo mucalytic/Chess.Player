@@ -411,7 +411,6 @@ class Factory {
                 mr.target instanceof HTMLElement &&
                 mr.target.className.indexOf("board-") === 0) {
                 const turn = new Turn(++index);
-                console.log(`turn:${index}`);
                 this.create(turn, mr);
                 this.analyse(turn);
                 this.show(turn);
@@ -487,6 +486,7 @@ class Factory {
     }
 
     show(turn: Turn): void {
+        console.group(`turn:${turn.index}`);
         for (let m = 0; m < 14; m++) {
             const row: string[] = ["|"];
             for (let n = 0; n < 14; n++) {
