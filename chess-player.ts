@@ -13,6 +13,25 @@ abstract class Player {
     abstract name: string;
     abstract turn: number;
 
+    me(): boolean {
+        const username = document.getElementById("four-player-username").innerText;
+        const elements = document.body.getElementsByClassName("player-avatar");
+        for (let i = 0 ; i < elements.length; i++) {
+            const element = elements[i];
+            if (element instanceof HTMLAnchorElement) {
+                if (element.href.indexOf(username) !== -1) {
+                    const parent = element.parentElement;
+                    for (let j = 0; j < parent.classList.length; j++) {
+                        if (parent.classList[j] === this.name.toLowerCase()) {
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
     abstract transform(x: number,  y: number,
                       x1: number, y1: number): [number, number];
 
@@ -393,7 +412,6 @@ class CountdownHelper {
                 modal.classList.contains("modal-container")) {
                 const go = modal.querySelector(".game-over-container");
                 if (go) {
-                    console.log("countdown helper counter reset");
                     this.utterances = [60];
                     this.counter = 60;
                 }
@@ -460,7 +478,7 @@ class AnalysisHelper {
             this.board = new Board();
             this.create(mr);
             this.analyse();
-            this.show(); // for debug purposes only
+            // this.show();
         }
     }
 
@@ -473,11 +491,27 @@ class AnalysisHelper {
                     if (col instanceof HTMLElement) {
                         const node = this.piece(col.childNodes);
                         if (node) {
-                            const dp = node.attributes["data-piece"];
                             const ds = col.attributes["data-square"];
-                            if (dp && ds) {
-                                const piece = Piece.create(dp.value, ds.value);
-                                this.board.square(ds.value).piece = piece;
+                            if (ds) {
+                                const square = this.board.square(ds.value);
+                                const dp = node.attributes["data-piece"];
+                                if (dp) {
+                                    let dragging: Piece;
+                                    let changed: Element[] = [];
+                                    const piece = Piece.create(dp.value, ds.value);
+                                    node.addEventListener("mousedown", _ => {
+                                        dragging = piece;
+                                    });
+                                    node.addEventListener("mouseenter", e => {
+                                        this.clean(changed);
+                                        this.warn(piece, e);
+                                    });
+                                    node.addEventListener("mouseup", _ => {
+                                        dragging = undefined;
+                                        this.clean(changed);
+                                    });
+                                    square.piece = piece;
+                                }
                             }
                         }
                     }
@@ -522,6 +556,50 @@ class AnalysisHelper {
                 s[m][0], s[m][1], s[m][2], s[m][3], s[m][4],
                 s[m][5], s[m][6], s[m][7], s[m][8], s[m][9],
                 s[m][10], s[m][11], s[m][12], s[m][13]);
+        }
+    }
+
+    warn(piece: Piece, event: Event): void {
+        if (piece.player.me()) {
+            const element = event.srcElement;
+            console.group("piece:%O element:%O", piece, element);
+            if (element.className.indexOf("square-") === 0) {
+                const ds = element.attributes["data-square"];
+                if (ds) {
+                    const friends: Piece[] = [];
+                    const enemies: Piece[] = [];
+                    const square = this.board.square(ds.value);
+                    console.log("square: %O", square);
+                    for (let i = 0; i < square.candidates.length; i++) {
+                        if (square.candidates[i].player == piece.player) {
+                            friends.push(square.candidates[i]);
+                        } else {
+                            enemies.push(square.candidates[i]);
+                        }
+                    }
+                    console.log("friends:%O enemies:%O", friends, enemies);
+                    if (element instanceof HTMLElement) {
+                        console.log("element:%O", element);
+                        if (friends.length >= enemies.length) {
+                            element.style.backgroundColor = "#ac3232";
+                            console.log("green");
+                        } else {
+                            element.style.backgroundColor = "#32aa32";
+                            console.log("red");
+                        }
+                    }
+                }
+            }
+            console.groupEnd();
+        }
+    }
+
+    clean(changed: Element[]): void {
+        while (changed.length) {
+            const element = changed.pop();
+            if (element instanceof HTMLElement) {
+                element.style.backgroundColor = null;
+            }
         }
     }
 

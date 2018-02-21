@@ -11,6 +11,24 @@ var __extends = (this && this.__extends) || (function () {
 var Player = (function () {
     function Player() {
     }
+    Player.prototype.me = function () {
+        var username = document.getElementById("four-player-username").innerText;
+        var elements = document.body.getElementsByClassName("player-avatar");
+        for (var i = 0; i < elements.length; i++) {
+            var element = elements[i];
+            if (element instanceof HTMLAnchorElement) {
+                if (element.href.indexOf(username) !== -1) {
+                    var parent_1 = element.parentElement;
+                    for (var j = 0; j < parent_1.classList.length; j++) {
+                        if (parent_1.classList[j] === this.name.toLowerCase()) {
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+        return false;
+    };
     Player.create = function (dp) {
         switch (dp.charAt(0)) {
             case "w":
@@ -382,7 +400,6 @@ var CountdownHelper = (function () {
                 modal.classList.contains("modal-container")) {
                 var go = modal.querySelector(".game-over-container");
                 if (go) {
-                    console.log("countdown helper counter reset");
                     this.utterances = [60];
                     this.counter = 60;
                 }
@@ -445,26 +462,46 @@ var AnalysisHelper = (function () {
             this.board = new Board();
             this.create(mr);
             this.analyse();
-            this.show();
         }
     };
     AnalysisHelper.prototype.create = function (mr) {
+        var _this = this;
         var row = mr.addedNodes;
         if (row.length >= 14) {
             for (var m = 0; m < 14; m++) {
-                for (var n = 0; n < 14; n++) {
+                var _loop_1 = function (n) {
                     var col = row[m].childNodes[n];
                     if (col instanceof HTMLElement) {
-                        var node = this.piece(col.childNodes);
+                        var node = this_1.piece(col.childNodes);
                         if (node) {
-                            var dp = node.attributes["data-piece"];
                             var ds = col.attributes["data-square"];
-                            if (dp && ds) {
-                                var piece = Piece.create(dp.value, ds.value);
-                                this.board.square(ds.value).piece = piece;
+                            if (ds) {
+                                var square = this_1.board.square(ds.value);
+                                var dp = node.attributes["data-piece"];
+                                if (dp) {
+                                    var dragging_1;
+                                    var changed_1 = [];
+                                    var piece_1 = Piece.create(dp.value, ds.value);
+                                    node.addEventListener("mousedown", function (_) {
+                                        dragging_1 = piece_1;
+                                    });
+                                    node.addEventListener("mouseenter", function (e) {
+                                        _this.clean(changed_1);
+                                        _this.warn(piece_1, e);
+                                    });
+                                    node.addEventListener("mouseup", function (_) {
+                                        dragging_1 = undefined;
+                                        _this.clean(changed_1);
+                                    });
+                                    square.piece = piece_1;
+                                }
                             }
                         }
                     }
+                };
+                var this_1 = this;
+                for (var n = 0; n < 14; n++) {
+                    _loop_1(n);
                 }
             }
         }
@@ -502,6 +539,50 @@ var AnalysisHelper = (function () {
             var s = this.board.squares;
             console.log(row.join(" ") +
                 "%O %O %O %O %O %O %O %O %O %O %O %O %O %O |", s[m][0], s[m][1], s[m][2], s[m][3], s[m][4], s[m][5], s[m][6], s[m][7], s[m][8], s[m][9], s[m][10], s[m][11], s[m][12], s[m][13]);
+        }
+    };
+    AnalysisHelper.prototype.warn = function (piece, event) {
+        if (piece.player.me()) {
+            var element = event.srcElement;
+            console.group("piece:%O element:%O", piece, element);
+            if (element.className.indexOf("square-") === 0) {
+                var ds = element.attributes["data-square"];
+                if (ds) {
+                    var friends = [];
+                    var enemies = [];
+                    var square = this.board.square(ds.value);
+                    console.log("square: %O", square);
+                    for (var i = 0; i < square.candidates.length; i++) {
+                        if (square.candidates[i].player == piece.player) {
+                            friends.push(square.candidates[i]);
+                        }
+                        else {
+                            enemies.push(square.candidates[i]);
+                        }
+                    }
+                    console.log("friends:%O enemies:%O", friends, enemies);
+                    if (element instanceof HTMLElement) {
+                        console.log("element:%O", element);
+                        if (friends.length >= enemies.length) {
+                            element.style.backgroundColor = "#ac3232";
+                            console.log("green");
+                        }
+                        else {
+                            element.style.backgroundColor = "#32aa32";
+                            console.log("red");
+                        }
+                    }
+                }
+            }
+            console.groupEnd();
+        }
+    };
+    AnalysisHelper.prototype.clean = function (changed) {
+        while (changed.length) {
+            var element = changed.pop();
+            if (element instanceof HTMLElement) {
+                element.style.backgroundColor = null;
+            }
         }
     };
     AnalysisHelper.prototype.remaining = function (moves) {
