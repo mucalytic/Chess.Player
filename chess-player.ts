@@ -478,6 +478,7 @@ class AnalysisHelper {
             this.board = new Board();
             this.create(mr);
             this.analyse();
+            this.threats();
             // this.show();
         }
     }
@@ -504,7 +505,9 @@ class AnalysisHelper {
                                     });
                                     node.addEventListener("mouseenter", e => {
                                         this.clean(changed);
-                                        this.warn(piece, e);
+                                        if (dragging) {
+                                            this.warn(dragging, changed, e);
+                                        }
                                     });
                                     node.addEventListener("mouseup", _ => {
                                         dragging = undefined;
@@ -538,6 +541,10 @@ class AnalysisHelper {
         }
     }
 
+    threats(): void {
+        // this will highlight squares where pieces are hanging
+    }
+
     show(): void {
         for (let m = 0; m < 14; m++) {
             const row: string[] = ["|"];
@@ -559,7 +566,7 @@ class AnalysisHelper {
         }
     }
 
-    warn(piece: Piece, event: Event): void {
+    warn(piece: Piece, changed: Element[], event: Event): void {
         if (piece.player.me()) {
             const element = event.srcElement;
             console.group("piece:%O element:%O", piece, element);
@@ -582,9 +589,11 @@ class AnalysisHelper {
                         console.log("element:%O", element);
                         if (friends.length >= enemies.length) {
                             element.style.backgroundColor = "#ac3232";
+                            changed.push(element);
                             console.log("green");
                         } else {
                             element.style.backgroundColor = "#32aa32";
+                            changed.push(element);
                             console.log("red");
                         }
                     }
