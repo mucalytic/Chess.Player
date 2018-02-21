@@ -462,6 +462,7 @@ var AnalysisHelper = (function () {
             this.board = new Board();
             this.create(mr);
             this.analyse();
+            this.threats();
         }
     };
     AnalysisHelper.prototype.create = function (mr) {
@@ -487,7 +488,9 @@ var AnalysisHelper = (function () {
                                     });
                                     node.addEventListener("mouseenter", function (e) {
                                         _this.clean(changed_1);
-                                        _this.warn(piece_1, e);
+                                        if (dragging_1) {
+                                            _this.warn(dragging_1, changed_1, e);
+                                        }
                                     });
                                     node.addEventListener("mouseup", function (_) {
                                         dragging_1 = undefined;
@@ -523,6 +526,8 @@ var AnalysisHelper = (function () {
             }
         }
     };
+    AnalysisHelper.prototype.threats = function () {
+    };
     AnalysisHelper.prototype.show = function () {
         for (var m = 0; m < 14; m++) {
             var row = ["|"];
@@ -541,7 +546,7 @@ var AnalysisHelper = (function () {
                 "%O %O %O %O %O %O %O %O %O %O %O %O %O %O |", s[m][0], s[m][1], s[m][2], s[m][3], s[m][4], s[m][5], s[m][6], s[m][7], s[m][8], s[m][9], s[m][10], s[m][11], s[m][12], s[m][13]);
         }
     };
-    AnalysisHelper.prototype.warn = function (piece, event) {
+    AnalysisHelper.prototype.warn = function (piece, changed, event) {
         if (piece.player.me()) {
             var element = event.srcElement;
             console.group("piece:%O element:%O", piece, element);
@@ -565,10 +570,12 @@ var AnalysisHelper = (function () {
                         console.log("element:%O", element);
                         if (friends.length >= enemies.length) {
                             element.style.backgroundColor = "#ac3232";
+                            changed.push(element);
                             console.log("green");
                         }
                         else {
                             element.style.backgroundColor = "#32aa32";
+                            changed.push(element);
                             console.log("red");
                         }
                     }
