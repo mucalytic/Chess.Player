@@ -638,14 +638,6 @@ class AnalysisHelper {
         }
     }
 
-    candidate(square: Square, piece: Piece): void {
-        if (this.name === piece.player.name.toLowerCase()) {
-            square.friends.push(square.piece);
-        } else {
-            square.enemies.push(square.piece);
-        }
-    }
-
     vector(piece: Piece, vector: [Vector, boolean],
            noAttacks: boolean, m: number, n: number, radius: number): void {
         if (vector[1]) {
@@ -665,6 +657,14 @@ class AnalysisHelper {
             } else {
                 vector[1] = false;
             }
+        }
+    }
+
+    candidate(square: Square, piece: Piece): void {
+        if (this.name === piece.player.name.toLowerCase()) {
+            square.friends.push(piece);
+        } else {
+            square.enemies.push(piece);
         }
     }
 
