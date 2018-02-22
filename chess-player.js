@@ -308,15 +308,14 @@ var Knight = (function (_super) {
 }(Piece));
 var Square = (function () {
     function Square(m, n) {
-        this.candidates = [];
+        this.friends = [];
+        this.enemies = [];
         this.m = m;
         this.n = n;
         return this;
     }
-    Square.coords = function (code) {
-        var m = parseInt(code.slice(1)) - 1;
-        var n = code.charCodeAt(0) - 97;
-        return [m, n];
+    Square.prototype.friendly = function () {
+        return this.friends.length >= this.enemies.length;
     };
     Square.prototype.char = function (n) {
         return String.fromCharCode(n + 97);
@@ -328,6 +327,11 @@ var Square = (function () {
         return (this.m >= 3 && this.m <= 10 && this.n >= 0 && this.n <= 2) ||
             (this.m >= 0 && this.m <= 13 && this.n >= 3 && this.n <= 10) ||
             (this.m >= 3 && this.m <= 10 && this.n >= 11 && this.n <= 13);
+    };
+    Square.coords = function (code) {
+        var m = parseInt(code.slice(1)) - 1;
+        var n = code.charCodeAt(0) - 97;
+        return [m, n];
     };
     return Square;
 }());
@@ -493,27 +497,13 @@ var AnalysisHelper = (function () {
         if (row.length >= 14) {
             for (var m = 0; m < 14; m++) {
                 for (var n = 0; n < 14; n++) {
-                    var col = row[m].childNodes[n];
-                    var ds = col.attributes["data-square"];
-                    if (ds) {
-                        var friends = [];
-                        var enemies = [];
+                    var node = row[m].childNodes[n];
+                    var ds = node.attributes["data-square"];
+                    if (ds && node instanceof HTMLElement) {
                         var square = this.board.square(ds.value);
-                        for (var i = 0; i < square.candidates.length; i++) {
-                            var name_1 = square.candidates[i].player.name;
-                            if (name_1.toLowerCase() === this.name) {
-                                friends.push(square.candidates[i]);
-                            }
-                            else {
-                                enemies.push(square.candidates[i]);
-                            }
-                        }
-                        if (col instanceof HTMLElement) {
-                            var friendly = friends.length >= enemies.length;
-                            var colour = this.colour(col, friendly);
-                            col.style.backgroundColor = colour;
-                            console.log("colour: %s", colour);
-                        }
+                        var colour = this.colour(node, square.friendly());
+                        node.style.backgroundColor = colour;
+                        console.log("colour: %s", colour);
                     }
                 }
             }
@@ -571,9 +561,9 @@ var AnalysisHelper = (function () {
                 .substring(4, bgc.length - 1)
                 .split(", ");
             rgb = {
-                r: parseInt(bgc[0]),
-                g: parseInt(bgc[1]),
-                b: parseInt(bgc[2])
+                r: parseInt(vals[0]),
+                g: parseInt(vals[1]),
+                b: parseInt(vals[2])
             };
         }
         ;
@@ -627,17 +617,25 @@ var AnalysisHelper = (function () {
                 this.board.squares[y2][x2].accessible()) {
                 if (this.board.squares[y2][x2].piece) {
                     if (noAttacks) {
-                        this.board.squares[y2][x2].candidates.push(piece);
+                        this.candidate(this.board.squares[y2][x2], piece);
                     }
                     vector[1] = false;
                 }
                 else {
-                    this.board.squares[y2][x2].candidates.push(piece);
+                    this.candidate(this.board.squares[y2][x2], piece);
                 }
             }
             else {
                 vector[1] = false;
             }
+        }
+    };
+    AnalysisHelper.prototype.candidate = function (square, piece) {
+        if (this.name === piece.player.name.toLowerCase()) {
+            square.friends.push(piece);
+        }
+        else {
+            square.enemies.push(piece);
         }
     };
     AnalysisHelper.prototype.piece = function (nodes) {
