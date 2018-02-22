@@ -587,9 +587,9 @@ class AnalysisHelper {
                 .substring(4, bgc.length -1)
                 .split(", ");
             rgb = {
-                r: parseInt(bgc[0]),
-                g: parseInt(bgc[1]),
-                b: parseInt(bgc[2])
+                r: parseInt(vals[0]),
+                g: parseInt(vals[1]),
+                b: parseInt(vals[2])
             };
         };
         if (friendly) {
