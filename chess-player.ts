@@ -308,12 +308,11 @@ class Square {
     m: number;
     n: number;
     piece?: Piece;
-    candidates: Piece[] = [];
+    friends: Piece[] = [];
+    enemies: Piece[] = [];
 
-    static coords(code: string): [number, number] {
-        const m = parseInt(code.slice(1)) - 1;
-        const n = code.charCodeAt(0) - 97;
-        return [m, n];
+    friendly(): boolean {
+        return this.friends.length >= this.enemies.length;
     }
 
     char(n: number): string {
@@ -328,6 +327,12 @@ class Square {
         return (this.m >= 3 && this.m <= 10 && this.n >= 0 && this.n <= 2) ||
                (this.m >= 0 && this.m <= 13 && this.n >= 3 && this.n <= 10) ||
                (this.m >= 3 && this.m <= 10 && this.n >= 11 && this.n <= 13);
+    }
+
+    static coords(code: string): [number, number] {
+        const m = parseInt(code.slice(1)) - 1;
+        const n = code.charCodeAt(0) - 97;
+        return [m, n];
     }
 
     constructor(m: number, n: number) {
@@ -513,26 +518,13 @@ class AnalysisHelper {
         if (row.length >= 14) {
             for (let m = 0; m < 14; m++) {
                 for (let n = 0; n < 14; n++) {
-                    const col = row[m].childNodes[n];
-                    const ds = col.attributes["data-square"];
-                    if (ds) {
-                        const friends: Piece[] = [];
-                        const enemies: Piece[] = [];
+                    const node = row[m].childNodes[n];
+                    const ds = node.attributes["data-square"];
+                    if (ds && node instanceof HTMLElement) {
                         const square = this.board.square(ds.value);
-                        for (let i = 0; i < square.candidates.length; i++) {
-                            const name = square.candidates[i].player.name;
-                            if (name.toLowerCase() === this.name) {
-                                friends.push(square.candidates[i]);
-                            } else {
-                                enemies.push(square.candidates[i]);
-                            }
-                        }
-                        if (col instanceof HTMLElement) {
-                            const friendly = friends.length >= enemies.length;
-                            const colour = this.colour(col, friendly);
-                            col.style.backgroundColor = colour;
-                            console.log("colour: %s", colour);
-                        }            
+                        const colour = this.colour(node, square.friendly());
+                        node.style.backgroundColor = colour;
+                        console.log("colour: %s", colour);
                     }
                 }
             }
@@ -646,6 +638,14 @@ class AnalysisHelper {
         }
     }
 
+    candidate(square: Square, piece: Piece): void {
+        if (this.name === piece.player.name.toLowerCase()) {
+            square.friends.push(square.piece);
+        } else {
+            square.enemies.push(square.piece);
+        }
+    }
+
     vector(piece: Piece, vector: [Vector, boolean],
            noAttacks: boolean, m: number, n: number, radius: number): void {
         if (vector[1]) {
@@ -656,11 +656,11 @@ class AnalysisHelper {
                 this.board.squares[y2][x2].accessible()) {
                 if (this.board.squares[y2][x2].piece) {
                     if (noAttacks) {
-                        this.board.squares[y2][x2].candidates.push(piece);
+                        this.candidate(this.board.squares[y2][x2], piece);
                     }
                     vector[1] = false;
                 } else {
-                    this.board.squares[y2][x2].candidates.push(piece);
+                    this.candidate(this.board.squares[y2][x2], piece);
                 }
             } else {
                 vector[1] = false;
