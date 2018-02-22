@@ -13,25 +13,6 @@ abstract class Player {
     abstract name: string;
     abstract turn: number;
 
-    me(): boolean {
-        const username = document.getElementById("four-player-username").innerText;
-        const elements = document.body.getElementsByClassName("player-avatar");
-        for (let i = 0 ; i < elements.length; i++) {
-            const element = elements[i];
-            if (element instanceof HTMLAnchorElement) {
-                if (element.href.indexOf(username) !== -1) {
-                    const parent = element.parentElement;
-                    for (let j = 0; j < parent.classList.length; j++) {
-                        if (parent.classList[j] === this.name.toLowerCase()) {
-                            return true;
-                        }
-                    }
-                }
-            }
-        }
-        return false;
-    }
-
     abstract transform(x: number,  y: number,
                       x1: number, y1: number): [number, number];
 
@@ -469,6 +450,8 @@ class CountdownHelper {
 }
 
 class AnalysisHelper {
+    colours: string[] = ["red", "blue", "yellow", "green"];
+    name: string;
     board: Board;
 
     process(mr: MutationRecord): void {
@@ -476,9 +459,10 @@ class AnalysisHelper {
             mr.target instanceof HTMLElement &&
             mr.target.className.indexOf("board-") === 0) {
             this.board = new Board();
+            this.name = this.me();
             this.create(mr);
             this.analyse();
-            this.threats();
+            this.threats(mr);
             // this.show();
         }
     }
@@ -493,28 +477,10 @@ class AnalysisHelper {
                         const node = this.piece(col.childNodes);
                         if (node) {
                             const ds = col.attributes["data-square"];
-                            if (ds) {
-                                const square = this.board.square(ds.value);
-                                const dp = node.attributes["data-piece"];
-                                if (dp) {
-                                    let dragging: Piece;
-                                    let changed: Element[] = [];
-                                    const piece = Piece.create(dp.value, ds.value);
-                                    node.addEventListener("mousedown", _ => {
-                                        dragging = piece;
-                                    });
-                                    node.addEventListener("mouseenter", e => {
-                                        this.clean(changed);
-                                        if (dragging) {
-                                            this.warn(dragging, changed, e);
-                                        }
-                                    });
-                                    node.addEventListener("mouseup", _ => {
-                                        dragging = undefined;
-                                        this.clean(changed);
-                                    });
-                                    square.piece = piece;
-                                }
+                            const dp = node.attributes["data-piece"];
+                            if (ds && dp) {
+                                const piece = Piece.create(dp.value, ds.value);
+                                this.board.square(ds.value).piece = piece;
                             }
                         }
                     }
@@ -541,8 +507,38 @@ class AnalysisHelper {
         }
     }
 
-    threats(): void {
-        // this will highlight squares where pieces are hanging
+    threats(mr: MutationRecord): void {
+        const row = mr.addedNodes;
+        if (row.length >= 14) {
+            for (let m = 0; m < 14; m++) {
+                for (let n = 0; n < 14; n++) {
+                    const col = row[m].childNodes[n];
+                    if (col instanceof HTMLElement) {
+                        const node = this.piece(col.childNodes);
+                        if (node) {
+                            const ds = col.attributes["data-square"];
+                            if (ds) {
+                                const friends: Piece[] = [];
+                                const enemies: Piece[] = [];
+                                const square = this.board.square(ds.value);
+                                for (let i = 0; i < square.candidates.length; i++) {
+                                    const name = square.candidates[i].player.name;
+                                    if (name.toLowerCase() === this.name) {
+                                        friends.push(square.candidates[i]);
+                                    } else {
+                                        enemies.push(square.candidates[i]);
+                                    }
+                                }
+                                if (node instanceof HTMLElement) {
+                                    const friendly = friends.length >= enemies.length;
+                                    node.style.backgroundColor = this.colour(node, friendly);
+                                }            
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 
     show(): void {
@@ -566,50 +562,64 @@ class AnalysisHelper {
         }
     }
 
-    warn(piece: Piece, changed: Element[], event: Event): void {
-        if (piece.player.me()) {
-            const element = event.srcElement;
-            console.group("piece:%O element:%O", piece, element);
-            if (element.className.indexOf("square-") === 0) {
-                const ds = element.attributes["data-square"];
-                if (ds) {
-                    const friends: Piece[] = [];
-                    const enemies: Piece[] = [];
-                    const square = this.board.square(ds.value);
-                    console.log("square: %O", square);
-                    for (let i = 0; i < square.candidates.length; i++) {
-                        if (square.candidates[i].player == piece.player) {
-                            friends.push(square.candidates[i]);
-                        } else {
-                            enemies.push(square.candidates[i]);
-                        }
-                    }
-                    console.log("friends:%O enemies:%O", friends, enemies);
-                    if (element instanceof HTMLElement) {
-                        console.log("element:%O", element);
-                        if (friends.length >= enemies.length) {
-                            element.style.backgroundColor = "#ac3232";
-                            changed.push(element);
-                            console.log("green");
-                        } else {
-                            element.style.backgroundColor = "#32aa32";
-                            changed.push(element);
-                            console.log("red");
+    me(): string {
+        const username = document.getElementById("four-player-username").innerText;
+        const elements = document.body.getElementsByClassName("player-avatar");
+        for (let i = 0 ; i < elements.length; i++) {
+            const element = elements[i];
+            if (element instanceof HTMLAnchorElement) {
+                if (element.href.indexOf(username) !== -1) {
+                    const parent = element.parentElement;
+                    for (let j = 0; j < parent.classList.length; j++) {
+                        for (let k = 0; k < this.colours.length; k++) {
+                            if (this.colours[k] === parent.classList[j]) {
+                                return this.colours[k];
+                            }
                         }
                     }
                 }
             }
-            console.groupEnd();
+        }
+        return undefined;
+    }
+
+    colour(node: HTMLElement, friendly: boolean): string {
+        let rgb: { r: number, g: number, b: number};
+        var bgc = window
+            .getComputedStyle(node, null)
+            .getPropertyValue("background-color");
+        if (bgc.indexOf("#") === 0) {
+            rgb = this.hexToRgb(bgc);
+        }
+        if (bgc.indexOf("rgb") === 0) {
+            const vals = bgc
+                .substring(4, bgc.length -1)
+                .split(", ");
+            rgb = {
+                r: parseInt(bgc[0]),
+                g: parseInt(bgc[1]),
+                b: parseInt(bgc[2])
+            };
+        };
+        if (friendly) {
+            return `rgb(${rgb.r}, 255, ${rgb.b})`;
+        } else {
+            return `rgb(255, ${rgb.g}, ${rgb.b})`;
         }
     }
 
-    clean(changed: Element[]): void {
-        while (changed.length) {
-            const element = changed.pop();
-            if (element instanceof HTMLElement) {
-                element.style.backgroundColor = null;
-            }
-        }
+    hexToRgb(hex: string): {r, g, b} {
+        let shorthandRegex = /^#?([a-f\d])([a-f\d])([a-f\d])$/i;
+        hex = hex.replace(shorthandRegex, function(m, r, g, b) {
+            return r + r + g + g + b + b;
+        });
+    
+        var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+        return result ? {
+            r: parseInt(result[1], 16),
+            g: parseInt(result[2], 16),
+            b: parseInt(result[3], 16)
+        } : null;
     }
 
     remaining(moves: [Vector, boolean][]): number {
