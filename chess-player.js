@@ -437,6 +437,7 @@ var CountdownHelper = (function () {
 var AnalysisHelper = (function () {
     function AnalysisHelper() {
         this.colours = ["red", "blue", "yellow", "green"];
+        this.turn = 0;
     }
     AnalysisHelper.prototype.process = function (mr) {
         if (mr.type === "childList" &&
@@ -493,28 +494,25 @@ var AnalysisHelper = (function () {
             for (var m = 0; m < 14; m++) {
                 for (var n = 0; n < 14; n++) {
                     var col = row[m].childNodes[n];
-                    if (col instanceof HTMLElement) {
-                        var node = this.piece(col.childNodes);
-                        if (node) {
-                            var ds = col.attributes["data-square"];
-                            if (ds) {
-                                var friends = [];
-                                var enemies = [];
-                                var square = this.board.square(ds.value);
-                                for (var i = 0; i < square.candidates.length; i++) {
-                                    var name_1 = square.candidates[i].player.name;
-                                    if (name_1.toLowerCase() === this.name) {
-                                        friends.push(square.candidates[i]);
-                                    }
-                                    else {
-                                        enemies.push(square.candidates[i]);
-                                    }
-                                }
-                                if (node instanceof HTMLElement) {
-                                    var friendly = friends.length >= enemies.length;
-                                    node.style.backgroundColor = this.colour(node, friendly);
-                                }
+                    var ds = col.attributes["data-square"];
+                    if (ds) {
+                        var friends = [];
+                        var enemies = [];
+                        var square = this.board.square(ds.value);
+                        for (var i = 0; i < square.candidates.length; i++) {
+                            var name_1 = square.candidates[i].player.name;
+                            if (name_1.toLowerCase() === this.name) {
+                                friends.push(square.candidates[i]);
                             }
+                            else {
+                                enemies.push(square.candidates[i]);
+                            }
+                        }
+                        if (col instanceof HTMLElement) {
+                            var friendly = friends.length >= enemies.length;
+                            var colour = this.colour(col, friendly);
+                            col.style.backgroundColor = colour;
+                            console.log("colour: %s", colour);
                         }
                     }
                 }
@@ -564,6 +562,7 @@ var AnalysisHelper = (function () {
         var bgc = window
             .getComputedStyle(node, null)
             .getPropertyValue("background-color");
+        console.log(bgc);
         if (bgc.indexOf("#") === 0) {
             rgb = this.hexToRgb(bgc);
         }
