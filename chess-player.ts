@@ -134,7 +134,6 @@ abstract class Piece {
     abstract home: [number, number][];
 
     abstract attack(): [Vector, boolean][];
-    abstract mobility(): [Vector, boolean][];
 
     moved(): boolean {
         let moved = true;
@@ -184,10 +183,6 @@ class Rook extends Piece {
         [[0, 3], [0, 10]];
 
     attack(): [Vector, boolean][] {
-        return [];
-    }
-
-    mobility(): [Vector, boolean][] {
         return [[new Vector(r =>  r, _ =>  0), true],
                 [new Vector(r => -r, _ =>  0), true],
                 [new Vector(_ =>  0, r =>  r), true],
@@ -205,13 +200,6 @@ class Pawn extends Piece {
         return [[new Vector(_ =>  1, _ => 1), true],
                 [new Vector(_ => -1, _ => 1), true]];
     }
-
-    mobility(): [Vector, boolean][] {
-        return this.moved()
-            ? [[new Vector(_ => 0, _ => 1), true]]
-            : [[new Vector(_ => 0, _ => 1), true],
-               [new Vector(_ => 0, _ => 2), true]];
-    }
 }
 
 class King extends Piece {
@@ -224,10 +212,6 @@ class King extends Piece {
             : [[0, 6]];
 
     attack(): [Vector, boolean][] {
-        return [];
-    }
-
-    mobility(): [Vector, boolean][] {
         return [[new Vector(_ =>  1, _ =>  0), true],
                 [new Vector(_ => -1, _ =>  0), true],
                 [new Vector(_ =>  0, _ =>  1), true],
@@ -249,10 +233,6 @@ class Queen extends Piece {
             : [[0, 7]];
 
     attack(): [Vector, boolean][] {
-        return [];
-    }
-
-    mobility(): [Vector, boolean][] {
         return [[new Vector(r =>  r, _ =>  0), true],
                 [new Vector(r => -r, _ =>  0), true],
                 [new Vector(_ =>  0, r =>  r), true],
@@ -271,10 +251,6 @@ class Bishop extends Piece {
         [[0, 5], [0, 8]];
 
     attack(): [Vector, boolean][] {
-        return [];
-    }
-
-    mobility(): [Vector, boolean][] {
         return [[new Vector(r =>  r, r =>  r), true],
                 [new Vector(r =>  r, r => -r), true],
                 [new Vector(r => -r, r =>  r), true],
@@ -289,10 +265,6 @@ class Knight extends Piece {
         [[0, 4], [0, 9]];
 
     attack(): [Vector, boolean][] {
-        return [];
-    }
-
-    mobility(): [Vector, boolean][] {
         return [[new Vector(_ =>  2, _ =>  1), true],
                 [new Vector(_ =>  2, _ => -1), true],
                 [new Vector(_ => -2, _ =>  1), true],
@@ -504,8 +476,7 @@ class AnalysisHelper {
                     const piece = square.piece;
                     if (piece) {
                         if (!(piece.player instanceof Dead)) {
-                            this.radius(piece, piece.mobility(), true, m, n);
-                            this.radius(piece, piece.attack(), false, m, n);
+                            this.radius(piece, piece.attack(), m, n);
                         }
                     }
                 }
@@ -524,7 +495,6 @@ class AnalysisHelper {
                         const square = this.board.square(ds.value);
                         const colour = this.colour(node, square.friendly());
                         node.style.backgroundColor = colour;
-                        console.log("colour: %s", colour);
                     }
                 }
             }
@@ -578,7 +548,6 @@ class AnalysisHelper {
         var bgc = window
             .getComputedStyle(node, null)
             .getPropertyValue("background-color");
-        console.log(bgc);
         if (bgc.indexOf("#") === 0) {
             rgb = this.hexToRgb(bgc);
         }
@@ -623,8 +592,7 @@ class AnalysisHelper {
         return remaining;
     }
 
-    radius(piece: Piece, vectors: [Vector, boolean][],
-           noAttacks: boolean, m: number, n: number): void {
+    radius(piece: Piece, vectors: [Vector, boolean][], m: number, n: number): void {
         for (; ;) {
             let radius = piece.radius.next();
             const remaining = this.remaining(vectors);
@@ -633,13 +601,13 @@ class AnalysisHelper {
                 break;
             }
             for (let j = 0; j < vectors.length; j++) {
-                this.vector(piece, vectors[j], noAttacks, m, n, radius.value);
+                this.vector(piece, vectors[j], m, n, radius.value);
             }
         }
     }
 
     vector(piece: Piece, vector: [Vector, boolean],
-           noAttacks: boolean, m: number, n: number, radius: number): void {
+           m: number, n: number, radius: number): void {
         if (vector[1]) {
             const x1 = vector[0].x1(radius);
             const y1 = vector[0].y1(radius);
@@ -647,9 +615,7 @@ class AnalysisHelper {
             if (this.board.valid(x2, y2) &&
                 this.board.squares[y2][x2].accessible()) {
                 if (this.board.squares[y2][x2].piece) {
-                    if (noAttacks) {
-                        this.candidate(this.board.squares[y2][x2], piece);
-                    }
+                    this.candidate(this.board.squares[y2][x2], piece);
                     vector[1] = false;
                 } else {
                     this.candidate(this.board.squares[y2][x2], piece);

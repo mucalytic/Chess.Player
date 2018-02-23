@@ -177,9 +177,6 @@ var Rook = (function (_super) {
         return _this;
     }
     Rook.prototype.attack = function () {
-        return [];
-    };
-    Rook.prototype.mobility = function () {
         return [[new Vector(function (r) { return r; }, function (_) { return 0; }), true],
             [new Vector(function (r) { return -r; }, function (_) { return 0; }), true],
             [new Vector(function (_) { return 0; }, function (r) { return r; }), true],
@@ -200,12 +197,6 @@ var Pawn = (function (_super) {
         return [[new Vector(function (_) { return 1; }, function (_) { return 1; }), true],
             [new Vector(function (_) { return -1; }, function (_) { return 1; }), true]];
     };
-    Pawn.prototype.mobility = function () {
-        return this.moved()
-            ? [[new Vector(function (_) { return 0; }, function (_) { return 1; }), true]]
-            : [[new Vector(function (_) { return 0; }, function (_) { return 1; }), true],
-                [new Vector(function (_) { return 0; }, function (_) { return 2; }), true]];
-    };
     return Pawn;
 }(Piece));
 var King = (function (_super) {
@@ -221,9 +212,6 @@ var King = (function (_super) {
         return _this;
     }
     King.prototype.attack = function () {
-        return [];
-    };
-    King.prototype.mobility = function () {
         return [[new Vector(function (_) { return 1; }, function (_) { return 0; }), true],
             [new Vector(function (_) { return -1; }, function (_) { return 0; }), true],
             [new Vector(function (_) { return 0; }, function (_) { return 1; }), true],
@@ -248,9 +236,6 @@ var Queen = (function (_super) {
         return _this;
     }
     Queen.prototype.attack = function () {
-        return [];
-    };
-    Queen.prototype.mobility = function () {
         return [[new Vector(function (r) { return r; }, function (_) { return 0; }), true],
             [new Vector(function (r) { return -r; }, function (_) { return 0; }), true],
             [new Vector(function (_) { return 0; }, function (r) { return r; }), true],
@@ -272,9 +257,6 @@ var Bishop = (function (_super) {
         return _this;
     }
     Bishop.prototype.attack = function () {
-        return [];
-    };
-    Bishop.prototype.mobility = function () {
         return [[new Vector(function (r) { return r; }, function (r) { return r; }), true],
             [new Vector(function (r) { return r; }, function (r) { return -r; }), true],
             [new Vector(function (r) { return -r; }, function (r) { return r; }), true],
@@ -292,9 +274,6 @@ var Knight = (function (_super) {
         return _this;
     }
     Knight.prototype.attack = function () {
-        return [];
-    };
-    Knight.prototype.mobility = function () {
         return [[new Vector(function (_) { return 2; }, function (_) { return 1; }), true],
             [new Vector(function (_) { return 2; }, function (_) { return -1; }), true],
             [new Vector(function (_) { return -2; }, function (_) { return 1; }), true],
@@ -484,8 +463,7 @@ var AnalysisHelper = (function () {
                     var piece = square.piece;
                     if (piece) {
                         if (!(piece.player instanceof Dead)) {
-                            this.radius(piece, piece.mobility(), true, m, n);
-                            this.radius(piece, piece.attack(), false, m, n);
+                            this.radius(piece, piece.attack(), m, n);
                         }
                     }
                 }
@@ -503,7 +481,6 @@ var AnalysisHelper = (function () {
                         var square = this.board.square(ds.value);
                         var colour = this.colour(node, square.friendly());
                         node.style.backgroundColor = colour;
-                        console.log("colour: %s", colour);
                     }
                 }
             }
@@ -552,7 +529,6 @@ var AnalysisHelper = (function () {
         var bgc = window
             .getComputedStyle(node, null)
             .getPropertyValue("background-color");
-        console.log(bgc);
         if (bgc.indexOf("#") === 0) {
             rgb = this.hexToRgb(bgc);
         }
@@ -595,7 +571,7 @@ var AnalysisHelper = (function () {
         }
         return remaining;
     };
-    AnalysisHelper.prototype.radius = function (piece, vectors, noAttacks, m, n) {
+    AnalysisHelper.prototype.radius = function (piece, vectors, m, n) {
         for (;;) {
             var radius = piece.radius.next();
             var remaining = this.remaining(vectors);
@@ -604,11 +580,11 @@ var AnalysisHelper = (function () {
                 break;
             }
             for (var j = 0; j < vectors.length; j++) {
-                this.vector(piece, vectors[j], noAttacks, m, n, radius.value);
+                this.vector(piece, vectors[j], m, n, radius.value);
             }
         }
     };
-    AnalysisHelper.prototype.vector = function (piece, vector, noAttacks, m, n, radius) {
+    AnalysisHelper.prototype.vector = function (piece, vector, m, n, radius) {
         if (vector[1]) {
             var x1 = vector[0].x1(radius);
             var y1 = vector[0].y1(radius);
@@ -616,9 +592,7 @@ var AnalysisHelper = (function () {
             if (this.board.valid(x2, y2) &&
                 this.board.squares[y2][x2].accessible()) {
                 if (this.board.squares[y2][x2].piece) {
-                    if (noAttacks) {
-                        this.candidate(this.board.squares[y2][x2], piece);
-                    }
+                    this.candidate(this.board.squares[y2][x2], piece);
                     vector[1] = false;
                 }
                 else {
