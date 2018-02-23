@@ -194,8 +194,8 @@ var Pawn = (function (_super) {
         return _this;
     }
     Pawn.prototype.attack = function () {
-        return [[new Vector(function (_) { return 1; }, function (_) { return 1; }), true],
-            [new Vector(function (_) { return -1; }, function (_) { return 1; }), true]];
+        return [[new Vector(function (r) { return r; }, function (r) { return r; }), true],
+            [new Vector(function (r) { return -r; }, function (r) { return r; }), true]];
     };
     return Pawn;
 }(Piece));
@@ -294,7 +294,8 @@ var Square = (function () {
         return this;
     }
     Square.prototype.friendly = function () {
-        return this.friends.length >= this.enemies.length;
+        return this.friends.length > this.enemies.length ||
+            (this.friends.length === 0 && this.enemies.length === 0);
     };
     Square.prototype.char = function (n) {
         return String.fromCharCode(n + 97);

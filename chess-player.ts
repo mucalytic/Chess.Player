@@ -197,8 +197,8 @@ class Pawn extends Piece {
         [[1, 3], [1, 4], [1, 5], [1, 6], [1, 7], [1, 8], [1, 9], [1, 10]];
 
     attack(): [Vector, boolean][] {
-        return [[new Vector(_ =>  1, _ => 1), true],
-                [new Vector(_ => -1, _ => 1), true]];
+        return [[new Vector(r =>  r, r => r), true],
+                [new Vector(r => -r, r => r), true]];
     }
 }
 
@@ -284,7 +284,8 @@ class Square {
     enemies: Piece[] = [];
 
     friendly(): boolean {
-        return this.friends.length >= this.enemies.length;
+        return this.friends.length > this.enemies.length ||
+              (this.friends.length === 0 && this.enemies.length === 0);
     }
 
     char(n: number): string {
