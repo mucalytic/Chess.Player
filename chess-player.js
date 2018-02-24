@@ -623,11 +623,52 @@ var AnalysisHelper = (function () {
         }
         return undefined;
     };
+    AnalysisHelper.prototype.names = function (pieces, title) {
+        var text;
+        if (pieces.length) {
+            text.push(title);
+        }
+        for (var i = 0; i < pieces.length; i++) {
+            text.push(pieces[i].player.name + " " + pieces[i].name + ",");
+        }
+        return text.join(" ");
+    };
+    AnalysisHelper.prototype.over = function (event) {
+        console.group("%O", event);
+        var square;
+        var element;
+        if (this.board &&
+            event.target instanceof HTMLElement) {
+            console.log("target");
+            if (event.target.className.indexOf("piece-") !== -1) {
+                element = event.target.parentElement;
+                console.log("piece");
+            }
+            if (!element) {
+                element = event.target;
+                console.log("no piece");
+            }
+            if (element.className.indexOf("square-") !== -1) {
+                var ds = element.attributes["data-square"];
+                square = this.board.square(ds);
+                console.log("square");
+            }
+            if (square) {
+                console.group(square.code());
+                console.log(this.names(square.enemies, "enemies:"));
+                console.log(this.names(square.friends, "friends:"));
+                console.groupEnd();
+            }
+            else {
+                console.log("no square");
+            }
+        }
+        console.groupEnd();
+    };
     return AnalysisHelper;
 }());
 var DomWatcher = (function () {
-    function DomWatcher() {
-        this.analysis = new AnalysisHelper();
+    function DomWatcher(analysis) {
         this.countdown = new CountdownHelper();
         this.init = {
             characterDataOldValue: true,
@@ -639,6 +680,7 @@ var DomWatcher = (function () {
         };
         this.createDocumentBodyObserverSubscription();
         this.observer.observe(document.body, this.init);
+        this.analysis = analysis;
     }
     DomWatcher.prototype.createDocumentBodyObserverSubscription = function () {
         var _this = this;
@@ -654,7 +696,9 @@ var DomWatcher = (function () {
 }());
 var DomModifier = (function () {
     function DomModifier() {
-        this.domWatcher = new DomWatcher();
+        var analysis = new AnalysisHelper();
+        this.domWatcher = new DomWatcher(analysis);
+        this.watchMouseOvers(analysis);
         this.rightAlignStartButton();
         this.addStartAiButton();
     }
@@ -714,6 +758,10 @@ var DomModifier = (function () {
             }
             head.appendChild(style);
         }
+        return this;
+    };
+    DomModifier.prototype.watchMouseOvers = function (analysis) {
+        document.addEventListener("mouseover", analysis.over);
         return this;
     };
     return DomModifier;

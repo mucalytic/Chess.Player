@@ -645,11 +645,54 @@ class AnalysisHelper {
         }
         return undefined;
     }
+
+    names(pieces: Piece[], title: string): string {
+        let text: string[];
+        if (pieces.length) {
+            text.push(title);
+        }
+        for (var i = 0; i < pieces.length; i++) {
+            text.push(`${pieces[i].player.name} ${pieces[i].name},`);
+        }
+        return text.join(" ");
+    }
+
+    over(event: Event): void {
+        console.group("%O", event);
+        let square: Square;
+        let element: HTMLElement;
+        if (this.board &&
+            event.target instanceof HTMLElement) {
+            console.log("target");
+            if (event.target.className.indexOf("piece-") !== -1) {
+                element = event.target.parentElement;
+                console.log("piece");
+            }
+            if (!element) {
+                element = event.target;
+                console.log("no piece");
+            }
+            if (element.className.indexOf("square-") !== -1) {
+                const ds = element.attributes["data-square"];
+                square = this.board.square(ds);
+                console.log("square");
+            }
+            if (square) {
+                console.group(square.code());
+                console.log(this.names(square.enemies, "enemies:"));
+                console.log(this.names(square.friends, "friends:"));
+                console.groupEnd();
+            } else {
+                console.log("no square");
+            }
+        }
+        console.groupEnd();
+    }
 }
 
 class DomWatcher {
+    analysis: AnalysisHelper;
     observer: MutationObserver;
-    analysis = new AnalysisHelper();
     countdown = new CountdownHelper();
     init: MutationObserverInit = {
         characterDataOldValue: true,
@@ -670,9 +713,10 @@ class DomWatcher {
         });
     }
 
-    constructor() {
+    constructor(analysis: AnalysisHelper) {
         this.createDocumentBodyObserverSubscription();
         this.observer.observe(document.body, this.init);
+        this.analysis = analysis;
     }
 }
 
@@ -744,8 +788,15 @@ class DomModifier {
         return this;
     }
 
+    watchMouseOvers(analysis: AnalysisHelper): DomModifier {
+        document.addEventListener("mouseover", analysis.over);
+        return this;
+    }
+
     constructor() {
-        this.domWatcher = new DomWatcher();
+        const analysis = new AnalysisHelper();
+        this.domWatcher = new DomWatcher(analysis);
+        this.watchMouseOvers(analysis);
         this.rightAlignStartButton();
         this.addStartAiButton();
     }
