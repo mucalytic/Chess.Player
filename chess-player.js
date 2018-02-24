@@ -415,8 +415,11 @@ var CountdownHelper = (function () {
 var AnalysisHelper = (function () {
     function AnalysisHelper() {
         this.colours = ["red", "blue", "yellow", "green"];
+        this.board = new Board();
         this.turn = 0;
     }
+    AnalysisHelper.prototype.showSafeSquares = function () {
+    };
     AnalysisHelper.prototype.process = function (mr) {
         if (mr.type === "childList" &&
             mr.target instanceof HTMLElement &&
@@ -466,7 +469,7 @@ var AnalysisHelper = (function () {
                                 var piece = square.piece;
                                 if (piece) {
                                     if (!(piece.player instanceof Dead)) {
-                                        this.radius(element, square, m, n);
+                                        this.radius(mr, piece, m, n);
                                     }
                                 }
                             }
@@ -476,8 +479,7 @@ var AnalysisHelper = (function () {
             }
         }
     };
-    AnalysisHelper.prototype.radius = function (element, square, m, n) {
-        var piece = square.piece;
+    AnalysisHelper.prototype.radius = function (mr, piece, m, n) {
         var vectors = piece.attack();
         for (;;) {
             var radius = piece.radius.next();
@@ -487,29 +489,34 @@ var AnalysisHelper = (function () {
                 break;
             }
             for (var j = 0; j < vectors.length; j++) {
-                this.vector(element, square, vectors[j], m, n, radius.value);
+                this.vector(mr, piece, vectors[j], m, n, radius.value);
             }
         }
     };
-    AnalysisHelper.prototype.vector = function (element, square, vector, m, n, radius) {
+    AnalysisHelper.prototype.vector = function (mr, piece, vector, m, n, radius) {
         if (vector[1]) {
             var x1 = vector[0].x1(radius);
             var y1 = vector[0].y1(radius);
-            var _a = square.piece.player.transform(n, m, x1, y1), x2 = _a[0], y2 = _a[1];
-            if (this.board.valid(x2, y2) &&
-                this.board.squares[y2][x2].accessible()) {
-                this.candidate(element, square);
-                if (this.board.squares[y2][x2].piece) {
+            var _a = piece.player.transform(n, m, x1, y1), x2 = _a[0], y2 = _a[1];
+            if (this.board.valid(x2, y2)) {
+                var square = this.board.squares[y2][x2];
+                if (square.accessible()) {
+                    var element = mr.addedNodes[square.m].childNodes[square.n];
+                    if (element instanceof HTMLElement) {
+                        this.candidate(element, square, piece);
+                        if (square.piece) {
+                            vector[1] = false;
+                        }
+                    }
+                }
+                else {
                     vector[1] = false;
                 }
             }
-            else {
-                vector[1] = false;
-            }
         }
     };
-    AnalysisHelper.prototype.candidate = function (element, square) {
-        if (this.name === square.piece.player.name.toLowerCase()) {
+    AnalysisHelper.prototype.candidate = function (element, square, piece) {
+        if (this.name === piece.player.name.toLowerCase()) {
             var friends = element.attributes["friends"];
             if (friends) {
                 friends.value = friends.value + "," + square.code();
@@ -653,40 +660,10 @@ var AnalysisHelper = (function () {
         }
         return undefined;
     };
-    AnalysisHelper.prototype.over = function (event) {
-        console.group("%O", event);
-        var element;
-        if (event.target instanceof HTMLElement) {
-            console.log("target");
-            if (event.target.className.indexOf("piece-") !== -1) {
-                element = event.target.parentElement;
-                console.log("piece");
-            }
-            if (!element) {
-                element = event.target;
-                console.log("no piece");
-            }
-            if (element.className.indexOf("square-") !== -1) {
-                var ds = element.attributes["data-square"];
-                console.log("node: %O", element);
-                console.group(ds);
-                var friends = element.attributes["friends"];
-                var enemies = element.attributes["enemies"];
-                if (friends) {
-                    console.log("friends: " + friends.value);
-                }
-                if (enemies) {
-                    console.log("enemies: " + enemies.value);
-                }
-                console.groupEnd();
-            }
-        }
-        console.groupEnd();
-    };
     return AnalysisHelper;
 }());
 var DomWatcher = (function () {
-    function DomWatcher(analysis) {
+    function DomWatcher() {
         this.countdown = new CountdownHelper();
         this.init = {
             characterDataOldValue: true,
@@ -698,7 +675,6 @@ var DomWatcher = (function () {
         };
         this.createDocumentBodyObserverSubscription();
         this.observer.observe(document.body, this.init);
-        this.analysis = analysis;
     }
     DomWatcher.prototype.createDocumentBodyObserverSubscription = function () {
         var _this = this;
@@ -706,7 +682,6 @@ var DomWatcher = (function () {
             mrs.forEach(function (mr) {
                 _this.countdown.reset(mr);
                 _this.countdown.utter(mr);
-                _this.analysis.process(mr);
             });
         });
     };
@@ -714,9 +689,19 @@ var DomWatcher = (function () {
 }());
 var DomModifier = (function () {
     function DomModifier() {
-        var analysis = new AnalysisHelper();
-        this.domWatcher = new DomWatcher(analysis);
-        this.watchMouseOvers(analysis);
+        document.body.addEventListener("mouseover", this.over);
+        window.addEventListener("keydown", function (e) {
+            if (!e.repeat &&
+                e.key === "q" || e.key === "Q") {
+                console.log("q key pressed");
+            }
+        });
+        window.addEventListener("keyup", function (e) {
+            if (e.key === "q" || e.key === "Q") {
+                console.log("q key released");
+            }
+        });
+        this.domWatcher = new DomWatcher();
         this.rightAlignStartButton();
         this.addStartAiButton();
     }
@@ -778,9 +763,40 @@ var DomModifier = (function () {
         }
         return this;
     };
-    DomModifier.prototype.watchMouseOvers = function (analysis) {
-        document.addEventListener("mouseover", analysis.over);
+    DomModifier.prototype.watchMouseOvers = function () {
         return this;
+    };
+    DomModifier.prototype.over = function (event) {
+        var pieceElement;
+        var squareElement;
+        if (event.target instanceof HTMLElement) {
+            if (event.target.className.indexOf("piece-") !== -1) {
+                squareElement = event.target.parentElement;
+                pieceElement = event.target;
+            }
+            if (!squareElement) {
+                squareElement = event.target;
+            }
+            if (squareElement.className.indexOf("square-") !== -1) {
+                var ds = squareElement.attributes["data-square"];
+                if (!pieceElement) {
+                    for (var i = 0; i < squareElement.children.length; i++) {
+                        var childElement = squareElement.children[i];
+                        if (childElement.className.indexOf("piece-") !== -1) {
+                            if (childElement instanceof HTMLElement) {
+                                pieceElement = childElement;
+                            }
+                            break;
+                        }
+                    }
+                }
+                var dp = void 0;
+                if (pieceElement) {
+                    dp = pieceElement.attributes["data-piece"];
+                }
+                var helper = new AnalysisHelper();
+            }
+        }
     };
     return DomModifier;
 }());

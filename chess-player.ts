@@ -422,9 +422,12 @@ class CountdownHelper {
 
 class AnalysisHelper {
     colours: string[] = ["red", "blue", "yellow", "green"];
-    name: string;
-    board: Board;
+    board = new Board();
     turn = 0;
+
+    showSafeSquares(): void {
+
+    }
 
     process(mr: MutationRecord): void {
         if (mr.type === "childList" &&
@@ -478,7 +481,7 @@ class AnalysisHelper {
                                 const piece = square.piece;
                                 if (piece) {
                                     if (!(piece.player instanceof Dead)) {
-                                        this.radius(element, square, m, n);
+                                        this.radius(mr, piece, m, n);
                                     }
                                 }
                             }
@@ -489,8 +492,7 @@ class AnalysisHelper {
         }
     }
 
-    radius(element: HTMLElement, square: Square, m: number, n: number): void {
-        const piece = square.piece;
+    radius(mr: MutationRecord, piece: Piece, m: number, n: number): void {
         const vectors = piece.attack();
         for (; ;) {
             let radius = piece.radius.next();
@@ -500,31 +502,36 @@ class AnalysisHelper {
                 break;
             }
             for (let j = 0; j < vectors.length; j++) {
-                this.vector(element, square, vectors[j], m, n, radius.value);
+                this.vector(mr, piece, vectors[j], m, n, radius.value);
             }
         }
     }
 
-    vector(element: HTMLElement, square: Square, vector: [Vector, boolean],
+    vector(mr: MutationRecord, piece: Piece, vector: [Vector, boolean],
         m: number, n: number, radius: number): void {
         if (vector[1]) {
             const x1 = vector[0].x1(radius);
             const y1 = vector[0].y1(radius);
-            const [x2, y2] = square.piece.player.transform(n, m, x1, y1);
-            if (this.board.valid(x2, y2) &&
-                this.board.squares[y2][x2].accessible()) {
-                this.candidate(element, square);
-                if (this.board.squares[y2][x2].piece) {
+            const [x2, y2] = piece.player.transform(n, m, x1, y1);
+            if (this.board.valid(x2, y2)) {
+                const square = this.board.squares[y2][x2];
+                if (square.accessible()) {
+                    const element = mr.addedNodes[square.m].childNodes[square.n];
+                    if (element instanceof HTMLElement) {
+                        this.candidate(element, square, piece);
+                        if (square.piece) {
+                            vector[1] = false;
+                        }
+                    }
+                } else {
                     vector[1] = false;
                 }
-            } else {
-                vector[1] = false;
             }
         }
     }
 
-    candidate(element: HTMLElement, square: Square): void {
-        if (this.name === square.piece.player.name.toLowerCase()) {
+    candidate(element: HTMLElement, square: Square, piece: Piece): void {
+        if (this.name === piece.player.name.toLowerCase()) {
             let friends: Attr = element.attributes["friends"];
             if (friends) {
                 friends.value = `${friends.value},${square.code()}`;
@@ -671,41 +678,9 @@ class AnalysisHelper {
         }
         return undefined;
     }
-
-    over(event: Event): void {
-        console.group("%O", event);
-        let element: HTMLElement;
-        if (event.target instanceof HTMLElement) {
-            console.log("target");
-            if (event.target.className.indexOf("piece-") !== -1) {
-                element = event.target.parentElement;
-                console.log("piece");
-            }
-            if (!element) {
-                element = event.target;
-                console.log("no piece");
-            }
-            if (element.className.indexOf("square-") !== -1) {
-                const ds = element.attributes["data-square"];
-                console.log("node: %O", element);
-                console.group(ds);
-                let friends: Attr = element.attributes["friends"];
-                let enemies: Attr = element.attributes["enemies"];
-                if (friends) {
-                    console.log(`friends: ${friends.value}`);
-                }
-                if (enemies) {
-                    console.log(`enemies: ${enemies.value}`);
-                }
-                console.groupEnd();
-            }
-        }
-        console.groupEnd();
-    }
 }
 
 class DomWatcher {
-    analysis: AnalysisHelper;
     observer: MutationObserver;
     countdown = new CountdownHelper();
     init: MutationObserverInit = {
@@ -722,15 +697,13 @@ class DomWatcher {
             mrs.forEach(mr => {
                 this.countdown.reset(mr);
                 this.countdown.utter(mr);
-                this.analysis.process(mr);
             });
         });
     }
 
-    constructor(analysis: AnalysisHelper) {
+    constructor() {
         this.createDocumentBodyObserverSubscription();
         this.observer.observe(document.body, this.init);
-        this.analysis = analysis;
     }
 }
 
@@ -802,15 +775,61 @@ class DomModifier {
         return this;
     }
 
-    watchMouseOvers(analysis: AnalysisHelper): DomModifier {
-        document.addEventListener("mouseover", analysis.over);
+    watchMouseOvers(): DomModifier {
         return this;
     }
 
+    over(event: Event): void {
+        let pieceElement: HTMLElement;
+        let squareElement: HTMLElement;
+        if (event.target instanceof HTMLElement) {
+            if (event.target.className.indexOf("piece-") !== -1) {
+                squareElement = event.target.parentElement;
+                pieceElement = event.target;
+            }
+            if (!squareElement) {
+                squareElement = event.target;
+            }
+            if (squareElement.className.indexOf("square-") !== -1) {
+                const ds: Attr = squareElement.attributes["data-square"];
+                if (!pieceElement) {
+                    for (let i = 0; i < squareElement.children.length; i++) {
+                        const childElement = squareElement.children[i];
+                        if (childElement.className.indexOf("piece-") !== -1) {
+                            if (childElement instanceof HTMLElement) {
+                                pieceElement = childElement;
+                            }
+                            break;
+                        }
+                    }
+                }
+                let dp: Attr;
+                if (pieceElement) {
+                    dp = pieceElement.attributes["data-piece"];
+                }
+                const helper = new AnalysisHelper();
+            }
+        }
+    }
+
     constructor() {
-        const analysis = new AnalysisHelper();
-        this.domWatcher = new DomWatcher(analysis);
-        this.watchMouseOvers(analysis);
+        document.body.addEventListener("mouseover", this.over);
+        window.addEventListener("keydown", e => {
+            if (!e.repeat &&
+                 e.key === "q" || e.key === "Q") {
+                console.log("q key pressed");
+                // show hanging pieces and their attackers
+                // add hidden field to dom with affected elements
+            }
+        });
+        window.addEventListener("keyup", e => {
+            if (e.key === "q" || e.key === "Q") {
+                console.log("q key released");
+                // clear effects on elements for hanging pieces
+                // remove hidden field from dom
+            }
+        });
+        this.domWatcher = new DomWatcher();
         this.rightAlignStartButton();
         this.addStartAiButton();
     }
