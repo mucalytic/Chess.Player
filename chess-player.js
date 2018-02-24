@@ -419,12 +419,15 @@ var AnalysisHelper = (function () {
         this.username = this.getUsername();
     }
     AnalysisHelper.prototype.showSafeSquares = function (target) {
-        var squareElement = this.getThisSquareElement(target);
-        var boardElement = this.getBoardElement();
-        if (boardElement && squareElement) {
-            this.createBoard(boardElement);
-            this.analyseSquares(boardElement);
-            this.colouriseSquares(boardElement, squareElement);
+        if (this.username) {
+            var squareElement = this.getThisSquareElement(target);
+            var boardElement = this.getBoardElement();
+            if (boardElement && squareElement) {
+                this.cleanModifiedSquares(boardElement);
+                this.createBoard(boardElement);
+                this.analyseSquares(boardElement);
+                this.colouriseSquares(boardElement, squareElement);
+            }
         }
     };
     AnalysisHelper.prototype.getThisSquareElement = function (target) {
@@ -446,7 +449,7 @@ var AnalysisHelper = (function () {
         var boardElement;
         var elements = document.body.getElementsByTagName("div");
         for (var i = 0; i < elements.length; i++) {
-            if (elements[i].className.indexOf("board-") !== -1) {
+            if (elements[i].className.indexOf("board-") === 0) {
                 var element = elements[i];
                 if (element instanceof HTMLElement) {
                     boardElement = element;
@@ -455,6 +458,31 @@ var AnalysisHelper = (function () {
             }
         }
         return boardElement;
+    };
+    AnalysisHelper.prototype.cleanModifiedSquares = function (boardElement) {
+        var element = document.getElementById("four-player-username");
+        var mods = element.attributes["modifications"];
+        if (mods) {
+            var row = boardElement.children;
+            if (row.length >= 14) {
+                var codes = mods.value.split(",");
+                for (var i = 0; i < codes.length; i++) {
+                    searchLoop: for (var m = 0; m < 14; m++) {
+                        for (var n = 0; n < 14; n++) {
+                            var element_1 = row[m].children[n];
+                            var ds = element_1.attributes["data-square"];
+                            if (ds && element_1 instanceof HTMLElement) {
+                                if (ds.value === codes[i]) {
+                                    element_1.style.backgroundColor = null;
+                                    break searchLoop;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            element.removeAttribute("modifications");
+        }
     };
     AnalysisHelper.prototype.createBoard = function (boardElement) {
         var row = boardElement.children;
@@ -539,22 +567,24 @@ var AnalysisHelper = (function () {
     };
     AnalysisHelper.prototype.setCandidate = function (boardElement, square, piece) {
         var element = this.getSquareElement(boardElement, square);
-        if (this.username === piece.player.name.toLowerCase()) {
-            var friends = element.attributes["friends"];
-            if (friends) {
-                friends.value = friends.value + "," + square.code();
+        if (element) {
+            if (this.username === piece.player.name.toLowerCase()) {
+                var friends = element.attributes["friends"];
+                if (friends) {
+                    friends.value = friends.value + "," + square.code();
+                }
+                else {
+                    element.setAttribute("friends", square.code());
+                }
             }
             else {
-                element.setAttribute("friends", square.code());
-            }
-        }
-        else {
-            var enemies = element.attributes["enemies"];
-            if (enemies) {
-                enemies.value = enemies.value + "," + square.code();
-            }
-            else {
-                element.setAttribute("enemies", square.code());
+                var enemies = element.attributes["enemies"];
+                if (enemies) {
+                    enemies.value = enemies.value + "," + square.code();
+                }
+                else {
+                    element.setAttribute("enemies", square.code());
+                }
             }
         }
     };
@@ -566,7 +596,7 @@ var AnalysisHelper = (function () {
                 for (var n = 0; n < 14; n++) {
                     var element = row[m].children[n];
                     if (element instanceof HTMLElement) {
-                        if (element.className === "square-" + square.code) {
+                        if (element.classList.contains("square-" + square.code())) {
                             squareElement = element;
                             break rowLoop;
                         }
@@ -578,8 +608,12 @@ var AnalysisHelper = (function () {
     };
     AnalysisHelper.prototype.colouriseSquares = function (boardElement, squareElement) {
         if (this.friendly(squareElement)) {
-            var colour = this.getColour(squareElement, true);
-            squareElement.style.backgroundColor = colour;
+            var ds = squareElement.attributes["data-square"];
+            if (ds) {
+                var colour = this.getColour(squareElement, true);
+                squareElement.style.backgroundColor = colour;
+                this.addCodeToModifiedSquares(ds.value);
+            }
         }
         else {
             var enemies = squareElement.attributes["enemies"];
@@ -593,11 +627,12 @@ var AnalysisHelper = (function () {
                         searchLoop: for (var m = 0; m < 14; m++) {
                             for (var n = 0; n < 14; n++) {
                                 var element = row[m].children[n];
-                                var ds = squareElement.attributes["data-square"];
+                                var ds = element.attributes["data-square"];
                                 if (ds && element instanceof HTMLElement) {
                                     if (ds.value === codes[i]) {
                                         colour = this.getColour(element, false);
                                         element.style.backgroundColor = colour;
+                                        this.addCodeToModifiedSquares(ds.value);
                                         break searchLoop;
                                     }
                                 }
@@ -648,6 +683,16 @@ var AnalysisHelper = (function () {
         }
         else {
             return friends.value.split(",").length > enemies.value.split(",").length;
+        }
+    };
+    AnalysisHelper.prototype.addCodeToModifiedSquares = function (code) {
+        var element = document.getElementById("four-player-username");
+        var mods = element.attributes["modifications"];
+        if (mods) {
+            mods.value = mods.value + "," + code;
+        }
+        else {
+            element.setAttribute("modifications", code);
         }
     };
     AnalysisHelper.prototype.show = function () {
