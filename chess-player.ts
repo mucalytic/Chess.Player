@@ -279,14 +279,8 @@ class Knight extends Piece {
 class Square {
     m: number;
     n: number;
-    piece?: Piece;
-    friends: Piece[] = [];
-    enemies: Piece[] = [];
-
-    friendly(): boolean {
-        return this.friends.length > this.enemies.length ||
-              (this.friends.length === 0 && this.enemies.length === 0);
-    }
+    piece: Piece;
+    element: HTMLElement;
 
     char(n: number): string {
         return String.fromCharCode(n + 97);
@@ -451,16 +445,19 @@ class AnalysisHelper {
         if (row.length >= 14) {
             for (let m = 0; m < 14; m++) {
                 for (let n = 0; n < 14; n++) {
-                    const col = row[m].childNodes[n];
-                    if (col instanceof HTMLElement) {
-                        const node = this.piece(col.childNodes);
-                        if (node) {
-                            const ds = col.attributes["data-square"];
-                            const dp = node.attributes["data-piece"];
-                            if (ds && dp) {
-                                const piece = Piece.create(dp.value, ds.value);
-                                this.board.square(ds.value).piece = piece;
+                    const node = row[m].childNodes[n];
+                    if (node instanceof HTMLElement) {
+                        const ds = node.attributes["data-square"];
+                        if (ds) {
+                            const square = this.board.square(ds.value);
+                            const child = this.pieceNode(node.childNodes);
+                            if (child) {
+                                const dp = child.attributes["data-piece"];
+                                if (dp) {
+                                    square.piece = Piece.create(dp.value, ds.value);
+                                }
                             }
+                            square.element = node;
                         }
                     }
                 }
@@ -477,11 +474,78 @@ class AnalysisHelper {
                     const piece = square.piece;
                     if (piece) {
                         if (!(piece.player instanceof Dead)) {
-                            this.radius(piece, piece.attack(), m, n);
+                            this.radius(square, m, n);
                         }
                     }
                 }
             }
+        }
+    }
+
+    radius(square: Square, m: number, n: number): void {
+        const piece = square.piece;
+        const vectors = piece.attack();
+        for (; ;) {
+            let radius = piece.radius.next();
+            const remaining = this.remaining(vectors);
+            if (radius.done || radius.value > 14 || remaining === 0) {
+                piece.radius.reset();
+                break;
+            }
+            for (let j = 0; j < vectors.length; j++) {
+                this.vector(square, vectors[j], m, n, radius.value);
+            }
+        }
+    }
+
+    vector(square: Square, vector: [Vector, boolean],
+        m: number, n: number, radius: number): void {
+        if (vector[1]) {
+            const x1 = vector[0].x1(radius);
+            const y1 = vector[0].y1(radius);
+            const [x2, y2] = square.piece.player.transform(n, m, x1, y1);
+            if (this.board.valid(x2, y2) &&
+                this.board.squares[y2][x2].accessible()) {
+                this.candidate(this.board.squares[y2][x2].element, square);
+                if (this.board.squares[y2][x2].piece) {
+                    vector[1] = false;
+                }
+            } else {
+                vector[1] = false;
+            }
+        }
+    }
+
+    candidate(element: HTMLElement, square: Square): void {
+        if (this.name === square.piece.player.name.toLowerCase()) {
+            let friends: Attr = element.attributes["friends"];
+            if (friends) {
+                friends.value = `${friends.value},${square.code()}`;
+            } else {
+                element.setAttribute("friends", square.code());
+            }
+        } else {
+            let enemies: Attr = element.attributes["enemies"];
+            if (enemies) {
+                enemies.value = `${enemies.value},${square.code()}`;
+            } else {
+                element.setAttribute("enemies", square.code());
+            }
+        }
+    }
+
+    friendly(square: Square): boolean {
+        const element = square.element;
+        let friends: Attr = element.attributes["friends"];
+        let enemies: Attr = element.attributes["enemies"];
+        if (!friends && !enemies) {
+            return true;
+        } else if (friends && !enemies) {
+            return true;
+        } else if (enemies && !friends) {
+            return false;
+        } else {
+            return friends.value.split(",").length > enemies.value.split(",").length;
         }
     }
 
@@ -492,13 +556,38 @@ class AnalysisHelper {
                 for (let n = 0; n < 14; n++) {
                     const node = row[m].childNodes[n];
                     const ds = node.attributes["data-square"];
-                    if (ds && node instanceof HTMLElement) {
+                    if (ds) {
                         const square = this.board.square(ds.value);
-                        const colour = this.colour(node, square.friendly());
-                        node.style.backgroundColor = colour;
+                        const colour = this.colour(square);
+                        square.element.style.backgroundColor = colour;
                     }
                 }
             }
+        }
+    }
+
+    colour(square: Square): string {
+        let rgb: { r: number, g: number, b: number};
+        var bgc = window
+            .getComputedStyle(square.element, null)
+            .getPropertyValue("background-color");
+        if (bgc.indexOf("#") === 0) {
+            rgb = this.hexToRgb(bgc);
+        }
+        if (bgc.indexOf("rgb") === 0) {
+            const vals = bgc
+                .substring(4, bgc.length -1)
+                .split(", ");
+            rgb = {
+                r: parseInt(vals[0]),
+                g: parseInt(vals[1]),
+                b: parseInt(vals[2])
+            };
+        };
+        if (this.friendly(square)) {
+            return `rgb(${rgb.r}, 255, ${rgb.b})`;
+        } else {
+            return `rgb(255, ${rgb.g}, ${rgb.b})`;
         }
     }
 
@@ -544,31 +633,6 @@ class AnalysisHelper {
         return undefined;
     }
 
-    colour(node: HTMLElement, friendly: boolean): string {
-        let rgb: { r: number, g: number, b: number};
-        var bgc = window
-            .getComputedStyle(node, null)
-            .getPropertyValue("background-color");
-        if (bgc.indexOf("#") === 0) {
-            rgb = this.hexToRgb(bgc);
-        }
-        if (bgc.indexOf("rgb") === 0) {
-            const vals = bgc
-                .substring(4, bgc.length -1)
-                .split(", ");
-            rgb = {
-                r: parseInt(vals[0]),
-                g: parseInt(vals[1]),
-                b: parseInt(vals[2])
-            };
-        };
-        if (friendly) {
-            return `rgb(${rgb.r}, 255, ${rgb.b})`;
-        } else {
-            return `rgb(255, ${rgb.g}, ${rgb.b})`;
-        }
-    }
-
     hexToRgb(hex: string): {r, g, b} {
         const shorthandRegex = /^#?([a-f\d])([a-f\d])([a-f\d])$/i;
         hex = hex.replace(shorthandRegex, (m, r, g, b) => {
@@ -593,49 +657,7 @@ class AnalysisHelper {
         return remaining;
     }
 
-    radius(piece: Piece, vectors: [Vector, boolean][], m: number, n: number): void {
-        for (; ;) {
-            let radius = piece.radius.next();
-            const remaining = this.remaining(vectors);
-            if (radius.done || radius.value > 14 || remaining === 0) {
-                piece.radius.reset();
-                break;
-            }
-            for (let j = 0; j < vectors.length; j++) {
-                this.vector(piece, vectors[j], m, n, radius.value);
-            }
-        }
-    }
-
-    vector(piece: Piece, vector: [Vector, boolean],
-           m: number, n: number, radius: number): void {
-        if (vector[1]) {
-            const x1 = vector[0].x1(radius);
-            const y1 = vector[0].y1(radius);
-            const [x2, y2] = piece.player.transform(n, m, x1, y1);
-            if (this.board.valid(x2, y2) &&
-                this.board.squares[y2][x2].accessible()) {
-                if (this.board.squares[y2][x2].piece) {
-                    this.candidate(this.board.squares[y2][x2], piece);
-                    vector[1] = false;
-                } else {
-                    this.candidate(this.board.squares[y2][x2], piece);
-                }
-            } else {
-                vector[1] = false;
-            }
-        }
-    }
-
-    candidate(square: Square, piece: Piece): void {
-        if (this.name === piece.player.name.toLowerCase()) {
-            square.friends.push(piece);
-        } else {
-            square.enemies.push(piece);
-        }
-    }
-
-    piece(nodes: NodeList): Node {
+    pieceNode(nodes: NodeList): Node {
         for (let i = 0; i < nodes.length; i++) {
             const node = nodes[i];
             if (node instanceof HTMLElement &&
@@ -646,23 +668,10 @@ class AnalysisHelper {
         return undefined;
     }
 
-    names(pieces: Piece[], title: string): string {
-        let text: string[];
-        if (pieces.length) {
-            text.push(title);
-        }
-        for (var i = 0; i < pieces.length; i++) {
-            text.push(`${pieces[i].player.name} ${pieces[i].name},`);
-        }
-        return text.join(" ");
-    }
-
     over(event: Event): void {
         console.group("%O", event);
-        let square: Square;
         let element: HTMLElement;
-        if (this.board &&
-            event.target instanceof HTMLElement) {
+        if (event.target instanceof HTMLElement) {
             console.log("target");
             if (event.target.className.indexOf("piece-") !== -1) {
                 element = event.target.parentElement;
@@ -674,16 +683,17 @@ class AnalysisHelper {
             }
             if (element.className.indexOf("square-") !== -1) {
                 const ds = element.attributes["data-square"];
-                square = this.board.square(ds);
-                console.log("square");
-            }
-            if (square) {
-                console.group(square.code());
-                console.log(this.names(square.enemies, "enemies:"));
-                console.log(this.names(square.friends, "friends:"));
+                console.log("node: %O", element);
+                console.group(ds);
+                let friends: Attr = element.attributes["friends"];
+                let enemies: Attr = element.attributes["enemies"];
+                if (friends) {
+                    console.log(`friends: ${friends.value}`);
+                }
+                if (enemies) {
+                    console.log(`enemies: ${enemies.value}`);
+                }
                 console.groupEnd();
-            } else {
-                console.log("no square");
             }
         }
         console.groupEnd();

@@ -287,16 +287,10 @@ var Knight = (function (_super) {
 }(Piece));
 var Square = (function () {
     function Square(m, n) {
-        this.friends = [];
-        this.enemies = [];
         this.m = m;
         this.n = n;
         return this;
     }
-    Square.prototype.friendly = function () {
-        return this.friends.length > this.enemies.length ||
-            (this.friends.length === 0 && this.enemies.length === 0);
-    };
     Square.prototype.char = function (n) {
         return String.fromCharCode(n + 97);
     };
@@ -439,16 +433,19 @@ var AnalysisHelper = (function () {
         if (row.length >= 14) {
             for (var m = 0; m < 14; m++) {
                 for (var n = 0; n < 14; n++) {
-                    var col = row[m].childNodes[n];
-                    if (col instanceof HTMLElement) {
-                        var node = this.piece(col.childNodes);
-                        if (node) {
-                            var ds = col.attributes["data-square"];
-                            var dp = node.attributes["data-piece"];
-                            if (ds && dp) {
-                                var piece = Piece.create(dp.value, ds.value);
-                                this.board.square(ds.value).piece = piece;
+                    var node = row[m].childNodes[n];
+                    if (node instanceof HTMLElement) {
+                        var ds = node.attributes["data-square"];
+                        if (ds) {
+                            var square = this.board.square(ds.value);
+                            var child = this.pieceNode(node.childNodes);
+                            if (child) {
+                                var dp = child.attributes["data-piece"];
+                                if (dp) {
+                                    square.piece = Piece.create(dp.value, ds.value);
+                                }
                             }
+                            square.element = node;
                         }
                     }
                 }
@@ -464,11 +461,80 @@ var AnalysisHelper = (function () {
                     var piece = square.piece;
                     if (piece) {
                         if (!(piece.player instanceof Dead)) {
-                            this.radius(piece, piece.attack(), m, n);
+                            this.radius(square, m, n);
                         }
                     }
                 }
             }
+        }
+    };
+    AnalysisHelper.prototype.radius = function (square, m, n) {
+        var piece = square.piece;
+        var vectors = piece.attack();
+        for (;;) {
+            var radius = piece.radius.next();
+            var remaining = this.remaining(vectors);
+            if (radius.done || radius.value > 14 || remaining === 0) {
+                piece.radius.reset();
+                break;
+            }
+            for (var j = 0; j < vectors.length; j++) {
+                this.vector(square, vectors[j], m, n, radius.value);
+            }
+        }
+    };
+    AnalysisHelper.prototype.vector = function (square, vector, m, n, radius) {
+        if (vector[1]) {
+            var x1 = vector[0].x1(radius);
+            var y1 = vector[0].y1(radius);
+            var _a = square.piece.player.transform(n, m, x1, y1), x2 = _a[0], y2 = _a[1];
+            if (this.board.valid(x2, y2) &&
+                this.board.squares[y2][x2].accessible()) {
+                this.candidate(this.board.squares[y2][x2].element, square);
+                if (this.board.squares[y2][x2].piece) {
+                    vector[1] = false;
+                }
+            }
+            else {
+                vector[1] = false;
+            }
+        }
+    };
+    AnalysisHelper.prototype.candidate = function (element, square) {
+        if (this.name === square.piece.player.name.toLowerCase()) {
+            var friends = element.attributes["friends"];
+            if (friends) {
+                friends.value = friends.value + "," + square.code();
+            }
+            else {
+                element.setAttribute("friends", square.code());
+            }
+        }
+        else {
+            var enemies = element.attributes["enemies"];
+            if (enemies) {
+                enemies.value = enemies.value + "," + square.code();
+            }
+            else {
+                element.setAttribute("enemies", square.code());
+            }
+        }
+    };
+    AnalysisHelper.prototype.friendly = function (square) {
+        var element = square.element;
+        var friends = element.attributes["friends"];
+        var enemies = element.attributes["enemies"];
+        if (!friends && !enemies) {
+            return true;
+        }
+        else if (friends && !enemies) {
+            return true;
+        }
+        else if (enemies && !friends) {
+            return false;
+        }
+        else {
+            return friends.value.split(",").length > enemies.value.split(",").length;
         }
     };
     AnalysisHelper.prototype.threats = function (mr) {
@@ -478,13 +544,39 @@ var AnalysisHelper = (function () {
                 for (var n = 0; n < 14; n++) {
                     var node = row[m].childNodes[n];
                     var ds = node.attributes["data-square"];
-                    if (ds && node instanceof HTMLElement) {
+                    if (ds) {
                         var square = this.board.square(ds.value);
-                        var colour = this.colour(node, square.friendly());
-                        node.style.backgroundColor = colour;
+                        var colour = this.colour(square);
+                        square.element.style.backgroundColor = colour;
                     }
                 }
             }
+        }
+    };
+    AnalysisHelper.prototype.colour = function (square) {
+        var rgb;
+        var bgc = window
+            .getComputedStyle(square.element, null)
+            .getPropertyValue("background-color");
+        if (bgc.indexOf("#") === 0) {
+            rgb = this.hexToRgb(bgc);
+        }
+        if (bgc.indexOf("rgb") === 0) {
+            var vals = bgc
+                .substring(4, bgc.length - 1)
+                .split(", ");
+            rgb = {
+                r: parseInt(vals[0]),
+                g: parseInt(vals[1]),
+                b: parseInt(vals[2])
+            };
+        }
+        ;
+        if (this.friendly(square)) {
+            return "rgb(" + rgb.r + ", 255, " + rgb.b + ")";
+        }
+        else {
+            return "rgb(255, " + rgb.g + ", " + rgb.b + ")";
         }
     };
     AnalysisHelper.prototype.show = function () {
@@ -525,32 +617,6 @@ var AnalysisHelper = (function () {
         }
         return undefined;
     };
-    AnalysisHelper.prototype.colour = function (node, friendly) {
-        var rgb;
-        var bgc = window
-            .getComputedStyle(node, null)
-            .getPropertyValue("background-color");
-        if (bgc.indexOf("#") === 0) {
-            rgb = this.hexToRgb(bgc);
-        }
-        if (bgc.indexOf("rgb") === 0) {
-            var vals = bgc
-                .substring(4, bgc.length - 1)
-                .split(", ");
-            rgb = {
-                r: parseInt(vals[0]),
-                g: parseInt(vals[1]),
-                b: parseInt(vals[2])
-            };
-        }
-        ;
-        if (friendly) {
-            return "rgb(" + rgb.r + ", 255, " + rgb.b + ")";
-        }
-        else {
-            return "rgb(255, " + rgb.g + ", " + rgb.b + ")";
-        }
-    };
     AnalysisHelper.prototype.hexToRgb = function (hex) {
         var shorthandRegex = /^#?([a-f\d])([a-f\d])([a-f\d])$/i;
         hex = hex.replace(shorthandRegex, function (m, r, g, b) {
@@ -572,48 +638,7 @@ var AnalysisHelper = (function () {
         }
         return remaining;
     };
-    AnalysisHelper.prototype.radius = function (piece, vectors, m, n) {
-        for (;;) {
-            var radius = piece.radius.next();
-            var remaining = this.remaining(vectors);
-            if (radius.done || radius.value > 14 || remaining === 0) {
-                piece.radius.reset();
-                break;
-            }
-            for (var j = 0; j < vectors.length; j++) {
-                this.vector(piece, vectors[j], m, n, radius.value);
-            }
-        }
-    };
-    AnalysisHelper.prototype.vector = function (piece, vector, m, n, radius) {
-        if (vector[1]) {
-            var x1 = vector[0].x1(radius);
-            var y1 = vector[0].y1(radius);
-            var _a = piece.player.transform(n, m, x1, y1), x2 = _a[0], y2 = _a[1];
-            if (this.board.valid(x2, y2) &&
-                this.board.squares[y2][x2].accessible()) {
-                if (this.board.squares[y2][x2].piece) {
-                    this.candidate(this.board.squares[y2][x2], piece);
-                    vector[1] = false;
-                }
-                else {
-                    this.candidate(this.board.squares[y2][x2], piece);
-                }
-            }
-            else {
-                vector[1] = false;
-            }
-        }
-    };
-    AnalysisHelper.prototype.candidate = function (square, piece) {
-        if (this.name === piece.player.name.toLowerCase()) {
-            square.friends.push(piece);
-        }
-        else {
-            square.enemies.push(piece);
-        }
-    };
-    AnalysisHelper.prototype.piece = function (nodes) {
+    AnalysisHelper.prototype.pieceNode = function (nodes) {
         for (var i = 0; i < nodes.length; i++) {
             var node = nodes[i];
             if (node instanceof HTMLElement &&
@@ -623,22 +648,10 @@ var AnalysisHelper = (function () {
         }
         return undefined;
     };
-    AnalysisHelper.prototype.names = function (pieces, title) {
-        var text;
-        if (pieces.length) {
-            text.push(title);
-        }
-        for (var i = 0; i < pieces.length; i++) {
-            text.push(pieces[i].player.name + " " + pieces[i].name + ",");
-        }
-        return text.join(" ");
-    };
     AnalysisHelper.prototype.over = function (event) {
         console.group("%O", event);
-        var square;
         var element;
-        if (this.board &&
-            event.target instanceof HTMLElement) {
+        if (event.target instanceof HTMLElement) {
             console.log("target");
             if (event.target.className.indexOf("piece-") !== -1) {
                 element = event.target.parentElement;
@@ -650,17 +663,17 @@ var AnalysisHelper = (function () {
             }
             if (element.className.indexOf("square-") !== -1) {
                 var ds = element.attributes["data-square"];
-                square = this.board.square(ds);
-                console.log("square");
-            }
-            if (square) {
-                console.group(square.code());
-                console.log(this.names(square.enemies, "enemies:"));
-                console.log(this.names(square.friends, "friends:"));
+                console.log("node: %O", element);
+                console.group(ds);
+                var friends = element.attributes["friends"];
+                var enemies = element.attributes["enemies"];
+                if (friends) {
+                    console.log("friends: " + friends.value);
+                }
+                if (enemies) {
+                    console.log("enemies: " + enemies.value);
+                }
                 console.groupEnd();
-            }
-            else {
-                console.log("no square");
             }
         }
         console.groupEnd();
