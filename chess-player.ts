@@ -280,7 +280,6 @@ class Square {
     m: number;
     n: number;
     piece: Piece;
-    element: HTMLElement;
 
     char(n: number): string {
         return String.fromCharCode(n + 97);
@@ -434,7 +433,7 @@ class AnalysisHelper {
             this.board = new Board();
             this.name = this.me();
             this.create(mr);
-            this.analyse();
+            this.analyse(mr);
             this.threats(mr);
             // this.show();
         }
@@ -457,7 +456,6 @@ class AnalysisHelper {
                                     square.piece = Piece.create(dp.value, ds.value);
                                 }
                             }
-                            square.element = node;
                         }
                     }
                 }
@@ -465,16 +463,25 @@ class AnalysisHelper {
         }
     }
 
-    analyse(): void {
-        for (let m = 0; m < 14; m++) {
-            for (let n = 0; n < 14; n++) {
-                const square = this.board.squares[m][n];
-                const accessible = square.accessible();
-                if (accessible) {
-                    const piece = square.piece;
-                    if (piece) {
-                        if (!(piece.player instanceof Dead)) {
-                            this.radius(square, m, n);
+    analyse(mr: MutationRecord): void {
+        const row = mr.addedNodes;
+        if (row.length >= 14) {
+            for (let m = 0; m < 14; m++) {
+                for (let n = 0; n < 14; n++) {
+                    const element = row[m].childNodes[n];
+                    if (element instanceof HTMLElement) {
+                        const ds = element.attributes["data-square"];
+                        if (ds) {
+                            const square = this.board.square(ds.value);
+                            const accessible = square.accessible();
+                            if (accessible) {
+                                const piece = square.piece;
+                                if (piece) {
+                                    if (!(piece.player instanceof Dead)) {
+                                        this.radius(element, square, m, n);
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -482,7 +489,7 @@ class AnalysisHelper {
         }
     }
 
-    radius(square: Square, m: number, n: number): void {
+    radius(element: HTMLElement, square: Square, m: number, n: number): void {
         const piece = square.piece;
         const vectors = piece.attack();
         for (; ;) {
@@ -493,12 +500,12 @@ class AnalysisHelper {
                 break;
             }
             for (let j = 0; j < vectors.length; j++) {
-                this.vector(square, vectors[j], m, n, radius.value);
+                this.vector(element, square, vectors[j], m, n, radius.value);
             }
         }
     }
 
-    vector(square: Square, vector: [Vector, boolean],
+    vector(element: HTMLElement, square: Square, vector: [Vector, boolean],
         m: number, n: number, radius: number): void {
         if (vector[1]) {
             const x1 = vector[0].x1(radius);
@@ -506,7 +513,7 @@ class AnalysisHelper {
             const [x2, y2] = square.piece.player.transform(n, m, x1, y1);
             if (this.board.valid(x2, y2) &&
                 this.board.squares[y2][x2].accessible()) {
-                this.candidate(this.board.squares[y2][x2].element, square);
+                this.candidate(element, square);
                 if (this.board.squares[y2][x2].piece) {
                     vector[1] = false;
                 }
@@ -534,8 +541,7 @@ class AnalysisHelper {
         }
     }
 
-    friendly(square: Square): boolean {
-        const element = square.element;
+    friendly(element: HTMLElement): boolean {
         let friends: Attr = element.attributes["friends"];
         let enemies: Attr = element.attributes["enemies"];
         if (!friends && !enemies) {
@@ -554,22 +560,20 @@ class AnalysisHelper {
         if (row.length >= 14) {
             for (let m = 0; m < 14; m++) {
                 for (let n = 0; n < 14; n++) {
-                    const node = row[m].childNodes[n];
-                    const ds = node.attributes["data-square"];
-                    if (ds) {
-                        const square = this.board.square(ds.value);
-                        const colour = this.colour(square);
-                        square.element.style.backgroundColor = colour;
+                    const element = row[m].childNodes[n];
+                    if (element instanceof HTMLElement) {
+                        const colour = this.colour(element);
+                        element.style.backgroundColor = colour;
                     }
                 }
             }
         }
     }
 
-    colour(square: Square): string {
+    colour(element: HTMLElement): string {
         let rgb: { r: number, g: number, b: number};
         var bgc = window
-            .getComputedStyle(square.element, null)
+            .getComputedStyle(element, null)
             .getPropertyValue("background-color");
         if (bgc.indexOf("#") === 0) {
             rgb = this.hexToRgb(bgc);
@@ -584,7 +588,7 @@ class AnalysisHelper {
                 b: parseInt(vals[2])
             };
         };
-        if (this.friendly(square)) {
+        if (this.friendly(element)) {
             return `rgb(${rgb.r}, 255, ${rgb.b})`;
         } else {
             return `rgb(255, ${rgb.g}, ${rgb.b})`;

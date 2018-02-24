@@ -424,7 +424,7 @@ var AnalysisHelper = (function () {
             this.board = new Board();
             this.name = this.me();
             this.create(mr);
-            this.analyse();
+            this.analyse(mr);
             this.threats(mr);
         }
     };
@@ -445,30 +445,38 @@ var AnalysisHelper = (function () {
                                     square.piece = Piece.create(dp.value, ds.value);
                                 }
                             }
-                            square.element = node;
                         }
                     }
                 }
             }
         }
     };
-    AnalysisHelper.prototype.analyse = function () {
-        for (var m = 0; m < 14; m++) {
-            for (var n = 0; n < 14; n++) {
-                var square = this.board.squares[m][n];
-                var accessible = square.accessible();
-                if (accessible) {
-                    var piece = square.piece;
-                    if (piece) {
-                        if (!(piece.player instanceof Dead)) {
-                            this.radius(square, m, n);
+    AnalysisHelper.prototype.analyse = function (mr) {
+        var row = mr.addedNodes;
+        if (row.length >= 14) {
+            for (var m = 0; m < 14; m++) {
+                for (var n = 0; n < 14; n++) {
+                    var element = row[m].childNodes[n];
+                    if (element instanceof HTMLElement) {
+                        var ds = element.attributes["data-square"];
+                        if (ds) {
+                            var square = this.board.square(ds.value);
+                            var accessible = square.accessible();
+                            if (accessible) {
+                                var piece = square.piece;
+                                if (piece) {
+                                    if (!(piece.player instanceof Dead)) {
+                                        this.radius(element, square, m, n);
+                                    }
+                                }
+                            }
                         }
                     }
                 }
             }
         }
     };
-    AnalysisHelper.prototype.radius = function (square, m, n) {
+    AnalysisHelper.prototype.radius = function (element, square, m, n) {
         var piece = square.piece;
         var vectors = piece.attack();
         for (;;) {
@@ -479,18 +487,18 @@ var AnalysisHelper = (function () {
                 break;
             }
             for (var j = 0; j < vectors.length; j++) {
-                this.vector(square, vectors[j], m, n, radius.value);
+                this.vector(element, square, vectors[j], m, n, radius.value);
             }
         }
     };
-    AnalysisHelper.prototype.vector = function (square, vector, m, n, radius) {
+    AnalysisHelper.prototype.vector = function (element, square, vector, m, n, radius) {
         if (vector[1]) {
             var x1 = vector[0].x1(radius);
             var y1 = vector[0].y1(radius);
             var _a = square.piece.player.transform(n, m, x1, y1), x2 = _a[0], y2 = _a[1];
             if (this.board.valid(x2, y2) &&
                 this.board.squares[y2][x2].accessible()) {
-                this.candidate(this.board.squares[y2][x2].element, square);
+                this.candidate(element, square);
                 if (this.board.squares[y2][x2].piece) {
                     vector[1] = false;
                 }
@@ -520,8 +528,7 @@ var AnalysisHelper = (function () {
             }
         }
     };
-    AnalysisHelper.prototype.friendly = function (square) {
-        var element = square.element;
+    AnalysisHelper.prototype.friendly = function (element) {
         var friends = element.attributes["friends"];
         var enemies = element.attributes["enemies"];
         if (!friends && !enemies) {
@@ -542,21 +549,19 @@ var AnalysisHelper = (function () {
         if (row.length >= 14) {
             for (var m = 0; m < 14; m++) {
                 for (var n = 0; n < 14; n++) {
-                    var node = row[m].childNodes[n];
-                    var ds = node.attributes["data-square"];
-                    if (ds) {
-                        var square = this.board.square(ds.value);
-                        var colour = this.colour(square);
-                        square.element.style.backgroundColor = colour;
+                    var element = row[m].childNodes[n];
+                    if (element instanceof HTMLElement) {
+                        var colour = this.colour(element);
+                        element.style.backgroundColor = colour;
                     }
                 }
             }
         }
     };
-    AnalysisHelper.prototype.colour = function (square) {
+    AnalysisHelper.prototype.colour = function (element) {
         var rgb;
         var bgc = window
-            .getComputedStyle(square.element, null)
+            .getComputedStyle(element, null)
             .getPropertyValue("background-color");
         if (bgc.indexOf("#") === 0) {
             rgb = this.hexToRgb(bgc);
@@ -572,7 +577,7 @@ var AnalysisHelper = (function () {
             };
         }
         ;
-        if (this.friendly(square)) {
+        if (this.friendly(element)) {
             return "rgb(" + rgb.r + ", 255, " + rgb.b + ")";
         }
         else {
