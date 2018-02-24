@@ -385,7 +385,7 @@ var CountdownHelper = (function () {
                 if (timer) {
                     if (timer instanceof HTMLElement &&
                         timer.classList.contains("player-clock-timer")) {
-                        var avatar = this.avatar(timer.childNodes);
+                        var avatar = this.avatar(timer.children);
                         if (avatar) {
                             if (avatar instanceof HTMLAnchorElement) {
                                 if (avatar.pathname === "/member/" + this.username()) {
@@ -416,32 +416,57 @@ var AnalysisHelper = (function () {
     function AnalysisHelper() {
         this.colours = ["red", "blue", "yellow", "green"];
         this.board = new Board();
-        this.turn = 0;
+        this.username = this.getUsername();
     }
-    AnalysisHelper.prototype.showSafeSquares = function () {
-    };
-    AnalysisHelper.prototype.process = function (mr) {
-        if (mr.type === "childList" &&
-            mr.target instanceof HTMLElement &&
-            mr.target.className.indexOf("board-") === 0) {
-            this.board = new Board();
-            this.name = this.me();
-            this.create(mr);
-            this.analyse(mr);
-            this.threats(mr);
+    AnalysisHelper.prototype.showSafeSquares = function (target) {
+        var squareElement = this.getThisSquareElement(target);
+        var boardElement = this.getBoardElement();
+        if (boardElement && squareElement) {
+            this.createBoard(boardElement);
+            this.analyseSquares(boardElement);
+            this.colouriseSquares(boardElement, squareElement);
         }
     };
-    AnalysisHelper.prototype.create = function (mr) {
-        var row = mr.addedNodes;
+    AnalysisHelper.prototype.getThisSquareElement = function (target) {
+        var squareElement;
+        if (target instanceof HTMLElement) {
+            if (target.className.indexOf("piece-") !== -1) {
+                squareElement = target.parentElement;
+            }
+            if (!squareElement) {
+                squareElement = target;
+            }
+            if (squareElement.className.indexOf("square-") !== -1) {
+                return squareElement;
+            }
+        }
+        return undefined;
+    };
+    AnalysisHelper.prototype.getBoardElement = function () {
+        var boardElement;
+        var elements = document.body.getElementsByTagName("div");
+        for (var i = 0; i < elements.length; i++) {
+            if (elements[i].className.indexOf("board-") !== -1) {
+                var element = elements[i];
+                if (element instanceof HTMLElement) {
+                    boardElement = element;
+                    break;
+                }
+            }
+        }
+        return boardElement;
+    };
+    AnalysisHelper.prototype.createBoard = function (boardElement) {
+        var row = boardElement.children;
         if (row.length >= 14) {
             for (var m = 0; m < 14; m++) {
                 for (var n = 0; n < 14; n++) {
-                    var node = row[m].childNodes[n];
-                    if (node instanceof HTMLElement) {
-                        var ds = node.attributes["data-square"];
+                    var element = row[m].children[n];
+                    if (element instanceof HTMLElement) {
+                        var ds = element.attributes["data-square"];
                         if (ds) {
                             var square = this.board.square(ds.value);
-                            var child = this.pieceNode(node.childNodes);
+                            var child = this.pieceNode(element.children);
                             if (child) {
                                 var dp = child.attributes["data-piece"];
                                 if (dp) {
@@ -454,12 +479,12 @@ var AnalysisHelper = (function () {
             }
         }
     };
-    AnalysisHelper.prototype.analyse = function (mr) {
-        var row = mr.addedNodes;
+    AnalysisHelper.prototype.analyseSquares = function (boardElement) {
+        var row = boardElement.children;
         if (row.length >= 14) {
             for (var m = 0; m < 14; m++) {
                 for (var n = 0; n < 14; n++) {
-                    var element = row[m].childNodes[n];
+                    var element = row[m].children[n];
                     if (element instanceof HTMLElement) {
                         var ds = element.attributes["data-square"];
                         if (ds) {
@@ -469,7 +494,7 @@ var AnalysisHelper = (function () {
                                 var piece = square.piece;
                                 if (piece) {
                                     if (!(piece.player instanceof Dead)) {
-                                        this.radius(mr, piece, m, n);
+                                        this.checkAttackRadius(boardElement, piece, m, n);
                                     }
                                 }
                             }
@@ -479,7 +504,7 @@ var AnalysisHelper = (function () {
             }
         }
     };
-    AnalysisHelper.prototype.radius = function (mr, piece, m, n) {
+    AnalysisHelper.prototype.checkAttackRadius = function (boardElement, piece, m, n) {
         var vectors = piece.attack();
         for (;;) {
             var radius = piece.radius.next();
@@ -489,11 +514,11 @@ var AnalysisHelper = (function () {
                 break;
             }
             for (var j = 0; j < vectors.length; j++) {
-                this.vector(mr, piece, vectors[j], m, n, radius.value);
+                this.checkAttackVector(boardElement, piece, vectors[j], m, n, radius.value);
             }
         }
     };
-    AnalysisHelper.prototype.vector = function (mr, piece, vector, m, n, radius) {
+    AnalysisHelper.prototype.checkAttackVector = function (boardElement, piece, vector, m, n, radius) {
         if (vector[1]) {
             var x1 = vector[0].x1(radius);
             var y1 = vector[0].y1(radius);
@@ -501,12 +526,9 @@ var AnalysisHelper = (function () {
             if (this.board.valid(x2, y2)) {
                 var square = this.board.squares[y2][x2];
                 if (square.accessible()) {
-                    var element = mr.addedNodes[square.m].childNodes[square.n];
-                    if (element instanceof HTMLElement) {
-                        this.candidate(element, square, piece);
-                        if (square.piece) {
-                            vector[1] = false;
-                        }
+                    this.setCandidate(boardElement, square, piece);
+                    if (square.piece) {
+                        vector[1] = false;
                     }
                 }
                 else {
@@ -515,8 +537,9 @@ var AnalysisHelper = (function () {
             }
         }
     };
-    AnalysisHelper.prototype.candidate = function (element, square, piece) {
-        if (this.name === piece.player.name.toLowerCase()) {
+    AnalysisHelper.prototype.setCandidate = function (boardElement, square, piece) {
+        var element = this.getSquareElement(boardElement, square);
+        if (this.username === piece.player.name.toLowerCase()) {
             var friends = element.attributes["friends"];
             if (friends) {
                 friends.value = friends.value + "," + square.code();
@@ -535,37 +558,57 @@ var AnalysisHelper = (function () {
             }
         }
     };
-    AnalysisHelper.prototype.friendly = function (element) {
-        var friends = element.attributes["friends"];
-        var enemies = element.attributes["enemies"];
-        if (!friends && !enemies) {
-            return true;
+    AnalysisHelper.prototype.getSquareElement = function (boardElement, square) {
+        var row = boardElement.children;
+        var squareElement;
+        if (row.length >= 14) {
+            rowLoop: for (var m = 0; m < 14; m++) {
+                for (var n = 0; n < 14; n++) {
+                    var element = row[m].children[n];
+                    if (element instanceof HTMLElement) {
+                        if (element.className === "square-" + square.code) {
+                            squareElement = element;
+                            break rowLoop;
+                        }
+                    }
+                }
+            }
         }
-        else if (friends && !enemies) {
-            return true;
-        }
-        else if (enemies && !friends) {
-            return false;
+        return squareElement;
+    };
+    AnalysisHelper.prototype.colouriseSquares = function (boardElement, squareElement) {
+        if (this.friendly(squareElement)) {
+            var colour = this.getColour(squareElement, true);
+            squareElement.style.backgroundColor = colour;
         }
         else {
-            return friends.value.split(",").length > enemies.value.split(",").length;
-        }
-    };
-    AnalysisHelper.prototype.threats = function (mr) {
-        var row = mr.addedNodes;
-        if (row.length >= 14) {
-            for (var m = 0; m < 14; m++) {
-                for (var n = 0; n < 14; n++) {
-                    var element = row[m].childNodes[n];
-                    if (element instanceof HTMLElement) {
-                        var colour = this.colour(element);
-                        element.style.backgroundColor = colour;
+            var enemies = squareElement.attributes["enemies"];
+            if (enemies) {
+                var colour = this.getColour(squareElement, false);
+                squareElement.style.backgroundColor = colour;
+                var row = boardElement.children;
+                if (row.length >= 14) {
+                    var codes = enemies.value.split(",");
+                    for (var i = 0; i < codes.length; i++) {
+                        searchLoop: for (var m = 0; m < 14; m++) {
+                            for (var n = 0; n < 14; n++) {
+                                var element = row[m].children[n];
+                                var ds = squareElement.attributes["data-square"];
+                                if (ds && element instanceof HTMLElement) {
+                                    if (ds.value === codes[i]) {
+                                        colour = this.getColour(element, false);
+                                        element.style.backgroundColor = colour;
+                                        break searchLoop;
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
         }
     };
-    AnalysisHelper.prototype.colour = function (element) {
+    AnalysisHelper.prototype.getColour = function (element, friendly) {
         var rgb;
         var bgc = window
             .getComputedStyle(element, null)
@@ -584,11 +627,27 @@ var AnalysisHelper = (function () {
             };
         }
         ;
-        if (this.friendly(element)) {
+        if (friendly) {
             return "rgb(" + rgb.r + ", 255, " + rgb.b + ")";
         }
         else {
             return "rgb(255, " + rgb.g + ", " + rgb.b + ")";
+        }
+    };
+    AnalysisHelper.prototype.friendly = function (element) {
+        var friends = element.attributes["friends"];
+        var enemies = element.attributes["enemies"];
+        if (!friends && !enemies) {
+            return true;
+        }
+        else if (friends && !enemies) {
+            return true;
+        }
+        else if (enemies && !friends) {
+            return false;
+        }
+        else {
+            return friends.value.split(",").length > enemies.value.split(",").length;
         }
     };
     AnalysisHelper.prototype.show = function () {
@@ -609,7 +668,7 @@ var AnalysisHelper = (function () {
                 "%O %O %O %O %O %O %O %O %O %O %O %O %O %O |", s[m][0], s[m][1], s[m][2], s[m][3], s[m][4], s[m][5], s[m][6], s[m][7], s[m][8], s[m][9], s[m][10], s[m][11], s[m][12], s[m][13]);
         }
     };
-    AnalysisHelper.prototype.me = function () {
+    AnalysisHelper.prototype.getUsername = function () {
         var username = document.getElementById("four-player-username").innerText;
         var elements = document.body.getElementsByClassName("player-avatar");
         for (var i = 0; i < elements.length; i++) {
@@ -690,6 +749,8 @@ var DomWatcher = (function () {
 var DomModifier = (function () {
     function DomModifier() {
         document.body.addEventListener("mouseover", this.over);
+        document.body.addEventListener("mousedown", this.over);
+        document.body.addEventListener("mouseup", this.over);
         window.addEventListener("keydown", function (e) {
             if (!e.repeat &&
                 e.key === "q" || e.key === "Q") {
@@ -767,36 +828,9 @@ var DomModifier = (function () {
         return this;
     };
     DomModifier.prototype.over = function (event) {
-        var pieceElement;
-        var squareElement;
-        if (event.target instanceof HTMLElement) {
-            if (event.target.className.indexOf("piece-") !== -1) {
-                squareElement = event.target.parentElement;
-                pieceElement = event.target;
-            }
-            if (!squareElement) {
-                squareElement = event.target;
-            }
-            if (squareElement.className.indexOf("square-") !== -1) {
-                var ds = squareElement.attributes["data-square"];
-                if (!pieceElement) {
-                    for (var i = 0; i < squareElement.children.length; i++) {
-                        var childElement = squareElement.children[i];
-                        if (childElement.className.indexOf("piece-") !== -1) {
-                            if (childElement instanceof HTMLElement) {
-                                pieceElement = childElement;
-                            }
-                            break;
-                        }
-                    }
-                }
-                var dp = void 0;
-                if (pieceElement) {
-                    dp = pieceElement.attributes["data-piece"];
-                }
-                var helper = new AnalysisHelper();
-            }
-        }
+        new AnalysisHelper().showSafeSquares(event.target);
+    };
+    DomModifier.prototype.down = function (event) {
     };
     return DomModifier;
 }());
