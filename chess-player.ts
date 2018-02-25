@@ -13,8 +13,8 @@ abstract class Player {
     abstract name: string;
     abstract turn: number;
 
-    abstract transform(x: number,  y: number,
-                      x1: number, y1: number): [number, number];
+    abstract rotate(x: number,  y: number,
+                   x1: number, y1: number): [number, number];
 
     static create(dp: string): Player {
         switch (dp.charAt(0)) {
@@ -38,8 +38,8 @@ class Red extends Player {
     name: string = "Red";
     turn: number = 1;
 
-    transform(x: number,  y: number,
-             x1: number, y1: number): [number, number] {
+    rotate(x: number,  y: number,
+          x1: number, y1: number): [number, number] {
         return [x + x1, y + y1];
     }
 }
@@ -48,8 +48,8 @@ class Blue extends Player {
     name: string = "Blue";
     turn: number = 2;
 
-    transform(x: number,  y: number,
-             x1: number, y1: number): [number, number] {
+    rotate(x: number,  y: number,
+          x1: number, y1: number): [number, number] {
         return [x + y1, y - x1];
     }
 }
@@ -58,8 +58,8 @@ class Yellow extends Player {
     name: string = "Yellow";
     turn: number = 3;
 
-    transform(x: number,  y: number,
-             x1: number, y1: number): [number, number] {
+    rotate(x: number,  y: number,
+          x1: number, y1: number): [number, number] {
         return [x - x1, y - y1];
     }
 }
@@ -68,8 +68,8 @@ class Green extends Player {
     name: string = "Green";
     turn: number = 4;
 
-    transform(x: number,  y: number,
-             x1: number, y1: number): [number, number] {
+    rotate(x: number,  y: number,
+          x1: number, y1: number): [number, number] {
         return [x - y1, y + x1];
     }
 }
@@ -78,7 +78,7 @@ class Dead extends Player {
     name: string = "Dead";
     turn: number = 0;
 
-    transform(x: number, y: number): [number, number] {
+    rotate(x: number, y: number): [number, number] {
         throw new Error("Not implemented");
     }
 }
@@ -140,7 +140,7 @@ abstract class Piece {
         for (let i = 0; i < this.home.length; i++) {
             const m1 = this.home[i][0] - 6.5;
             const n1 = this.home[i][1] - 6.5;
-            const [x2, y2] = this.player.transform(6.5, 6.5, n1, m1);
+            const [x2, y2] = this.player.rotate(6.5, 6.5, n1, m1);
             if (this.coords[1] === x2 &&
                 this.coords[0] === y2) {
                 moved = false;
@@ -520,6 +520,10 @@ class AnalysisHelper {
         }
     }
 
+    // go to every square on the board and if there is
+    // a piece on it, find out all the possible squares
+    // it can occupy and add the piece as a candidate
+    // (friend or enemy) to the current player
     analyseSquares(boardElement: HTMLElement): void {
         const row = boardElement.children;
         if (row.length >= 14) {
@@ -535,7 +539,7 @@ class AnalysisHelper {
                                 const piece = square.piece;
                                 if (piece) {
                                     if (!(piece.player instanceof Dead)) {
-                                        this.checkAttackRadius(boardElement, piece, m, n);
+                                        this.checkAttackRadius(boardElement, square);
                                     }
                                 }
                             }
@@ -546,7 +550,12 @@ class AnalysisHelper {
         }
     }
 
-    checkAttackRadius(boardElement: HTMLElement, piece: Piece, m: number, n: number): void {
+    // check all the squares the piece can occupy for a
+    // given radius from the piece's current location
+    // pieceSquare: the square that the piece whose 
+    // radius we are checking is currently located
+    checkAttackRadius(boardElement: HTMLElement, pieceSquare: Square): void {
+        const piece = pieceSquare.piece;
         const vectors = piece.attack();
         for (; ;) {
             let radius = piece.radius.next();
@@ -556,47 +565,52 @@ class AnalysisHelper {
                 break;
             }
             for (let j = 0; j < vectors.length; j++) {
-                this.checkAttackVector(boardElement, piece, vectors[j], m, n, radius.value);
+                this.checkAttackVector(boardElement, pieceSquare, vectors[j], radius.value);
             }
         }
     }
 
-    checkAttackVector(boardElement: HTMLElement, piece: Piece, vector: [Vector, boolean],
-        m: number, n: number, radius: number): void {
+    // get the square for the given radius relating the
+    // vector representing the piece's direction of travel
+    // and rotate it depending on the piece's player
+    checkAttackVector(boardElement: HTMLElement, pieceSquare: Square,
+        vector: [Vector, boolean], radius: number): void {
         if (vector[1]) {
             const x1 = vector[0].x1(radius);
             const y1 = vector[0].y1(radius);
-            const [x2, y2] = piece.player.transform(n, m, x1, y1);
-            if (this.board.valid(x2, y2)) {
-                const square = this.board.squares[y2][x2];
-                if (square.accessible()) {
-                    this.setCandidate(boardElement, square, piece);
-                    if (square.piece) {
-                        vector[1] = false;
-                    }
-                } else {
-                    vector[1] = false;
-                }
+            const [x2, y2] = pieceSquare.piece.player.rotate(pieceSquare.n, pieceSquare.m, x1, y1);
+            if (!this.board.valid(x2, y2)) {
+                vector[1] = false;
+                return;
+            }
+            const targetSquare = this.board.squares[y2][x2];
+            if (!targetSquare.accessible()) {
+                vector[1] = false;
+                return;
+            }
+            this.setCandidate(boardElement, pieceSquare, targetSquare);
+            if (targetSquare.piece) {
+                vector[1] = false;
             }
         }
     }
 
-    setCandidate(boardElement: HTMLElement, square: Square, piece: Piece): void {
-        const element = this.getSquareElement(boardElement, square);
+    setCandidate(boardElement: HTMLElement, pieceSquare: Square, targetSquare: Square): void {
+        const element = this.getSquareElement(boardElement, targetSquare);
         if (element) {
-            if (this.username === piece.player.name.toLowerCase()) {
+            if (this.username === pieceSquare.piece.player.name.toLowerCase()) {
                 let friends: Attr = element.attributes["friends"];
                 if (friends) {
-                    friends.value = `${friends.value},${square.code()}`;
+                    friends.value = `${friends.value},${pieceSquare.code()}`;
                 } else {
-                    element.setAttribute("friends", square.code());
+                    element.setAttribute("friends", pieceSquare.code());
                 }
             } else {
                 let enemies: Attr = element.attributes["enemies"];
                 if (enemies) {
-                    enemies.value = `${enemies.value},${square.code()}`;
+                    enemies.value = `${enemies.value},${pieceSquare.code()}`;
                 } else {
-                    element.setAttribute("enemies", square.code());
+                    element.setAttribute("enemies", pieceSquare.code());
                 }
             }
         }
@@ -623,33 +637,33 @@ class AnalysisHelper {
     }
 
     colouriseSquares(boardElement: HTMLElement, squareElement: HTMLElement): void {
-        if (this.friendly(squareElement)) {
-            const ds = squareElement.attributes["data-square"];
-            if (ds) {
+        const ds = squareElement.attributes["data-square"];
+        if (ds) {
+            this.addCodeToModifiedSquares(ds.value);
+            if (this.friendly(squareElement)) {
                 const colour = this.getColour(squareElement, true);
                 squareElement.style.backgroundColor = colour;
-                this.addCodeToModifiedSquares(ds.value);
-            }
-        } else {
-            let enemies: Attr = squareElement.attributes["enemies"];
-            if (enemies) {
-                let colour = this.getColour(squareElement, false);
-                squareElement.style.backgroundColor = colour;
-                const row = boardElement.children;
-                if (row.length >= 14) {
-                    const codes = enemies.value.split(",");
-                    for (let i = 0; i < codes.length; i++) {
-                        searchLoop:
-                        for (let m = 0; m < 14; m++) {
-                            for (let n = 0; n < 14; n++) {
-                                const element = row[m].children[n];
-                                const ds = element.attributes["data-square"];
-                                if (ds && element instanceof HTMLElement) {
-                                    if (ds.value === codes[i]) {
-                                        colour = this.getColour(element, false);
-                                        element.style.backgroundColor = colour;
-                                        this.addCodeToModifiedSquares(ds.value);
-                                        break searchLoop;
+            } else {
+                let enemies: Attr = squareElement.attributes["enemies"];
+                if (enemies) {
+                    let colour = this.getColour(squareElement, false);
+                    squareElement.style.backgroundColor = colour;
+                    const row = boardElement.children;
+                    if (row.length >= 14) {
+                        const codes = enemies.value.split(",");
+                        for (let i = 0; i < codes.length; i++) {
+                            searchLoop:
+                            for (let m = 0; m < 14; m++) {
+                                for (let n = 0; n < 14; n++) {
+                                    const element = row[m].children[n];
+                                    const ds = element.attributes["data-square"];
+                                    if (ds && element instanceof HTMLElement) {
+                                        if (ds.value === codes[i]) {
+                                            colour = this.getColour(element, false);
+                                            element.style.backgroundColor = colour;
+                                            this.addCodeToModifiedSquares(ds.value);
+                                            break searchLoop;
+                                        }
                                     }
                                 }
                             }
@@ -689,12 +703,16 @@ class AnalysisHelper {
         let friends: Attr = element.attributes["friends"];
         let enemies: Attr = element.attributes["enemies"];
         if (!friends && !enemies) {
+            console.log(`friends: none, enemies: none`);
             return true;
         } else if (friends && !enemies) {
+            console.log(`friends: ${friends.value}, enemies: none`);
             return true;
         } else if (enemies && !friends) {
+            console.log(`friends: none, enemies: ${enemies.value}`);
             return false;
         } else {
+            console.log(`friends: ${friends.value}, enemies: ${enemies.value}`);
             return friends.value.split(",").length > enemies.value.split(",").length;
         }
     }
@@ -787,7 +805,8 @@ class AnalysisHelper {
     }
 
     constructor() {
-        this.username = this.getUsername();
+        // this.username = this.getUsername();
+        this.username = "red";
     }
 }
 
