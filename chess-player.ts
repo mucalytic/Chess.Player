@@ -425,16 +425,52 @@ class AnalysisHelper {
     board = new Board();
     username: string;
 
-    showSafeSquares(target: EventTarget): void {
+    setOriginSquare(target: EventTarget): void {
+        const originSquareElement = this.getThisSquareElement(event.target);
+        const ds = originSquareElement.attributes["data-square"];
+        if (ds) {
+            const element = document.getElementById("four-player-username");
+            const origin = element.attributes["origin"];
+            if (origin) {
+                origin.value = ds.value;
+            } else {
+                element.setAttribute("origin", ds.value);
+            }
+        }
+    }
+
+    getOriginSquareElement(boardElement: HTMLElement): HTMLElement {
+        const element = document.getElementById("four-player-username");
+        const origin = element.attributes["origin"];
+        if (origin) {
+            return this.getSquareElement(boardElement, origin.value);
+        }
+        return undefined;
+    }
+
+    resetOriginSquareAndCleanSquares(): void {
+        const element = document.getElementById("four-player-username");
+        if (element.attributes["origin"]) {
+            element.removeAttribute("origin");
+        }
+        const boardElement = this.getBoardElement();
+        this.clearCandidatesFromSquares(boardElement);
+        this.cleanColouredSquares(boardElement);
+    }
+
+    showEnemies(target: EventTarget): void {
         if (this.username) {
-            const squareElement = this.getThisSquareElement(target);
             const boardElement = this.getBoardElement();
-            if (boardElement && squareElement) {
-                this.cleanColouredSquares(boardElement);
-                this.clearCandidatesFromSquares(boardElement);
-                this.createBoard(boardElement);
-                this.analyseSquares(boardElement);
-                this.colouriseSquares(boardElement, squareElement);
+            const originSquareElement = this.getOriginSquareElement(boardElement);
+            if (originSquareElement) {
+                const targetSquareElement = this.getThisSquareElement(target);
+                if (boardElement && targetSquareElement) {
+                    this.clearCandidatesFromSquares(boardElement);
+                    this.cleanColouredSquares(boardElement);
+                    this.createBoard(boardElement, originSquareElement);
+                    this.analyseSquares(boardElement);
+                    this.colouriseSquares(boardElement, targetSquareElement);
+                }
             }
         }
     }
@@ -514,21 +550,26 @@ class AnalysisHelper {
         }
     }
 
-    createBoard(boardElement: HTMLElement): void {
+    createBoard(boardElement: HTMLElement, originSquareElement: HTMLElement): void {
         const row = boardElement.children;
         if (row.length >= 14) {
-            for (let m = 0; m < 14; m++) {
-                for (let n = 0; n < 14; n++) {
-                    const element = row[m].children[n];
-                    if (element instanceof HTMLElement) {
-                        const ds = element.attributes["data-square"];
-                        if (ds) {
-                            const square = this.board.square(ds.value);
-                            const child = this.pieceNode(element.children);
-                            if (child) {
-                                const dp = child.attributes["data-piece"];
-                                if (dp) {
-                                    square.piece = Piece.create(dp.value, ds.value);
+            const dso = originSquareElement.attributes["data-square"];
+            if (dso) {
+                for (let m = 0; m < 14; m++) {
+                    for (let n = 0; n < 14; n++) {
+                        const element = row[m].children[n];
+                        if (element instanceof HTMLElement) {
+                            const ds = element.attributes["data-square"];
+                            if (ds) {
+                                if (ds.value !== dso.value) {
+                                    const square = this.board.square(ds.value);
+                                    const child = this.pieceNode(element.children);
+                                    if (child) {
+                                        const dp = child.attributes["data-piece"];
+                                        if (dp) {
+                                            square.piece = Piece.create(dp.value, ds.value);
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -614,8 +655,7 @@ class AnalysisHelper {
     }
 
     setCandidate(boardElement: HTMLElement, pieceSquare: Square, targetSquare: Square): void {
-        console.log(`${pieceSquare.code()}->${targetSquare.code()}`);
-        const element = this.getSquareElement(boardElement, targetSquare);
+        const element = this.getSquareElement(boardElement, targetSquare.code());
         if (element) {
             if (this.username === pieceSquare.piece.player.name.toLowerCase()) {
                 let friends: Attr = element.attributes["friends"];
@@ -635,7 +675,7 @@ class AnalysisHelper {
         }
     }
 
-    getSquareElement(boardElement: HTMLElement, square: Square): HTMLElement {
+    getSquareElement(boardElement: HTMLElement, code: string): HTMLElement {
         const row = boardElement.children;
         let squareElement: HTMLElement;
         if (row.length >= 14) {
@@ -644,7 +684,7 @@ class AnalysisHelper {
                 for (let n = 0; n < 14; n++) {
                     const element = row[m].children[n];
                     if (element instanceof HTMLElement) {
-                        if (element.classList.contains(`square-${square.code()}`)) {
+                        if (element.classList.contains(`square-${code}`)) {
                             squareElement = element;
                             break rowLoop;
                         }
@@ -655,18 +695,18 @@ class AnalysisHelper {
         return squareElement;
     }
 
-    colouriseSquares(boardElement: HTMLElement, squareElement: HTMLElement): void {
-        const ds = squareElement.attributes["data-square"];
+    colouriseSquares(boardElement: HTMLElement, targetSquareElement: HTMLElement): void {
+        const ds = targetSquareElement.attributes["data-square"];
         if (ds) {
             this.addCodeToModifiedSquares(ds.value);
-            if (this.friendly(squareElement)) {
-                const colour = this.getColour(squareElement, true);
-                squareElement.style.backgroundColor = colour;
+            if (this.friendly(targetSquareElement)) {
+                const colour = this.getColour(targetSquareElement, true);
+                targetSquareElement.style.backgroundColor = colour;
             } else {
-                let enemies: Attr = squareElement.attributes["enemies"];
+                let enemies: Attr = targetSquareElement.attributes["enemies"];
                 if (enemies) {
-                    let colour = this.getColour(squareElement, false);
-                    squareElement.style.backgroundColor = colour;
+                    let colour = this.getColour(targetSquareElement, false);
+                    targetSquareElement.style.backgroundColor = colour;
                     const row = boardElement.children;
                     if (row.length >= 14) {
                         const codes = enemies.value.split(",");
@@ -722,16 +762,12 @@ class AnalysisHelper {
         let friends: Attr = element.attributes["friends"];
         let enemies: Attr = element.attributes["enemies"];
         if (!friends && !enemies) {
-            console.log(`friends: none, enemies: none`);
             return true;
         } else if (friends && !enemies) {
-            console.log(`friends: ${friends.value}, enemies: none`);
             return true;
         } else if (enemies && !friends) {
-            console.log(`friends: none, enemies: ${enemies.value}`);
             return false;
         } else {
-            console.log(`friends: ${friends.value}, enemies: ${enemies.value}`);
             return friends.value.split(",").length > enemies.value.split(",").length;
         }
     }
@@ -824,8 +860,12 @@ class AnalysisHelper {
     }
 
     constructor() {
-        // this.username = this.getUsername();
-        this.username = "red";
+        const username = this.getUsername();
+        if (username) {
+            this.username = username;
+        } else {
+            this.username = "red";
+        }
     }
 }
 
@@ -929,17 +969,21 @@ class DomModifier {
     }
 
     over(event: Event): void {
-        new AnalysisHelper().showSafeSquares(event.target);
+        new AnalysisHelper().showEnemies(event.target);
     }
 
     down(event: Event) {
+        new AnalysisHelper().setOriginSquare(event.target);
+    }
 
+    up(event: Event) {
+        new AnalysisHelper().resetOriginSquareAndCleanSquares();
     }
 
     constructor() {
         document.body.addEventListener("mouseover", this.over);
-        document.body.addEventListener("mousedown", this.over);
-        document.body.addEventListener("mouseup", this.over);
+        document.body.addEventListener("mousedown", this.down);
+        document.body.addEventListener("mouseup", this.up);
         window.addEventListener("keydown", e => {
             if (!e.repeat &&
                  e.key === "q" || e.key === "Q") {
