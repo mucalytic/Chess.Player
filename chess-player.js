@@ -176,7 +176,10 @@ var Rook = (function (_super) {
         _this.home = [[0, 3], [0, 10]];
         return _this;
     }
-    Rook.prototype.attack = function () {
+    Rook.prototype.moves = function () {
+        return [];
+    };
+    Rook.prototype.attacks = function () {
         return [[new Vector(function (r) { return r; }, function (_) { return 0; }), true],
             [new Vector(function (r) { return -r; }, function (_) { return 0; }), true],
             [new Vector(function (_) { return 0; }, function (r) { return r; }), true],
@@ -193,7 +196,13 @@ var Pawn = (function (_super) {
         _this.home = [[1, 3], [1, 4], [1, 5], [1, 6], [1, 7], [1, 8], [1, 9], [1, 10]];
         return _this;
     }
-    Pawn.prototype.attack = function () {
+    Pawn.prototype.moves = function () {
+        return this.moved()
+            ? [[new Vector(function (_) { return 0; }, function (_) { return 1; }), true]]
+            : [[new Vector(function (_) { return 0; }, function (_) { return 1; }), true],
+                [new Vector(function (_) { return 0; }, function (_) { return 2; }), true]];
+    };
+    Pawn.prototype.attacks = function () {
         return [[new Vector(function (r) { return r; }, function (r) { return r; }), true],
             [new Vector(function (r) { return -r; }, function (r) { return r; }), true]];
     };
@@ -211,7 +220,10 @@ var King = (function (_super) {
             : [[0, 6]];
         return _this;
     }
-    King.prototype.attack = function () {
+    King.prototype.moves = function () {
+        return [];
+    };
+    King.prototype.attacks = function () {
         return [[new Vector(function (_) { return 1; }, function (_) { return 0; }), true],
             [new Vector(function (_) { return -1; }, function (_) { return 0; }), true],
             [new Vector(function (_) { return 0; }, function (_) { return 1; }), true],
@@ -235,7 +247,10 @@ var Queen = (function (_super) {
             : [[0, 7]];
         return _this;
     }
-    Queen.prototype.attack = function () {
+    Queen.prototype.moves = function () {
+        return [];
+    };
+    Queen.prototype.attacks = function () {
         return [[new Vector(function (r) { return r; }, function (_) { return 0; }), true],
             [new Vector(function (r) { return -r; }, function (_) { return 0; }), true],
             [new Vector(function (_) { return 0; }, function (r) { return r; }), true],
@@ -256,7 +271,10 @@ var Bishop = (function (_super) {
         _this.home = [[0, 5], [0, 8]];
         return _this;
     }
-    Bishop.prototype.attack = function () {
+    Bishop.prototype.moves = function () {
+        return [];
+    };
+    Bishop.prototype.attacks = function () {
         return [[new Vector(function (r) { return r; }, function (r) { return r; }), true],
             [new Vector(function (r) { return r; }, function (r) { return -r; }), true],
             [new Vector(function (r) { return -r; }, function (r) { return r; }), true],
@@ -273,7 +291,10 @@ var Knight = (function (_super) {
         _this.home = [[0, 4], [0, 9]];
         return _this;
     }
-    Knight.prototype.attack = function () {
+    Knight.prototype.moves = function () {
+        return [];
+    };
+    Knight.prototype.attacks = function () {
         return [[new Vector(function (_) { return 2; }, function (_) { return 1; }), true],
             [new Vector(function (_) { return 2; }, function (_) { return -1; }), true],
             [new Vector(function (_) { return -2; }, function (_) { return 1; }), true],
@@ -596,7 +617,7 @@ var AnalysisHelper = (function () {
     };
     AnalysisHelper.prototype.checkAttackRadius = function (boardElement, pieceSquare) {
         var piece = pieceSquare.piece;
-        var vectors = piece.attack();
+        var vectors = piece.attacks();
         for (;;) {
             var radius = piece.radius.next();
             var remaining = this.remaining(vectors);

@@ -132,8 +132,8 @@ abstract class Piece {
     abstract name: string;
     abstract radius: Radius;
     abstract home: [number, number][];
-
-    abstract attack(): [Vector, boolean][];
+    abstract moves(): [Vector, boolean][];
+    abstract attacks(): [Vector, boolean][];
 
     moved(): boolean {
         let moved = true;
@@ -182,7 +182,11 @@ class Rook extends Piece {
     home: [number, number][] =
         [[0, 3], [0, 10]];
 
-    attack(): [Vector, boolean][] {
+    moves(): [Vector, boolean][] {
+        return [];
+    }
+
+    attacks(): [Vector, boolean][] {
         return [[new Vector(r =>  r, _ =>  0), true],
                 [new Vector(r => -r, _ =>  0), true],
                 [new Vector(_ =>  0, r =>  r), true],
@@ -196,7 +200,14 @@ class Pawn extends Piece {
     home: [number, number][] =
         [[1, 3], [1, 4], [1, 5], [1, 6], [1, 7], [1, 8], [1, 9], [1, 10]];
 
-    attack(): [Vector, boolean][] {
+    moves(): [Vector, boolean][] {
+        return this.moved()
+            ? [[new Vector(_ => 0, _ => 1), true]]
+            : [[new Vector(_ => 0, _ => 1), true],
+               [new Vector(_ => 0, _ => 2), true]];
+    }
+
+    attacks(): [Vector, boolean][] {
         return [[new Vector(r =>  r, r => r), true],
                 [new Vector(r => -r, r => r), true]];
     }
@@ -211,7 +222,11 @@ class King extends Piece {
             ? [[0, 7]]
             : [[0, 6]];
 
-    attack(): [Vector, boolean][] {
+    moves(): [Vector, boolean][] {
+        return [];
+    }
+
+    attacks(): [Vector, boolean][] {
         return [[new Vector(_ =>  1, _ =>  0), true],
                 [new Vector(_ => -1, _ =>  0), true],
                 [new Vector(_ =>  0, _ =>  1), true],
@@ -232,7 +247,11 @@ class Queen extends Piece {
             ? [[0, 6]]
             : [[0, 7]];
 
-    attack(): [Vector, boolean][] {
+    moves(): [Vector, boolean][] {
+        return [];
+    }
+
+    attacks(): [Vector, boolean][] {
         return [[new Vector(r =>  r, _ =>  0), true],
                 [new Vector(r => -r, _ =>  0), true],
                 [new Vector(_ =>  0, r =>  r), true],
@@ -250,7 +269,11 @@ class Bishop extends Piece {
     home: [number, number][] =
         [[0, 5], [0, 8]];
 
-    attack(): [Vector, boolean][] {
+    moves(): [Vector, boolean][] {
+        return [];
+    }
+
+    attacks(): [Vector, boolean][] {
         return [[new Vector(r =>  r, r =>  r), true],
                 [new Vector(r =>  r, r => -r), true],
                 [new Vector(r => -r, r =>  r), true],
@@ -264,7 +287,11 @@ class Knight extends Piece {
     home: [number, number][] =
         [[0, 4], [0, 9]];
 
-    attack(): [Vector, boolean][] {
+    moves(): [Vector, boolean][] {
+        return [];
+    }
+
+    attacks(): [Vector, boolean][] {
         return [[new Vector(_ =>  2, _ =>  1), true],
                 [new Vector(_ =>  2, _ => -1), true],
                 [new Vector(_ => -2, _ =>  1), true],
@@ -615,7 +642,7 @@ class AnalysisHelper {
     // radius we are checking is currently located
     checkAttackRadius(boardElement: HTMLElement, pieceSquare: Square): void {
         const piece = pieceSquare.piece;
-        const vectors = piece.attack();
+        const vectors = piece.attacks();
         for (; ;) {
             let radius = piece.radius.next();
             const remaining = this.remaining(vectors);
