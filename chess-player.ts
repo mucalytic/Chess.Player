@@ -758,7 +758,7 @@ class AnalysisHelper {
         if (!element) {
             return;
         }
-        let attacks: Attr = element.attributes["attacks"];
+        const attacks = element.attributes["attacks"];
         if (attacks) {
             attacks.value = `${attacks.value},${pieceSquare.code()}`;
         } else {
@@ -771,7 +771,7 @@ class AnalysisHelper {
         if (!element) {
             return;
         }
-        let moves: Attr = element.attributes["moves"];
+        const moves = element.attributes["moves"];
         if (moves) {
             moves.value = `${moves.value},${pieceSquare.code()}`;
         } else {
@@ -848,19 +848,17 @@ class AnalysisHelper {
         if (row.length < 14) {
             return;
         }
+        this.colouriseMovementSquares(row, boardElement, originSquareElement);
         if (!this.isTargetSquareValid(boardElement,
             originSquareElement, targetSquareElement)) {
             return;
         }
-        this.colouriseMovementSquares(row, boardElement,
-             originSquareElement, targetSquareElement);
         this.colouriseEnemySquares(row, targetSquareElement);
     }
     
     colouriseMovementSquares(row: HTMLCollection,
                              boardElement: HTMLElement,
-                             originSquareElement: HTMLElement,
-                             targetSquareElement: HTMLElement): void {
+                             originSquareElement: HTMLElement): void {
         const dso: Attr = originSquareElement.attributes["data-square"];
         if (!dso) {
             return;
@@ -877,29 +875,42 @@ class AnalysisHelper {
                 if (!ds || !(element instanceof HTMLElement)) {
                     continue;
                 }
-                let codes: string[];
-                if (piece.moves().length > 0) {
-                    const moves = element.attributes["moves"];
+                const square = this.board.square(ds.value);
+                if (square.piece) {
+                    if (square.piece.player.name.toLowerCase() === this.username) {
+                        continue;
+                    }
+                }
+                let moveCodes: string[];
+                if (piece.moves().length !== 0) {
+                    const moves: Attr = element.attributes["moves"];
                     if (!moves) {
                         continue;
                     }
-                    codes = moves.value.split(",");
+                    moveCodes = moves.value.split(",");
                 } else {
-                    const attacks = element.attributes["attacks"];
+                    const attacks: Attr = element.attributes["attacks"];
                     if (!attacks) {
                         continue;
                     }
-                    codes = attacks.value.split(",");
+                    moveCodes = attacks.value.split(",");
                 }
-                if (codes.length === 0) {
+                if (moveCodes.length === 0) {
                     continue;
                 }
-                const index = codes.indexOf(dso.value);
-                if (index === -1) {
+                if (moveCodes.indexOf(dso.value) === -1) {
                     continue;
                 }
-                codes.splice(index, 1);
-                const friendly = this.isFriendlySquare(boardElement, piece, codes);
+                let attackCodes: string[] = [];
+                const attacks: Attr = element.attributes["attacks"];
+                if (attacks) {
+                    attackCodes = attacks.value.split(",");
+                }
+                const index = attackCodes.indexOf(dso.value);
+                if (index !== -1) {
+                    attackCodes.splice(index, 1);
+                }
+                const friendly = this.isFriendlySquare(boardElement, piece, attackCodes);
                 const colour = this.getColour(element, friendly);
                 element.style.backgroundColor = colour;
                 this.addCodeToModifiedSquares(ds.value);
@@ -973,6 +984,7 @@ class AnalysisHelper {
                     if (ds.value !== codes[i]) {
                         continue;
                     }
+
                     const square = this.board.square(ds.value);
                     const piece = square.piece;
                     if (!piece) {

@@ -808,13 +808,13 @@ var AnalysisHelper = (function () {
         if (row.length < 14) {
             return;
         }
+        this.colouriseMovementSquares(row, boardElement, originSquareElement);
         if (!this.isTargetSquareValid(boardElement, originSquareElement, targetSquareElement)) {
             return;
         }
-        this.colouriseMovementSquares(row, boardElement, originSquareElement, targetSquareElement);
         this.colouriseEnemySquares(row, targetSquareElement);
     };
-    AnalysisHelper.prototype.colouriseMovementSquares = function (row, boardElement, originSquareElement, targetSquareElement) {
+    AnalysisHelper.prototype.colouriseMovementSquares = function (row, boardElement, originSquareElement) {
         var dso = originSquareElement.attributes["data-square"];
         if (!dso) {
             return;
@@ -831,30 +831,43 @@ var AnalysisHelper = (function () {
                 if (!ds || !(element instanceof HTMLElement)) {
                     continue;
                 }
-                var codes = void 0;
-                if (piece.moves().length > 0) {
+                var square = this.board.square(ds.value);
+                if (square.piece) {
+                    if (square.piece.player.name.toLowerCase() === this.username) {
+                        continue;
+                    }
+                }
+                var moveCodes = void 0;
+                if (piece.moves().length !== 0) {
                     var moves = element.attributes["moves"];
                     if (!moves) {
                         continue;
                     }
-                    codes = moves.value.split(",");
+                    moveCodes = moves.value.split(",");
                 }
                 else {
-                    var attacks = element.attributes["attacks"];
-                    if (!attacks) {
+                    var attacks_1 = element.attributes["attacks"];
+                    if (!attacks_1) {
                         continue;
                     }
-                    codes = attacks.value.split(",");
+                    moveCodes = attacks_1.value.split(",");
                 }
-                if (codes.length === 0) {
+                if (moveCodes.length === 0) {
                     continue;
                 }
-                var index = codes.indexOf(dso.value);
-                if (index === -1) {
+                if (moveCodes.indexOf(dso.value) === -1) {
                     continue;
                 }
-                codes.splice(index, 1);
-                var friendly = this.isFriendlySquare(boardElement, piece, codes);
+                var attackCodes = [];
+                var attacks = element.attributes["attacks"];
+                if (attacks) {
+                    attackCodes = attacks.value.split(",");
+                }
+                var index = attackCodes.indexOf(dso.value);
+                if (index !== -1) {
+                    attackCodes.splice(index, 1);
+                }
+                var friendly = this.isFriendlySquare(boardElement, piece, attackCodes);
                 var colour = this.getColour(element, friendly);
                 element.style.backgroundColor = colour;
                 this.addCodeToModifiedSquares(ds.value);
