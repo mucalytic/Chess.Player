@@ -423,7 +423,8 @@ var AnalysisHelper = (function () {
             var squareElement = this.getThisSquareElement(target);
             var boardElement = this.getBoardElement();
             if (boardElement && squareElement) {
-                this.cleanModifiedSquares(boardElement);
+                this.cleanColouredSquares(boardElement);
+                this.clearCandidatesFromSquares(boardElement);
                 this.createBoard(boardElement);
                 this.analyseSquares(boardElement);
                 this.colouriseSquares(boardElement, squareElement);
@@ -459,7 +460,7 @@ var AnalysisHelper = (function () {
         }
         return boardElement;
     };
-    AnalysisHelper.prototype.cleanModifiedSquares = function (boardElement) {
+    AnalysisHelper.prototype.cleanColouredSquares = function (boardElement) {
         var element = document.getElementById("four-player-username");
         var mods = element.attributes["modifications"];
         if (mods) {
@@ -482,6 +483,22 @@ var AnalysisHelper = (function () {
                 }
             }
             element.removeAttribute("modifications");
+        }
+    };
+    AnalysisHelper.prototype.clearCandidatesFromSquares = function (boardElement) {
+        var row = boardElement.children;
+        if (row.length >= 14) {
+            for (var m = 0; m < 14; m++) {
+                for (var n = 0; n < 14; n++) {
+                    var element = row[m].children[n];
+                    if (element.attributes["friends"]) {
+                        element.removeAttribute("friends");
+                    }
+                    if (element.attributes["enemies"]) {
+                        element.removeAttribute("enemies");
+                    }
+                }
+            }
         }
     };
     AnalysisHelper.prototype.createBoard = function (boardElement) {
@@ -568,6 +585,7 @@ var AnalysisHelper = (function () {
         }
     };
     AnalysisHelper.prototype.setCandidate = function (boardElement, pieceSquare, targetSquare) {
+        console.log(pieceSquare.code() + "->" + targetSquare.code());
         var element = this.getSquareElement(boardElement, targetSquare);
         if (element) {
             if (this.username === pieceSquare.piece.player.name.toLowerCase()) {

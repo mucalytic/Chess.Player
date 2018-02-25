@@ -430,7 +430,8 @@ class AnalysisHelper {
             const squareElement = this.getThisSquareElement(target);
             const boardElement = this.getBoardElement();
             if (boardElement && squareElement) {
-                this.cleanModifiedSquares(boardElement);
+                this.cleanColouredSquares(boardElement);
+                this.clearCandidatesFromSquares(boardElement);
                 this.createBoard(boardElement);
                 this.analyseSquares(boardElement);
                 this.colouriseSquares(boardElement, squareElement);
@@ -469,7 +470,7 @@ class AnalysisHelper {
         return boardElement;
     }
 
-    cleanModifiedSquares(boardElement: HTMLElement): void {
+    cleanColouredSquares(boardElement: HTMLElement): void {
         const element = document.getElementById("four-player-username");
         const mods = element.attributes["modifications"];
         if (mods) {
@@ -493,6 +494,23 @@ class AnalysisHelper {
                 }
             }
             element.removeAttribute("modifications");
+        }
+    }
+
+    clearCandidatesFromSquares(boardElement: HTMLElement): void {
+        const row = boardElement.children;
+        if (row.length >= 14) {
+            for (let m = 0; m < 14; m++) {
+                for (let n = 0; n < 14; n++) {
+                    const element = row[m].children[n];
+                    if (element.attributes["friends"]) {
+                        element.removeAttribute("friends");
+                    }
+                    if (element.attributes["enemies"]) {
+                        element.removeAttribute("enemies");
+                    }
+                }
+            }
         }
     }
 
@@ -596,6 +614,7 @@ class AnalysisHelper {
     }
 
     setCandidate(boardElement: HTMLElement, pieceSquare: Square, targetSquare: Square): void {
+        console.log(`${pieceSquare.code()}->${targetSquare.code()}`);
         const element = this.getSquareElement(boardElement, targetSquare);
         if (element) {
             if (this.username === pieceSquare.piece.player.name.toLowerCase()) {
