@@ -516,8 +516,8 @@ class AnalysisHelper {
         if (originSquare.piece.player.name !== this.username) {
             return;
         }
-        this.analyseSquares(boardElement, originSquareElement);
-        this.colouriseSquares(boardElement, targetSquareElement);
+        this.analyseSquares(boardElement);
+        this.colouriseSquares(boardElement, originSquareElement, targetSquareElement);
     }
 
     getThisSquareElement(target: EventTarget): HTMLElement {
@@ -590,11 +590,8 @@ class AnalysisHelper {
         for (let m = 0; m < 14; m++) {
             for (let n = 0; n < 14; n++) {
                 const element = row[m].children[n];
-                if (element.attributes["friends"]) {
-                    element.removeAttribute("friends");
-                }
-                if (element.attributes["enemies"]) {
-                    element.removeAttribute("enemies");
+                if (element.attributes["attacks"]) {
+                    element.removeAttribute("attacks");
                 }
                 if (element.attributes["moves"]) {
                     element.removeAttribute("moves");
@@ -636,7 +633,7 @@ class AnalysisHelper {
     // a piece on it, find out all the possible squares
     // it can occupy and add the piece as a candidate
     // (friend or enemy) to the current player
-    analyseSquares(boardElement: HTMLElement, originSquareElement: HTMLElement): void {
+    analyseSquares(boardElement: HTMLElement): void {
         const row = boardElement.children;
         if (row.length < 14) {
             return;
@@ -761,20 +758,11 @@ class AnalysisHelper {
         if (!element) {
             return;
         }
-        if (this.username === pieceSquare.piece.player.name.toLowerCase()) {
-            let friends: Attr = element.attributes["friends"];
-            if (friends) {
-                friends.value = `${friends.value},${pieceSquare.code()}`;
-            } else {
-                element.setAttribute("friends", pieceSquare.code());
-            }
+        let attacks: Attr = element.attributes["attacks"];
+        if (attacks) {
+            attacks.value = `${attacks.value},${pieceSquare.code()}`;
         } else {
-            let enemies: Attr = element.attributes["enemies"];
-            if (enemies) {
-                enemies.value = `${enemies.value},${pieceSquare.code()}`;
-            } else {
-                element.setAttribute("enemies", pieceSquare.code());
-            }
+            element.setAttribute("attacks", pieceSquare.code());
         }
     }
 
@@ -814,26 +802,162 @@ class AnalysisHelper {
         return squareElement;
     }
 
-    colouriseSquares(boardElement: HTMLElement, targetSquareElement: HTMLElement): void {
-        let enemies: Attr = targetSquareElement.attributes["enemies"];
-        if (!enemies) {
-            return;
+    isTargetSquareValid(boardElement: HTMLElement,
+                        originSquareElement: HTMLElement,
+                        targetSquareElement: HTMLElement): boolean {
+        const row = boardElement.children;
+        if (row.length < 14) {
+            return false;
         }
+        const dso = originSquareElement.attributes["data-square"];
+        if (!dso) {
+            return false;
+        }
+        const originSquare = this.board.square(dso.value);
+        const piece = originSquare.piece;
+        if (!piece) {
+            return false;
+        }
+        for (let m = 0; m < 14; m++) {
+            for (let n = 0; n < 14; n++) {
+                const element = row[m].children[n];
+                const ds: Attr = element.attributes["data-square"];
+                if (!ds || !(element instanceof HTMLElement)) {
+                    continue;
+                }
+                if (piece.moves().length > 0) {
+                    const moves = element.attributes["moves"];
+                    if (!moves) {
+                        continue;
+                    }
+                    let codes: string[] = moves.value.split(",");
+                    if (codes.length === 0) {
+                        continue;
+                    }
+                    if (codes.indexOf(ds.value) !== -1) {
+                        return true;
+                    }
+                } else {
+                    const attacks = element.attributes["attacks"];
+                    if (!attacks) {
+                        continue;
+                    }
+                    let codes: string[] = attacks.value.split(",");
+                    if (codes.length === 0) {
+                        continue;
+                    }
+                    if (codes.indexOf(ds.value) !== -1) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    colouriseSquares(boardElement: HTMLElement,
+                     originSquareElement: HTMLElement,
+                     targetSquareElement: HTMLElement): void {
         const row = boardElement.children;
         if (row.length < 14) {
             return;
         }
-        const codes = enemies.value.split(",");
+        if (!this.isTargetSquareValid(boardElement,
+            originSquareElement, targetSquareElement)) {
+            return;
+        }
+        this.colouriseMovementSquares(row, boardElement,
+             originSquareElement, targetSquareElement);
+        this.colouriseEnemySquares(row, targetSquareElement);
+    }
+    
+    colouriseMovementSquares(row: HTMLCollection,
+                             boardElement: HTMLElement,
+                             originSquareElement: HTMLElement,
+                             targetSquareElement: HTMLElement): void {
+        const dso: Attr = originSquareElement.attributes["data-square"];
+        if (!dso) {
+            return;
+        }
+        const originSquare = this.board.square(dso.value);
+        const piece = originSquare.piece;
+        if (!piece) {
+            return;
+        }
+        for (let m = 0; m < 14; m++) {
+            for (let n = 0; n < 14; n++) {
+                const element = row[m].children[n];
+                const ds: Attr = element.attributes["data-square"];
+                if (!ds || !(element instanceof HTMLElement)) {
+                    continue;
+                }
+                let codes: string[];
+                if (piece.moves().length > 0) {
+                    const moves = element.attributes["moves"];
+                    if (!moves) {
+                        continue;
+                    }
+                    codes = moves.value.split(",");
+                } else {
+                    const attacks = element.attributes["attacks"];
+                    if (!attacks) {
+                        continue;
+                    }
+                    codes = attacks.value.split(",");
+                }
+                if (codes.length === 0) {
+                    continue;
+                }
+                const index = codes.indexOf(ds.value);
+                if (index === -1) {
+                    continue;
+                }
+                codes.splice(index, 1);
+                const friendly = this.isFriendlySquare(boardElement, piece, codes);
+                const colour = this.getColour(targetSquareElement, friendly);
+                targetSquareElement.style.backgroundColor = colour;
+                this.addCodeToModifiedSquares(ds.value);
+            }
+        }
+    }
+    
+    colouriseEnemySquares(row: HTMLCollection,
+                          targetSquareElement: HTMLElement): void {
+        let attacks: Attr = targetSquareElement.attributes["attacks"];
+        if (!attacks) {
+            return;
+        }
+        const codes = attacks.value.split(",");
+        if (codes.length == 0) {
+            return;
+        }
+        const dst: Attr = targetSquareElement.attributes["data-square"];
+        if (!dst) {
+            return;
+        }
+        const index = codes.indexOf(dst.value);
+        if (index === -1) {
+            return;
+        }
+        codes.splice(index, 1);
         for (let i = 0; i < codes.length; i++) {
             searchLoop:
             for (let m = 0; m < 14; m++) {
                 for (let n = 0; n < 14; n++) {
                     const element = row[m].children[n];
-                    const ds = element.attributes["data-square"];
+                    const ds: Attr = element.attributes["data-square"];
                     if (!ds || !(element instanceof HTMLElement)) {
                         continue;
                     }
                     if (ds.value !== codes[i]) {
+                        continue;
+                    }
+                    const square = this.board.square(ds.value);
+                    const piece = square.piece;
+                    if (!piece) {
+                        continue;
+                    }
+                    if (piece.player.name === this.username) {
                         continue;
                     }
                     const colour = this.getColour(element, false);
@@ -844,7 +968,44 @@ class AnalysisHelper {
             }
         }
     }
-
+    
+    isFriendlySquare(boardElement: HTMLElement, piece: Piece, codes: string[]): boolean {
+        const row = boardElement.children;
+        if (row.length < 14) {
+            return false;
+        }
+        let friends = 0;
+        let enemies = 0;
+        for (let i = 0; i < codes.length; i++) {
+            for (let m = 0; m < 14; m++) {
+                for (let n = 0; n < 14; n++) {
+                    const element = row[m].children[n];
+                    const ds: Attr = element.attributes["data-square"];
+                    if (!ds || !(element instanceof HTMLElement)) {
+                        continue;
+                    }
+                    if (ds.value !== codes[i]) {
+                        continue;
+                    }
+                    const square = this.board.square(ds.value);
+                    const piece = square.piece;
+                    if (!piece) {
+                        continue;
+                    }
+                    if (piece.player.name === this.username) {
+                        friends++;
+                    } else {
+                        enemies++;
+                    }
+                }
+            }
+        }
+        if (friends === 0 && enemies === 0) {
+            return true;
+        }
+        return friends > enemies;
+    }
+    
     getColour(element: HTMLElement, friendly: boolean): string {
         let rgb: { r: number, g: number, b: number};
         var bgc = window
@@ -867,20 +1028,6 @@ class AnalysisHelper {
             return `rgb(${rgb.r}, 255, ${rgb.b})`;
         } else {
             return `rgb(255, ${rgb.g}, ${rgb.b})`;
-        }
-    }
-
-    friendly(element: HTMLElement): boolean {
-        let friends: Attr = element.attributes["friends"];
-        let enemies: Attr = element.attributes["enemies"];
-        if (!friends && !enemies) {
-            return true;
-        } else if (friends && !enemies) {
-            return true;
-        } else if (enemies && !friends) {
-            return false;
-        } else {
-            return friends.value.split(",").length > enemies.value.split(",").length;
         }
     }
 
