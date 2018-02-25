@@ -933,10 +933,9 @@ class AnalysisHelper {
             return;
         }
         const index = codes.indexOf(dst.value);
-        if (index === -1) {
-            return;
+        if (index !== -1) {
+            codes.splice(index, 1);
         }
-        codes.splice(index, 1);
         for (let i = 0; i < codes.length; i++) {
             searchLoop:
             for (let m = 0; m < 14; m++) {

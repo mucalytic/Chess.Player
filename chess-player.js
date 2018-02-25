@@ -888,10 +888,9 @@ var AnalysisHelper = (function () {
             return;
         }
         var index = codes.indexOf(dst.value);
-        if (index === -1) {
-            return;
+        if (index !== -1) {
+            codes.splice(index, 1);
         }
-        codes.splice(index, 1);
         for (var i = 0; i < codes.length; i++) {
             searchLoop: for (var m = 0; m < 14; m++) {
                 for (var n = 0; n < 14; n++) {
