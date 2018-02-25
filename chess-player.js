@@ -448,15 +448,16 @@ var AnalysisHelper = (function () {
     AnalysisHelper.prototype.setOriginSquare = function (target) {
         var originSquareElement = this.getThisSquareElement(event.target);
         var ds = originSquareElement.attributes["data-square"];
-        if (ds) {
-            var element = document.getElementById("four-player-username");
-            var origin = element.attributes["origin"];
-            if (origin) {
-                origin.value = ds.value;
-            }
-            else {
-                element.setAttribute("origin", ds.value);
-            }
+        if (!ds) {
+            return;
+        }
+        var element = document.getElementById("four-player-username");
+        var origin = element.attributes["origin"];
+        if (origin) {
+            origin.value = ds.value;
+        }
+        else {
+            element.setAttribute("origin", ds.value);
         }
     };
     AnalysisHelper.prototype.getOriginSquareElement = function (boardElement) {
@@ -477,20 +478,26 @@ var AnalysisHelper = (function () {
         this.cleanColouredSquares(boardElement);
     };
     AnalysisHelper.prototype.showEnemies = function (target) {
-        if (this.username) {
-            var boardElement = this.getBoardElement();
-            var originSquareElement = this.getOriginSquareElement(boardElement);
-            if (originSquareElement) {
-                var targetSquareElement = this.getThisSquareElement(target);
-                if (boardElement && targetSquareElement) {
-                    this.clearCandidatesFromSquares(boardElement);
-                    this.cleanColouredSquares(boardElement);
-                    this.createBoard(boardElement);
-                    this.analyseSquares(boardElement, originSquareElement);
-                    this.colouriseSquares(boardElement, targetSquareElement);
-                }
-            }
+        if (!this.username) {
+            return;
         }
+        var boardElement = this.getBoardElement();
+        if (!boardElement) {
+            return;
+        }
+        var originSquareElement = this.getOriginSquareElement(boardElement);
+        if (!originSquareElement) {
+            return;
+        }
+        var targetSquareElement = this.getThisSquareElement(target);
+        if (!targetSquareElement) {
+            return;
+        }
+        this.clearCandidatesFromSquares(boardElement);
+        this.cleanColouredSquares(boardElement);
+        this.createBoard(boardElement);
+        this.analyseSquares(boardElement, originSquareElement);
+        this.colouriseSquares(boardElement, targetSquareElement);
     };
     AnalysisHelper.prototype.getThisSquareElement = function (target) {
         var squareElement;
@@ -524,92 +531,107 @@ var AnalysisHelper = (function () {
     AnalysisHelper.prototype.cleanColouredSquares = function (boardElement) {
         var element = document.getElementById("four-player-username");
         var mods = element.attributes["modifications"];
-        if (mods) {
-            var row = boardElement.children;
-            if (row.length >= 14) {
-                var codes = mods.value.split(",");
-                for (var i = 0; i < codes.length; i++) {
-                    searchLoop: for (var m = 0; m < 14; m++) {
-                        for (var n = 0; n < 14; n++) {
-                            var element_1 = row[m].children[n];
-                            var ds = element_1.attributes["data-square"];
-                            if (ds && element_1 instanceof HTMLElement) {
-                                if (ds.value === codes[i]) {
-                                    element_1.style.backgroundColor = null;
-                                    break searchLoop;
-                                }
-                            }
-                        }
+        if (!mods) {
+            return;
+        }
+        var row = boardElement.children;
+        if (row.length < 14) {
+            return;
+        }
+        var codes = mods.value.split(",");
+        for (var i = 0; i < codes.length; i++) {
+            searchLoop: for (var m = 0; m < 14; m++) {
+                for (var n = 0; n < 14; n++) {
+                    var element_1 = row[m].children[n];
+                    var ds = element_1.attributes["data-square"];
+                    if (!ds || !(element_1 instanceof HTMLElement)) {
+                        continue;
                     }
+                    if (ds.value !== codes[i]) {
+                        continue;
+                    }
+                    element_1.style.backgroundColor = null;
+                    break searchLoop;
                 }
             }
-            element.removeAttribute("modifications");
         }
+        element.removeAttribute("modifications");
     };
     AnalysisHelper.prototype.clearCandidatesFromSquares = function (boardElement) {
         var row = boardElement.children;
-        if (row.length >= 14) {
-            for (var m = 0; m < 14; m++) {
-                for (var n = 0; n < 14; n++) {
-                    var element = row[m].children[n];
-                    if (element.attributes["friends"]) {
-                        element.removeAttribute("friends");
-                    }
-                    if (element.attributes["enemies"]) {
-                        element.removeAttribute("enemies");
-                    }
-                    if (element.attributes["moves"]) {
-                        element.removeAttribute("moves");
-                    }
+        if (row.length < 14) {
+            return;
+        }
+        for (var m = 0; m < 14; m++) {
+            for (var n = 0; n < 14; n++) {
+                var element = row[m].children[n];
+                if (element.attributes["friends"]) {
+                    element.removeAttribute("friends");
+                }
+                if (element.attributes["enemies"]) {
+                    element.removeAttribute("enemies");
+                }
+                if (element.attributes["moves"]) {
+                    element.removeAttribute("moves");
                 }
             }
         }
     };
     AnalysisHelper.prototype.createBoard = function (boardElement) {
         var row = boardElement.children;
-        if (row.length >= 14) {
-            for (var m = 0; m < 14; m++) {
-                for (var n = 0; n < 14; n++) {
-                    var element = row[m].children[n];
-                    if (element instanceof HTMLElement) {
-                        var ds = element.attributes["data-square"];
-                        if (ds) {
-                            var square = this.board.square(ds.value);
-                            var child = this.pieceNode(element.children);
-                            if (child) {
-                                var dp = child.attributes["data-piece"];
-                                if (dp) {
-                                    square.piece = Piece.create(dp.value, ds.value);
-                                }
-                            }
-                        }
-                    }
+        if (row.length < 14) {
+            return;
+        }
+        for (var m = 0; m < 14; m++) {
+            for (var n = 0; n < 14; n++) {
+                var element = row[m].children[n];
+                if (!(element instanceof HTMLElement)) {
+                    continue;
                 }
+                var ds = element.attributes["data-square"];
+                if (!ds) {
+                    continue;
+                }
+                var square = this.board.square(ds.value);
+                var child = this.pieceNode(element.children);
+                if (!child) {
+                    continue;
+                }
+                var dp = child.attributes["data-piece"];
+                if (!dp) {
+                    continue;
+                }
+                square.piece = Piece.create(dp.value, ds.value);
             }
         }
     };
     AnalysisHelper.prototype.analyseSquares = function (boardElement, originSquareElement) {
         var row = boardElement.children;
-        if (row.length >= 14) {
-            for (var m = 0; m < 14; m++) {
-                for (var n = 0; n < 14; n++) {
-                    var element = row[m].children[n];
-                    if (element instanceof HTMLElement) {
-                        var ds = element.attributes["data-square"];
-                        if (ds) {
-                            var square = this.board.square(ds.value);
-                            var accessible = square.accessible();
-                            if (accessible) {
-                                var piece = square.piece;
-                                if (piece) {
-                                    if (!(piece.player instanceof Dead)) {
-                                        this.checkRadius(boardElement, square);
-                                    }
-                                }
-                            }
-                        }
-                    }
+        if (row.length < 14) {
+            return;
+        }
+        for (var m = 0; m < 14; m++) {
+            for (var n = 0; n < 14; n++) {
+                var element = row[m].children[n];
+                if (!(element instanceof HTMLElement)) {
+                    continue;
                 }
+                var ds = element.attributes["data-square"];
+                if (!ds) {
+                    continue;
+                }
+                var square = this.board.square(ds.value);
+                if (!square.accessible()) {
+                    continue;
+                }
+                var piece = square.piece;
+                if (!piece) {
+                    continue;
+                }
+                if (piece.player instanceof Dead) {
+                    continue;
+                }
+                this.checkRadius(boardElement, square);
             }
         }
     };
@@ -691,89 +713,99 @@ var AnalysisHelper = (function () {
     };
     AnalysisHelper.prototype.setAttackCandidate = function (boardElement, pieceSquare, targetSquare) {
         var element = this.getSquareElement(boardElement, targetSquare.code());
-        if (element) {
-            if (this.username === pieceSquare.piece.player.name.toLowerCase()) {
-                var friends = element.attributes["friends"];
-                if (friends) {
-                    friends.value = friends.value + "," + pieceSquare.code();
-                }
-                else {
-                    element.setAttribute("friends", pieceSquare.code());
-                }
+        if (!element) {
+            return;
+        }
+        if (this.username === pieceSquare.piece.player.name.toLowerCase()) {
+            var friends = element.attributes["friends"];
+            if (friends) {
+                friends.value = friends.value + "," + pieceSquare.code();
             }
             else {
-                var enemies = element.attributes["enemies"];
-                if (enemies) {
-                    enemies.value = enemies.value + "," + pieceSquare.code();
-                }
-                else {
-                    element.setAttribute("enemies", pieceSquare.code());
-                }
+                element.setAttribute("friends", pieceSquare.code());
+            }
+        }
+        else {
+            var enemies = element.attributes["enemies"];
+            if (enemies) {
+                enemies.value = enemies.value + "," + pieceSquare.code();
+            }
+            else {
+                element.setAttribute("enemies", pieceSquare.code());
             }
         }
     };
     AnalysisHelper.prototype.setMoveCandidate = function (boardElement, pieceSquare, targetSquare) {
         var element = this.getSquareElement(boardElement, targetSquare.code());
-        if (element) {
-            var moves = element.attributes["moves"];
-            if (moves) {
-                moves.value = moves.value + "," + pieceSquare.code();
-            }
-            else {
-                element.setAttribute("moves", pieceSquare.code());
-            }
+        if (!element) {
+            return;
+        }
+        var moves = element.attributes["moves"];
+        if (moves) {
+            moves.value = moves.value + "," + pieceSquare.code();
+        }
+        else {
+            element.setAttribute("moves", pieceSquare.code());
         }
     };
     AnalysisHelper.prototype.getSquareElement = function (boardElement, code) {
         var row = boardElement.children;
+        if (row.length < 14) {
+            return undefined;
+        }
         var squareElement;
-        if (row.length >= 14) {
-            rowLoop: for (var m = 0; m < 14; m++) {
-                for (var n = 0; n < 14; n++) {
-                    var element = row[m].children[n];
-                    if (element instanceof HTMLElement) {
-                        if (element.classList.contains("square-" + code)) {
-                            squareElement = element;
-                            break rowLoop;
-                        }
-                    }
+        rowLoop: for (var m = 0; m < 14; m++) {
+            for (var n = 0; n < 14; n++) {
+                var element = row[m].children[n];
+                if (!(element instanceof HTMLElement)) {
+                    continue;
                 }
+                if (!element.classList.contains("square-" + code)) {
+                    continue;
+                }
+                squareElement = element;
+                break rowLoop;
             }
         }
         return squareElement;
     };
     AnalysisHelper.prototype.colouriseSquares = function (boardElement, targetSquareElement) {
         var ds = targetSquareElement.attributes["data-square"];
-        if (ds) {
-            this.addCodeToModifiedSquares(ds.value);
-            if (this.friendly(targetSquareElement)) {
-                var colour = this.getColour(targetSquareElement, true);
-                targetSquareElement.style.backgroundColor = colour;
+        if (!ds) {
+            return;
+        }
+        this.addCodeToModifiedSquares(ds.value);
+        if (this.friendly(targetSquareElement)) {
+            var colour = this.getColour(targetSquareElement, true);
+            targetSquareElement.style.backgroundColor = colour;
+        }
+        else {
+            var enemies = targetSquareElement.attributes["enemies"];
+            if (!enemies) {
+                return;
             }
-            else {
-                var enemies = targetSquareElement.attributes["enemies"];
-                if (enemies) {
-                    var colour = this.getColour(targetSquareElement, false);
-                    targetSquareElement.style.backgroundColor = colour;
-                    var row = boardElement.children;
-                    if (row.length >= 14) {
-                        var codes = enemies.value.split(",");
-                        for (var i = 0; i < codes.length; i++) {
-                            searchLoop: for (var m = 0; m < 14; m++) {
-                                for (var n = 0; n < 14; n++) {
-                                    var element = row[m].children[n];
-                                    var ds_1 = element.attributes["data-square"];
-                                    if (ds_1 && element instanceof HTMLElement) {
-                                        if (ds_1.value === codes[i]) {
-                                            colour = this.getColour(element, false);
-                                            element.style.backgroundColor = colour;
-                                            this.addCodeToModifiedSquares(ds_1.value);
-                                            break searchLoop;
-                                        }
-                                    }
-                                }
-                            }
+            var colour = this.getColour(targetSquareElement, false);
+            targetSquareElement.style.backgroundColor = colour;
+            var row = boardElement.children;
+            if (row.length < 14) {
+                return;
+            }
+            var codes = enemies.value.split(",");
+            for (var i = 0; i < codes.length; i++) {
+                searchLoop: for (var m = 0; m < 14; m++) {
+                    for (var n = 0; n < 14; n++) {
+                        var element = row[m].children[n];
+                        var ds_1 = element.attributes["data-square"];
+                        if (!ds_1 || !(element instanceof HTMLElement)) {
+                            continue;
                         }
+                        if (ds_1.value !== codes[i]) {
+                            continue;
+                        }
+                        colour = this.getColour(element, false);
+                        element.style.backgroundColor = colour;
+                        this.addCodeToModifiedSquares(ds_1.value);
+                        break searchLoop;
                     }
                 }
             }
@@ -854,16 +886,19 @@ var AnalysisHelper = (function () {
         var elements = document.body.getElementsByClassName("player-avatar");
         for (var i = 0; i < elements.length; i++) {
             var element = elements[i];
-            if (element instanceof HTMLAnchorElement) {
-                if (element.href.indexOf(username) !== -1) {
-                    var parent_1 = element.parentElement;
-                    for (var j = 0; j < parent_1.classList.length; j++) {
-                        for (var k = 0; k < this.colours.length; k++) {
-                            if (this.colours[k] === parent_1.classList[j]) {
-                                return this.colours[k];
-                            }
-                        }
+            if (!(element instanceof HTMLAnchorElement)) {
+                continue;
+            }
+            if (element.href.indexOf(username) === -1) {
+                continue;
+            }
+            var parent_1 = element.parentElement;
+            for (var j = 0; j < parent_1.classList.length; j++) {
+                for (var k = 0; k < this.colours.length; k++) {
+                    if (this.colours[k] !== parent_1.classList[j]) {
+                        continue;
                     }
+                    return this.colours[k];
                 }
             }
         }
