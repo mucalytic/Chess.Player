@@ -451,6 +451,9 @@ var AnalysisHelper = (function () {
         if (!ds) {
             return;
         }
+        if (!this.getPieceElement(originSquareElement.children)) {
+            return;
+        }
         var element = document.getElementById("four-player-username");
         var origin = element.attributes["origin"];
         if (origin) {
@@ -477,7 +480,7 @@ var AnalysisHelper = (function () {
         this.clearCandidatesFromSquares(boardElement);
         this.cleanColouredSquares(boardElement);
     };
-    AnalysisHelper.prototype.showEnemies = function (target) {
+    AnalysisHelper.prototype.showMovesAndEnemies = function (target) {
         if (!this.username) {
             return;
         }
@@ -593,7 +596,7 @@ var AnalysisHelper = (function () {
                     continue;
                 }
                 var square = this.board.square(ds.value);
-                var child = this.pieceNode(element.children);
+                var child = this.getPieceElement(element.children);
                 if (!child) {
                     continue;
                 }
@@ -770,43 +773,30 @@ var AnalysisHelper = (function () {
         return squareElement;
     };
     AnalysisHelper.prototype.colouriseSquares = function (boardElement, targetSquareElement) {
-        var ds = targetSquareElement.attributes["data-square"];
-        if (!ds) {
+        var enemies = targetSquareElement.attributes["enemies"];
+        if (!enemies) {
             return;
         }
-        this.addCodeToModifiedSquares(ds.value);
-        if (this.friendly(targetSquareElement)) {
-            var colour = this.getColour(targetSquareElement, true);
-            targetSquareElement.style.backgroundColor = colour;
+        var row = boardElement.children;
+        if (row.length < 14) {
+            return;
         }
-        else {
-            var enemies = targetSquareElement.attributes["enemies"];
-            if (!enemies) {
-                return;
-            }
-            var colour = this.getColour(targetSquareElement, false);
-            targetSquareElement.style.backgroundColor = colour;
-            var row = boardElement.children;
-            if (row.length < 14) {
-                return;
-            }
-            var codes = enemies.value.split(",");
-            for (var i = 0; i < codes.length; i++) {
-                searchLoop: for (var m = 0; m < 14; m++) {
-                    for (var n = 0; n < 14; n++) {
-                        var element = row[m].children[n];
-                        var ds_1 = element.attributes["data-square"];
-                        if (!ds_1 || !(element instanceof HTMLElement)) {
-                            continue;
-                        }
-                        if (ds_1.value !== codes[i]) {
-                            continue;
-                        }
-                        colour = this.getColour(element, false);
-                        element.style.backgroundColor = colour;
-                        this.addCodeToModifiedSquares(ds_1.value);
-                        break searchLoop;
+        var codes = enemies.value.split(",");
+        for (var i = 0; i < codes.length; i++) {
+            searchLoop: for (var m = 0; m < 14; m++) {
+                for (var n = 0; n < 14; n++) {
+                    var element = row[m].children[n];
+                    var ds = element.attributes["data-square"];
+                    if (!ds || !(element instanceof HTMLElement)) {
+                        continue;
                     }
+                    if (ds.value !== codes[i]) {
+                        continue;
+                    }
+                    var colour = this.getColour(element, false);
+                    element.style.backgroundColor = colour;
+                    this.addCodeToModifiedSquares(ds.value);
+                    break searchLoop;
                 }
             }
         }
@@ -925,12 +915,12 @@ var AnalysisHelper = (function () {
         }
         return remaining;
     };
-    AnalysisHelper.prototype.pieceNode = function (nodes) {
-        for (var i = 0; i < nodes.length; i++) {
-            var node = nodes[i];
-            if (node instanceof HTMLElement &&
-                node.className.indexOf("piece-") === 0) {
-                return node;
+    AnalysisHelper.prototype.getPieceElement = function (elements) {
+        for (var i = 0; i < elements.length; i++) {
+            var element = elements[i];
+            if (element instanceof HTMLElement &&
+                element.className.indexOf("piece-") === 0) {
+                return element;
             }
         }
         return undefined;
@@ -1044,10 +1034,13 @@ var DomModifier = (function () {
         return this;
     };
     DomModifier.prototype.over = function (event) {
-        new AnalysisHelper().showEnemies(event.target);
+        var helper = new AnalysisHelper();
+        helper.showMovesAndEnemies(event.target);
     };
     DomModifier.prototype.down = function (event) {
-        new AnalysisHelper().setOriginSquare(event.target);
+        var helper = new AnalysisHelper();
+        helper.setOriginSquare(event.target);
+        helper.showMovesAndEnemies(event.target);
     };
     DomModifier.prototype.up = function (event) {
         new AnalysisHelper().resetOriginSquareAndCleanSquares();

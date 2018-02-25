@@ -458,6 +458,9 @@ class AnalysisHelper {
         if (!ds) {
             return;
         }
+        if (!this.getPieceElement(originSquareElement.children)) {
+            return;
+        }
         const element = document.getElementById("four-player-username");
         const origin = element.attributes["origin"];
         if (origin) {
@@ -486,7 +489,7 @@ class AnalysisHelper {
         this.cleanColouredSquares(boardElement);
     }
 
-    showEnemies(target: EventTarget): void {
+    showMovesAndEnemies(target: EventTarget): void {
         if (!this.username) {
             return;
         }
@@ -608,7 +611,7 @@ class AnalysisHelper {
                     continue;
                 }
                 const square = this.board.square(ds.value);
-                const child = this.pieceNode(element.children);
+                const child = this.getPieceElement(element.children);
                 if (!child) {
                     continue;
                 }
@@ -804,43 +807,31 @@ class AnalysisHelper {
     }
 
     colouriseSquares(boardElement: HTMLElement, targetSquareElement: HTMLElement): void {
-        const ds = targetSquareElement.attributes["data-square"];
-        if (!ds) {
+        let enemies: Attr = targetSquareElement.attributes["enemies"];
+        if (!enemies) {
             return;
         }
-        this.addCodeToModifiedSquares(ds.value);
-        if (this.friendly(targetSquareElement)) {
-            const colour = this.getColour(targetSquareElement, true);
-            targetSquareElement.style.backgroundColor = colour;
-        } else {
-            let enemies: Attr = targetSquareElement.attributes["enemies"];
-            if (!enemies) {
-                return;
-            }
-            let colour = this.getColour(targetSquareElement, false);
-            targetSquareElement.style.backgroundColor = colour;
-            const row = boardElement.children;
-            if (row.length < 14) {
-                return;
-            }
-            const codes = enemies.value.split(",");
-            for (let i = 0; i < codes.length; i++) {
-                searchLoop:
-                for (let m = 0; m < 14; m++) {
-                    for (let n = 0; n < 14; n++) {
-                        const element = row[m].children[n];
-                        const ds = element.attributes["data-square"];
-                        if (!ds || !(element instanceof HTMLElement)) {
-                            continue;
-                        }
-                        if (ds.value !== codes[i]) {
-                            continue;
-                        }
-                        colour = this.getColour(element, false);
-                        element.style.backgroundColor = colour;
-                        this.addCodeToModifiedSquares(ds.value);
-                        break searchLoop;
+        const row = boardElement.children;
+        if (row.length < 14) {
+            return;
+        }
+        const codes = enemies.value.split(",");
+        for (let i = 0; i < codes.length; i++) {
+            searchLoop:
+            for (let m = 0; m < 14; m++) {
+                for (let n = 0; n < 14; n++) {
+                    const element = row[m].children[n];
+                    const ds = element.attributes["data-square"];
+                    if (!ds || !(element instanceof HTMLElement)) {
+                        continue;
                     }
+                    if (ds.value !== codes[i]) {
+                        continue;
+                    }
+                    const colour = this.getColour(element, false);
+                    element.style.backgroundColor = colour;
+                    this.addCodeToModifiedSquares(ds.value);
+                    break searchLoop;
                 }
             }
         }
@@ -964,12 +955,12 @@ class AnalysisHelper {
         return remaining;
     }
 
-    pieceNode(nodes: HTMLCollection): Node {
-        for (let i = 0; i < nodes.length; i++) {
-            const node = nodes[i];
-            if (node instanceof HTMLElement &&
-                node.className.indexOf("piece-") === 0) {
-                return node;
+    getPieceElement(elements: HTMLCollection): HTMLElement {
+        for (let i = 0; i < elements.length; i++) {
+            const element = elements[i];
+            if (element instanceof HTMLElement &&
+                element.className.indexOf("piece-") === 0) {
+                return element;
             }
         }
         return undefined;
@@ -1085,11 +1076,14 @@ class DomModifier {
     }
 
     over(event: Event): void {
-        new AnalysisHelper().showEnemies(event.target);
+        const helper = new AnalysisHelper();
+        helper.showMovesAndEnemies(event.target);
     }
 
     down(event: Event) {
-        new AnalysisHelper().setOriginSquare(event.target);
+        const helper = new AnalysisHelper();
+        helper.setOriginSquare(event.target);
+        helper.showMovesAndEnemies(event.target);
     }
 
     up(event: Event) {
