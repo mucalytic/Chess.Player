@@ -458,9 +458,6 @@ class AnalysisHelper {
         if (!ds) {
             return;
         }
-        if (!this.getPieceElement(originSquareElement.children)) {
-            return;
-        }
         const element = document.getElementById("four-player-username");
         const origin = element.attributes["origin"];
         if (origin) {
@@ -508,6 +505,17 @@ class AnalysisHelper {
         this.clearCandidatesFromSquares(boardElement);
         this.cleanColouredSquares(boardElement);
         this.createBoard(boardElement);
+        const ds = originSquareElement.attributes["data-square"];
+        if (!ds) {
+            return;
+        }
+        const originSquare = this.board.square(ds.value);
+        if (!originSquare.piece) {
+            return;
+        }
+        if (originSquare.piece.player.name !== this.username) {
+            return;
+        }
         this.analyseSquares(boardElement, originSquareElement);
         this.colouriseSquares(boardElement, targetSquareElement);
     }

@@ -451,9 +451,6 @@ var AnalysisHelper = (function () {
         if (!ds) {
             return;
         }
-        if (!this.getPieceElement(originSquareElement.children)) {
-            return;
-        }
         var element = document.getElementById("four-player-username");
         var origin = element.attributes["origin"];
         if (origin) {
@@ -499,6 +496,17 @@ var AnalysisHelper = (function () {
         this.clearCandidatesFromSquares(boardElement);
         this.cleanColouredSquares(boardElement);
         this.createBoard(boardElement);
+        var ds = originSquareElement.attributes["data-square"];
+        if (!ds) {
+            return;
+        }
+        var originSquare = this.board.square(ds.value);
+        if (!originSquare.piece) {
+            return;
+        }
+        if (originSquare.piece.player.name !== this.username) {
+            return;
+        }
         this.analyseSquares(boardElement, originSquareElement);
         this.colouriseSquares(boardElement, targetSquareElement);
     };
