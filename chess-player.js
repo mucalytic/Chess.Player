@@ -485,8 +485,8 @@ var AnalysisHelper = (function () {
                 if (boardElement && targetSquareElement) {
                     this.clearCandidatesFromSquares(boardElement);
                     this.cleanColouredSquares(boardElement);
-                    this.createBoard(boardElement, originSquareElement);
-                    this.analyseSquares(boardElement);
+                    this.createBoard(boardElement);
+                    this.analyseSquares(boardElement, originSquareElement);
                     this.colouriseSquares(boardElement, targetSquareElement);
                 }
             }
@@ -558,30 +558,28 @@ var AnalysisHelper = (function () {
                     if (element.attributes["enemies"]) {
                         element.removeAttribute("enemies");
                     }
+                    if (element.attributes["moves"]) {
+                        element.removeAttribute("moves");
+                    }
                 }
             }
         }
     };
-    AnalysisHelper.prototype.createBoard = function (boardElement, originSquareElement) {
+    AnalysisHelper.prototype.createBoard = function (boardElement) {
         var row = boardElement.children;
         if (row.length >= 14) {
-            var dso = originSquareElement.attributes["data-square"];
-            if (dso) {
-                for (var m = 0; m < 14; m++) {
-                    for (var n = 0; n < 14; n++) {
-                        var element = row[m].children[n];
-                        if (element instanceof HTMLElement) {
-                            var ds = element.attributes["data-square"];
-                            if (ds) {
-                                if (ds.value !== dso.value) {
-                                    var square = this.board.square(ds.value);
-                                    var child = this.pieceNode(element.children);
-                                    if (child) {
-                                        var dp = child.attributes["data-piece"];
-                                        if (dp) {
-                                            square.piece = Piece.create(dp.value, ds.value);
-                                        }
-                                    }
+            for (var m = 0; m < 14; m++) {
+                for (var n = 0; n < 14; n++) {
+                    var element = row[m].children[n];
+                    if (element instanceof HTMLElement) {
+                        var ds = element.attributes["data-square"];
+                        if (ds) {
+                            var square = this.board.square(ds.value);
+                            var child = this.pieceNode(element.children);
+                            if (child) {
+                                var dp = child.attributes["data-piece"];
+                                if (dp) {
+                                    square.piece = Piece.create(dp.value, ds.value);
                                 }
                             }
                         }
@@ -590,7 +588,7 @@ var AnalysisHelper = (function () {
             }
         }
     };
-    AnalysisHelper.prototype.analyseSquares = function (boardElement) {
+    AnalysisHelper.prototype.analyseSquares = function (boardElement, originSquareElement) {
         var row = boardElement.children;
         if (row.length >= 14) {
             for (var m = 0; m < 14; m++) {
@@ -605,7 +603,7 @@ var AnalysisHelper = (function () {
                                 var piece = square.piece;
                                 if (piece) {
                                     if (!(piece.player instanceof Dead)) {
-                                        this.checkAttackRadius(boardElement, square);
+                                        this.checkRadius(boardElement, square);
                                     }
                                 }
                             }
@@ -614,6 +612,10 @@ var AnalysisHelper = (function () {
                 }
             }
         }
+    };
+    AnalysisHelper.prototype.checkRadius = function (boardElement, pieceSquare) {
+        this.checkAttackRadius(boardElement, pieceSquare);
+        this.checkMoveRadius(boardElement, pieceSquare);
     };
     AnalysisHelper.prototype.checkAttackRadius = function (boardElement, pieceSquare) {
         var piece = pieceSquare.piece;
@@ -627,6 +629,21 @@ var AnalysisHelper = (function () {
             }
             for (var j = 0; j < vectors.length; j++) {
                 this.checkAttackVector(boardElement, pieceSquare, vectors[j], radius.value);
+            }
+        }
+    };
+    AnalysisHelper.prototype.checkMoveRadius = function (boardElement, pieceSquare) {
+        var piece = pieceSquare.piece;
+        var vectors = piece.moves();
+        for (;;) {
+            var radius = piece.radius.next();
+            var remaining = this.remaining(vectors);
+            if (radius.done || radius.value > 14 || remaining === 0) {
+                piece.radius.reset();
+                break;
+            }
+            for (var j = 0; j < vectors.length; j++) {
+                this.checkMoveVector(boardElement, pieceSquare, vectors[j], radius.value);
             }
         }
     };
@@ -644,13 +661,35 @@ var AnalysisHelper = (function () {
                 vector[1] = false;
                 return;
             }
-            this.setCandidate(boardElement, pieceSquare, targetSquare);
+            this.setAttackCandidate(boardElement, pieceSquare, targetSquare);
             if (targetSquare.piece) {
                 vector[1] = false;
             }
         }
     };
-    AnalysisHelper.prototype.setCandidate = function (boardElement, pieceSquare, targetSquare) {
+    AnalysisHelper.prototype.checkMoveVector = function (boardElement, pieceSquare, vector, radius) {
+        if (vector[1]) {
+            var x1 = vector[0].x1(radius);
+            var y1 = vector[0].y1(radius);
+            var _a = pieceSquare.piece.player.rotate(pieceSquare.n, pieceSquare.m, x1, y1), x2 = _a[0], y2 = _a[1];
+            if (!this.board.valid(x2, y2)) {
+                vector[1] = false;
+                return;
+            }
+            var targetSquare = this.board.squares[y2][x2];
+            if (!targetSquare.accessible()) {
+                vector[1] = false;
+                return;
+            }
+            if (!targetSquare.piece) {
+                this.setMoveCandidate(boardElement, pieceSquare, targetSquare);
+            }
+            else {
+                vector[1] = false;
+            }
+        }
+    };
+    AnalysisHelper.prototype.setAttackCandidate = function (boardElement, pieceSquare, targetSquare) {
         var element = this.getSquareElement(boardElement, targetSquare.code());
         if (element) {
             if (this.username === pieceSquare.piece.player.name.toLowerCase()) {
@@ -670,6 +709,18 @@ var AnalysisHelper = (function () {
                 else {
                     element.setAttribute("enemies", pieceSquare.code());
                 }
+            }
+        }
+    };
+    AnalysisHelper.prototype.setMoveCandidate = function (boardElement, pieceSquare, targetSquare) {
+        var element = this.getSquareElement(boardElement, targetSquare.code());
+        if (element) {
+            var moves = element.attributes["moves"];
+            if (moves) {
+                moves.value = moves.value + "," + pieceSquare.code();
+            }
+            else {
+                element.setAttribute("moves", pieceSquare.code());
             }
         }
     };

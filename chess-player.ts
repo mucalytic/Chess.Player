@@ -494,8 +494,8 @@ class AnalysisHelper {
                 if (boardElement && targetSquareElement) {
                     this.clearCandidatesFromSquares(boardElement);
                     this.cleanColouredSquares(boardElement);
-                    this.createBoard(boardElement, originSquareElement);
-                    this.analyseSquares(boardElement);
+                    this.createBoard(boardElement);
+                    this.analyseSquares(boardElement, originSquareElement);
                     this.colouriseSquares(boardElement, targetSquareElement);
                 }
             }
@@ -572,31 +572,29 @@ class AnalysisHelper {
                     if (element.attributes["enemies"]) {
                         element.removeAttribute("enemies");
                     }
+                    if (element.attributes["moves"]) {
+                        element.removeAttribute("moves");
+                    }
                 }
             }
         }
     }
 
-    createBoard(boardElement: HTMLElement, originSquareElement: HTMLElement): void {
+    createBoard(boardElement: HTMLElement): void {
         const row = boardElement.children;
         if (row.length >= 14) {
-            const dso = originSquareElement.attributes["data-square"];
-            if (dso) {
-                for (let m = 0; m < 14; m++) {
-                    for (let n = 0; n < 14; n++) {
-                        const element = row[m].children[n];
-                        if (element instanceof HTMLElement) {
-                            const ds = element.attributes["data-square"];
-                            if (ds) {
-                                if (ds.value !== dso.value) {
-                                    const square = this.board.square(ds.value);
-                                    const child = this.pieceNode(element.children);
-                                    if (child) {
-                                        const dp = child.attributes["data-piece"];
-                                        if (dp) {
-                                            square.piece = Piece.create(dp.value, ds.value);
-                                        }
-                                    }
+            for (let m = 0; m < 14; m++) {
+                for (let n = 0; n < 14; n++) {
+                    const element = row[m].children[n];
+                    if (element instanceof HTMLElement) {
+                        const ds = element.attributes["data-square"];
+                        if (ds) {
+                            const square = this.board.square(ds.value);
+                            const child = this.pieceNode(element.children);
+                            if (child) {
+                                const dp = child.attributes["data-piece"];
+                                if (dp) {
+                                    square.piece = Piece.create(dp.value, ds.value);
                                 }
                             }
                         }
@@ -610,7 +608,7 @@ class AnalysisHelper {
     // a piece on it, find out all the possible squares
     // it can occupy and add the piece as a candidate
     // (friend or enemy) to the current player
-    analyseSquares(boardElement: HTMLElement): void {
+    analyseSquares(boardElement: HTMLElement, originSquareElement: HTMLElement): void {
         const row = boardElement.children;
         if (row.length >= 14) {
             for (let m = 0; m < 14; m++) {
@@ -625,7 +623,7 @@ class AnalysisHelper {
                                 const piece = square.piece;
                                 if (piece) {
                                     if (!(piece.player instanceof Dead)) {
-                                        this.checkAttackRadius(boardElement, square);
+                                        this.checkRadius(boardElement, square);
                                     }
                                 }
                             }
@@ -640,9 +638,14 @@ class AnalysisHelper {
     // given radius from the piece's current location
     // pieceSquare: the square that the piece whose 
     // radius we are checking is currently located
+    checkRadius(boardElement: HTMLElement, pieceSquare: Square): void {
+        this.checkAttackRadius(boardElement, pieceSquare);
+        this.checkMoveRadius(boardElement, pieceSquare);
+    }
+
     checkAttackRadius(boardElement: HTMLElement, pieceSquare: Square): void {
         const piece = pieceSquare.piece;
-        const vectors = piece.attacks();
+        let vectors = piece.attacks();
         for (; ;) {
             let radius = piece.radius.next();
             const remaining = this.remaining(vectors);
@@ -652,6 +655,22 @@ class AnalysisHelper {
             }
             for (let j = 0; j < vectors.length; j++) {
                 this.checkAttackVector(boardElement, pieceSquare, vectors[j], radius.value);
+            }
+        }
+    }
+
+    checkMoveRadius(boardElement: HTMLElement, pieceSquare: Square): void {
+        const piece = pieceSquare.piece;
+        let vectors = piece.moves();
+        for (; ;) {
+            let radius = piece.radius.next();
+            const remaining = this.remaining(vectors);
+            if (radius.done || radius.value > 14 || remaining === 0) {
+                piece.radius.reset();
+                break;
+            }
+            for (let j = 0; j < vectors.length; j++) {
+                this.checkMoveVector(boardElement, pieceSquare, vectors[j], radius.value);
             }
         }
     }
@@ -674,14 +693,37 @@ class AnalysisHelper {
                 vector[1] = false;
                 return;
             }
-            this.setCandidate(boardElement, pieceSquare, targetSquare);
+            this.setAttackCandidate(boardElement, pieceSquare, targetSquare);
             if (targetSquare.piece) {
                 vector[1] = false;
             }
         }
     }
 
-    setCandidate(boardElement: HTMLElement, pieceSquare: Square, targetSquare: Square): void {
+    checkMoveVector(boardElement: HTMLElement, pieceSquare: Square,
+        vector: [Vector, boolean], radius: number): void {
+        if (vector[1]) {
+            const x1 = vector[0].x1(radius);
+            const y1 = vector[0].y1(radius);
+            const [x2, y2] = pieceSquare.piece.player.rotate(pieceSquare.n, pieceSquare.m, x1, y1);
+            if (!this.board.valid(x2, y2)) {
+                vector[1] = false;
+                return;
+            }
+            const targetSquare = this.board.squares[y2][x2];
+            if (!targetSquare.accessible()) {
+                vector[1] = false;
+                return;
+            }
+            if (!targetSquare.piece) {
+                this.setMoveCandidate(boardElement, pieceSquare, targetSquare);
+            } else {
+                vector[1] = false;
+            }
+        }
+    }
+
+    setAttackCandidate(boardElement: HTMLElement, pieceSquare: Square, targetSquare: Square): void {
         const element = this.getSquareElement(boardElement, targetSquare.code());
         if (element) {
             if (this.username === pieceSquare.piece.player.name.toLowerCase()) {
@@ -698,6 +740,18 @@ class AnalysisHelper {
                 } else {
                     element.setAttribute("enemies", pieceSquare.code());
                 }
+            }
+        }
+    }
+
+    setMoveCandidate(boardElement: HTMLElement, pieceSquare: Square, targetSquare: Square): void {
+        const element = this.getSquareElement(boardElement, targetSquare.code());
+        if (element) {
+            let moves: Attr = element.attributes["moves"];
+            if (moves) {
+                moves.value = `${moves.value},${pieceSquare.code()}`;
+            } else {
+                element.setAttribute("moves", pieceSquare.code());
             }
         }
     }
