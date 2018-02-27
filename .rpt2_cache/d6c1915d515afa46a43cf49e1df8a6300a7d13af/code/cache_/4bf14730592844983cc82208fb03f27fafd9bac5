@@ -1,0 +1,1 @@
+{"code":"import { DomModifier } from \"./src/helpers/dom-modifier\";\r\nvar modifier = new DomModifier();\r\n","map":{"mappings":""}}
