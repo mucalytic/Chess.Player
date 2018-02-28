@@ -1,21 +1,20 @@
-import {Knight} from "./piece/knight"
-import {Bishop} from "./piece/bishop"
-import {Queen} from "./piece/queen"
-import {King} from "./piece/king"
-import {Rook} from "./piece/rook"
-import {Pawn} from "./piece/pawn"
+import {Yellow} from "./player/yellow"
+import {Green} from "./player/green"
+import {Blue} from "./player/blue"
+import {Dead} from "./player/dead"
+import {Red} from "./player/red"
 import {Player} from "./player"
 import {Square} from "./square"
-import {Radius} from "./radius"
 import {Vector} from "./vector"
 
 export abstract class Piece {
     coords: [number, number];
+    counter: number;
     player: Player;
+    max: number;
     dp: string;
 
     abstract name: string;
-    abstract radius: Radius;
     abstract home: [number, number][];
     abstract moves(): [Vector, boolean][];
     abstract attacks(): [Vector, boolean][];
@@ -35,28 +34,42 @@ export abstract class Piece {
         return moved;
     }
 
-    static create(dp: string, code: string): Piece {
-        switch (dp.charAt(1)) {
-            case "R":
-                return new Rook(dp, code);
-            case "P":
-                return new Pawn(dp, code);
-            case "K":
-                return new King(dp, code);
-            case "Q":
-                return new Queen(dp, code);
-            case "B":
-                return new Bishop(dp, code);
-            case "N":
-                return new Knight(dp, code);
+    radius(): { value: number, done: boolean } {
+        while(!this.max || this.counter < this.max) {
+            this.counter++;
+            return {
+                value: this.counter,
+                done: false
+            };
+        }
+        this.counter = 0;
+        return {
+            value: undefined,
+            done: true
+        };
+    }
+
+    createPlayer(dp: string): Player {
+        switch (dp.charAt(0)) {
+            case "w":
+                return new Red();
+            case "g":
+                return new Blue();
+            case "b":
+                return new Yellow();
+            case "r":
+                return new Green();
+            case "d":
+                return new Dead();
             default:
                 return undefined;
         }
     }
 
-    protected constructor(dp: string, code: string) {
+    constructor(dp: string, code: string) {
+        this.player = this.createPlayer(dp);
         this.coords = Square.coords(code);
-        this.player = Player.create(dp);
+        this.counter = 0;
         this.dp = dp;
     }
 }

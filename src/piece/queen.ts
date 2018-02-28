@@ -1,12 +1,10 @@
 import {Yellow} from "../player/yellow"
 import {Red} from "../player/red"
 import {Vector} from "../vector"
-import {Radius} from "../radius"
 import {Piece} from "../piece"
 
 export class Queen extends Piece {
     name: string = "Queen";
-    radius = new Radius();
     home: [number, number][] =
         this.player instanceof Red ||
         this.player instanceof Yellow

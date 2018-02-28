@@ -1,3 +1,9 @@
+import {Knight} from "../piece/knight"
+import {Bishop} from "../piece/bishop"
+import {Queen} from "../piece/queen"
+import {King} from "../piece/king"
+import {Rook} from "../piece/rook"
+import {Pawn} from "../piece/pawn"
 import {Dead} from "../player/dead"
 import {Vector} from "../vector"
 import {Square} from "../square"
@@ -181,8 +187,27 @@ export class AnalysisHelper {
                 if (!dp) {
                     continue;
                 }
-                square.piece = Piece.create(dp.value, ds.value);
+                square.piece = this.createPiece(dp.value, ds.value);
             }
+        }
+    }
+
+    createPiece(dp: string, code: string): Piece {
+        switch (dp.charAt(1)) {
+            case "R":
+                return new Rook(dp, code);
+            case "P":
+                return new Pawn(dp, code);
+            case "K":
+                return new King(dp, code);
+            case "Q":
+                return new Queen(dp, code);
+            case "B":
+                return new Bishop(dp, code);
+            case "N":
+                return new Knight(dp, code);
+            default:
+                return undefined;
         }
     }
 
@@ -233,27 +258,23 @@ export class AnalysisHelper {
     checkAttackRadius(boardElement: HTMLElement, pieceSquare: Square): void {
         const piece = pieceSquare.piece;
         let vectors = piece.attacks();
-        for (let radius of piece.radius) {
-            const remaining = this.remaining(vectors);
-            if (radius > 14 || remaining === 0) {
-                break;
-            }
+        let radius = piece.radius();
+        while (!radius.done && radius.value <= 14 && this.remaining(vectors) > 0) {
+            radius = piece.radius();
             for (let j = 0; j < vectors.length; j++) {
-                this.checkAttackVector(boardElement, pieceSquare, vectors[j], radius);
+                this.checkAttackVector(boardElement, pieceSquare, vectors[j], radius.value);
             }
         }
     }
 
     checkMoveRadius(boardElement: HTMLElement, pieceSquare: Square): void {
         const piece = pieceSquare.piece;
-        let vectors = piece.moves();
-        for (let radius of piece.radius) {
-            const remaining = this.remaining(vectors);
-            if (radius > 14 || remaining === 0) {
-                break;
-            }
+        let vectors = piece.attacks();
+        let radius = piece.radius();
+        while (!radius.done && radius.value <= 14 && this.remaining(vectors) > 0) {
+            radius = piece.radius();
             for (let j = 0; j < vectors.length; j++) {
-                this.checkMoveVector(boardElement, pieceSquare, vectors[j], radius);
+                this.checkMoveVector(boardElement, pieceSquare, vectors[j], radius.value);
             }
         }
     }

@@ -1,10 +1,8 @@
 import {Vector} from "../vector"
-import {Radius} from "../radius"
 import {Piece} from "../piece"
 
 export class Rook extends Piece {
     name: string = "Rook";
-    radius = new Radius();
     home: [number, number][] =
         [[0, 3], [0, 10]];
 

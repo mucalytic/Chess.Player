@@ -16,7 +16,9 @@ export default {
       ]
    },
    plugins: [
-      typescript(),
+      typescript({
+          clean: true
+      }),
       babel({
         babelrc: false,
         presets: [
