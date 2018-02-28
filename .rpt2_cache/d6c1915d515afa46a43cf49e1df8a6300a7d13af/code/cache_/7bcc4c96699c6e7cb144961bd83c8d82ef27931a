@@ -1,1 +1,0 @@
-{"code":"var Vector = /** @class */ (function () {\r\n    function Vector(x1, y1) {\r\n        this.x1 = x1;\r\n        this.y1 = y1;\r\n    }\r\n    return Vector;\r\n}());\r\nexport { Vector };\r\n","map":{"mappings":""}}
