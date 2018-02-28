@@ -233,15 +233,13 @@ export class AnalysisHelper {
     checkAttackRadius(boardElement: HTMLElement, pieceSquare: Square): void {
         const piece = pieceSquare.piece;
         let vectors = piece.attacks();
-        for (; ;) {
-            let radius = piece.radius.next();
+        for (let radius of piece.radius) {
             const remaining = this.remaining(vectors);
-            if (radius.done || radius.value > 14 || remaining === 0) {
-                piece.radius.reset();
+            if (radius > 14 || remaining === 0) {
                 break;
             }
             for (let j = 0; j < vectors.length; j++) {
-                this.checkAttackVector(boardElement, pieceSquare, vectors[j], radius.value);
+                this.checkAttackVector(boardElement, pieceSquare, vectors[j], radius);
             }
         }
     }
@@ -249,15 +247,13 @@ export class AnalysisHelper {
     checkMoveRadius(boardElement: HTMLElement, pieceSquare: Square): void {
         const piece = pieceSquare.piece;
         let vectors = piece.moves();
-        for (; ;) {
-            let radius = piece.radius.next();
+        for (let radius of piece.radius) {
             const remaining = this.remaining(vectors);
-            if (radius.done || radius.value > 14 || remaining === 0) {
-                piece.radius.reset();
+            if (radius > 14 || remaining === 0) {
                 break;
             }
             for (let j = 0; j < vectors.length; j++) {
-                this.checkMoveVector(boardElement, pieceSquare, vectors[j], radius.value);
+                this.checkMoveVector(boardElement, pieceSquare, vectors[j], radius);
             }
         }
     }

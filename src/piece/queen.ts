@@ -1,3 +1,5 @@
+import {Yellow} from "../player/yellow"
+import {Red} from "../player/red"
 import {Vector} from "../vector"
 import {Radius} from "../radius"
 import {Piece} from "../piece"
