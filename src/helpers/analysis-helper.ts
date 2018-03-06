@@ -201,6 +201,7 @@ export class AnalysisHelper {
             case "K":
                 return new King(dp, code);
             case "Q":
+            case "D":
                 return new Queen(dp, code);
             case "B":
                 return new Bishop(dp, code);
