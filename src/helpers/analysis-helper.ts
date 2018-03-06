@@ -270,7 +270,7 @@ export class AnalysisHelper {
 
     checkMoveRadius(boardElement: HTMLElement, pieceSquare: Square): void {
         const piece = pieceSquare.piece;
-        let vectors = piece.attacks();
+        let vectors = piece.moves();
         let radius = piece.radius();
         while (!radius.done && radius.value <= 14 && this.remaining(vectors) > 0) {
             radius = piece.radius();
