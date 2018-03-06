@@ -261,10 +261,10 @@ export class AnalysisHelper {
         let vectors = piece.attacks();
         let radius = piece.radius();
         while (!radius.done && radius.value <= 14 && this.remaining(vectors) > 0) {
-            radius = piece.radius();
             for (let j = 0; j < vectors.length; j++) {
                 this.checkAttackVector(boardElement, pieceSquare, vectors[j], radius.value);
             }
+            radius = piece.radius();
         }
     }
 
@@ -273,10 +273,10 @@ export class AnalysisHelper {
         let vectors = piece.moves();
         let radius = piece.radius();
         while (!radius.done && radius.value <= 14 && this.remaining(vectors) > 0) {
-            radius = piece.radius();
             for (let j = 0; j < vectors.length; j++) {
                 this.checkMoveVector(boardElement, pieceSquare, vectors[j], radius.value);
             }
+            radius = piece.radius();
         }
     }
 
