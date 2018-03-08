@@ -84,12 +84,20 @@ export class AnalysisHelper {
         this.colouriseSquares(boardElement, originSquareElement, targetSquareElement);
     }
 
-    showHangingPieces(): void {
+    showHangingPieces(target: EventTarget): void {
         if (!this.username) {
             return;
         }
         const boardElement = this.getBoardElement();
         if (!boardElement) {
+            return;
+        }
+        const originSquareElement = this.getOriginSquareElement(boardElement);
+        if (originSquareElement) {
+            return;
+        }
+        const targetSquareElement = this.getThisSquareElement(target);
+        if (!targetSquareElement) {
             return;
         }
         this.clearCandidatesFromSquares(boardElement);
@@ -490,7 +498,7 @@ export class AnalysisHelper {
                 if (index !== -1) {
                     attackCodes.splice(index, 1);
                 }
-                const friendly = this.isFriendlySquare(boardElement, attackCodes);
+                const friendly = this.isFriendlySquare(attackCodes);
                 const colour = this.getColour(element, friendly);
                 element.style.backgroundColor = colour;
                 this.addCodeToModifiedSquares(ds.value);
@@ -564,12 +572,15 @@ export class AnalysisHelper {
                 if (!piece) {
                     continue;
                 }
+                if (piece.player instanceof Dead) {
+                    continue;
+                }
                 const attacks: Attr = element.attributes["attacks"];
                 if (!attacks) {
                     continue;
                 }
                 const attackCodes = attacks.value.split(",");
-                const hanging = this.doesSquareHaveHangingPiece(boardElement, piece.player, attackCodes);
+                const hanging = this.doesSquareHaveHangingPiece(piece.player, attackCodes);
                 if (hanging) {
                     const colour = this.getColour(element, !hanging);
                     element.style.backgroundColor = colour;
@@ -578,65 +589,33 @@ export class AnalysisHelper {
         }
     }
 
-    doesSquareHaveHangingPiece(boardElement: HTMLElement, player: Player, codes: string[]): boolean {
-        const row = boardElement.children;
-        if (row.length < 14) {
-            return false;
-        }
+    doesSquareHaveHangingPiece(player: Player, codes: string[]): boolean {
         for (let i = 0; i < codes.length; i++) {
-            for (let m = 0; m < 14; m++) {
-                for (let n = 0; n < 14; n++) {
-                    const element = row[m].children[n];
-                    const ds: Attr = element.attributes["data-square"];
-                    if (!ds || !(element instanceof HTMLElement)) {
-                        continue;
-                    }
-                    if (ds.value !== codes[i]) {
-                        continue;
-                    }
-                    const square = this.board.square(ds.value);
-                    const piece = square.piece;
-                    if (!piece) {
-                        continue;
-                    }
-                    if (piece.player.name === player.name) {
-                        return true;
-                    }
-                }
+            const square = this.board.square(codes[i]);
+            const piece = square.piece;
+            if (!piece) {
+                continue;
+            }
+            if (piece.player.name === player.name) {
+                return false;
             }
         }
-        return false;
+        return true;
     }
 
-    isFriendlySquare(boardElement: HTMLElement, codes: string[]): boolean {
-        const row = boardElement.children;
-        if (row.length < 14) {
-            return false;
-        }
+    isFriendlySquare(codes: string[]): boolean {
         let friends = 0;
         let enemies = 0;
         for (let i = 0; i < codes.length; i++) {
-            for (let m = 0; m < 14; m++) {
-                for (let n = 0; n < 14; n++) {
-                    const element = row[m].children[n];
-                    const ds: Attr = element.attributes["data-square"];
-                    if (!ds || !(element instanceof HTMLElement)) {
-                        continue;
-                    }
-                    if (ds.value !== codes[i]) {
-                        continue;
-                    }
-                    const square = this.board.square(ds.value);
-                    const piece = square.piece;
-                    if (!piece) {
-                        continue;
-                    }
-                    if (piece.player.name.toLowerCase() === this.username) {
-                        friends++;
-                    } else {
-                        enemies++;
-                    }
-                }
+            const square = this.board.square(codes[i]);
+            const piece = square.piece;
+            if (!piece) {
+                continue;
+            }
+            if (piece.player.name.toLowerCase() === this.username) {
+                friends++;
+            } else {
+                enemies++;
             }
         }
         if (friends === 0 && enemies === 0) {
