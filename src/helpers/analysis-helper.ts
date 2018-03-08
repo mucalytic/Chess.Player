@@ -18,6 +18,9 @@ export class AnalysisHelper {
 
     setOriginSquare(target: EventTarget): void {
         const originSquareElement = this.getThisSquareElement(event.target);
+        if (!originSquareElement) {
+            return;
+        }
         const ds = originSquareElement.attributes["data-square"];
         if (!ds) {
             return;
@@ -526,6 +529,7 @@ export class AnalysisHelper {
         }
         for (let i = 0; i < codes.length; i++) {
             const square = this.board.square(codes[i]);
+            console.log("codes[%i]:%s (13 - sq.m):%i n:%i", i, codes[i], 13 - square.m, square.n);
             const element = row[13 - square.m].children[square.n];
             if (!(element instanceof HTMLElement)) {
                 continue;
