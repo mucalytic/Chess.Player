@@ -14,10 +14,9 @@ export class DomWatcher {
     };
 
     createDocumentBodyObserverSubscription(): void {
-        (<any>document).records = [];
         this.observer = new MutationObserver(mrs => {
             mrs.forEach(mr => {
-                (<any>document).records.push(mr);
+                this.checkForBoardUpdate(mr);
                 this.countdown.reset(mr);
                 this.countdown.utter(mr);
             });
@@ -25,6 +24,7 @@ export class DomWatcher {
     }
 
     checkForBoardUpdate(mr: MutationRecord): void {
+        (<any>document).records.push(mr);
         if (mr.type === "childList" &&
             mr.target instanceof HTMLElement &&
             mr.target.className.indexOf("board-") === 0) {
@@ -33,6 +33,7 @@ export class DomWatcher {
     }
 
     constructor() {
+        (<any>document).records = [];
         this.createDocumentBodyObserverSubscription();
         this.observer.observe(document.body, this.init);
     }
