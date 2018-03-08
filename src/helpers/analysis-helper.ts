@@ -87,7 +87,7 @@ export class AnalysisHelper {
         this.colouriseSquares(boardElement, originSquareElement, targetSquareElement);
     }
 
-    showHangingPieces(target: EventTarget): void {
+    showHangingPieces(): void {
         if (!this.username) {
             return;
         }
@@ -97,10 +97,6 @@ export class AnalysisHelper {
         }
         const originSquareElement = this.getOriginSquareElement(boardElement);
         if (originSquareElement) {
-            return;
-        }
-        const targetSquareElement = this.getThisSquareElement(target);
-        if (!targetSquareElement) {
             return;
         }
         this.clearCandidatesFromSquares(boardElement);
