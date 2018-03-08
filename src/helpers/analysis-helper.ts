@@ -525,31 +525,21 @@ export class AnalysisHelper {
             codes.splice(index, 1);
         }
         for (let i = 0; i < codes.length; i++) {
-            searchLoop:
-            for (let m = 0; m < 14; m++) {
-                for (let n = 0; n < 14; n++) {
-                    const element = row[m].children[n];
-                    const ds: Attr = element.attributes["data-square"];
-                    if (!ds || !(element instanceof HTMLElement)) {
-                        continue;
-                    }
-                    if (ds.value !== codes[i]) {
-                        continue;
-                    }
-                    const square = this.board.square(ds.value);
-                    const piece = square.piece;
-                    if (!piece) {
-                        continue;
-                    }
-                    if (piece.player.name.toLowerCase() === this.username) {
-                        continue;
-                    }
-                    const colour = this.getColour(element, false);
-                    element.style.backgroundColor = colour;
-                    this.addCodeToModifiedSquares(ds.value);
-                    break searchLoop;
-                }
+            const square = this.board.square(codes[i]);
+            const element = row[13 - square.m].children[square.n];
+            if (!(element instanceof HTMLElement)) {
+                continue;
             }
+            const piece = square.piece;
+            if (!piece) {
+                continue;
+            }
+            if (piece.player.name.toLowerCase() === this.username) {
+                continue;
+            }
+            const colour = this.getColour(element, false);
+            element.style.backgroundColor = colour;
+            this.addCodeToModifiedSquares(codes[i]);
         }
     }
 
