@@ -14,12 +14,22 @@ export class DomWatcher {
     };
 
     createDocumentBodyObserverSubscription(): void {
+        (<any>document).records = [];
         this.observer = new MutationObserver(mrs => {
             mrs.forEach(mr => {
+                (<any>document).records.push(mr);
                 this.countdown.reset(mr);
                 this.countdown.utter(mr);
             });
         });
+    }
+
+    checkForBoardUpdate(mr: MutationRecord): void {
+        if (mr.type === "childList" &&
+            mr.target instanceof HTMLElement &&
+            mr.target.className.indexOf("board-") === 0) {
+            new AnalysisHelper().showHangingPieces();
+        }
     }
 
     constructor() {
