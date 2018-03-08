@@ -80,7 +80,9 @@ export class DomModifier {
     }
 
     up(event: Event) {
-        new AnalysisHelper().resetOriginSquareAndCleanSquares();
+        const helper = new AnalysisHelper();
+        helper.resetOriginSquareAndCleanSquares();
+        helper.showHangingPieces();
     }
 
     constructor() {

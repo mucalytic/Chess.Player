@@ -7,6 +7,7 @@ import {Pawn} from "../piece/pawn"
 import {Dead} from "../player/dead"
 import {Vector} from "../vector"
 import {Square} from "../square"
+import {Player} from "../player"
 import {Board} from "../board"
 import {Piece} from "../piece"
 
@@ -81,6 +82,21 @@ export class AnalysisHelper {
         }
         this.analyseSquares(boardElement);
         this.colouriseSquares(boardElement, originSquareElement, targetSquareElement);
+    }
+
+    showHangingPieces(): void {
+        if (!this.username) {
+            return;
+        }
+        const boardElement = this.getBoardElement();
+        if (!boardElement) {
+            return;
+        }
+        this.clearCandidatesFromSquares(boardElement);
+        this.cleanColouredSquares(boardElement);
+        this.createBoard(boardElement);
+        this.analyseSquares(boardElement);
+        this.colouriseSquaresWithHangingPieces(boardElement);
     }
 
     getThisSquareElement(target: EventTarget): HTMLElement {
@@ -212,10 +228,6 @@ export class AnalysisHelper {
         }
     }
 
-    // go to every square on the board and if there is
-    // a piece on it, find out all the possible squares
-    // it can occupy and add the piece as a candidate
-    // (friend or enemy) to the current player
     analyseSquares(boardElement: HTMLElement): void {
         const row = boardElement.children;
         if (row.length < 14) {
@@ -247,10 +259,6 @@ export class AnalysisHelper {
         }
     }
 
-    // check all the squares the piece can occupy for a
-    // given radius from the piece's current location
-    // pieceSquare: the square that the piece whose 
-    // radius we are checking is currently located
     checkRadius(boardElement: HTMLElement, pieceSquare: Square): void {
         this.checkAttackRadius(boardElement, pieceSquare);
         this.checkMoveRadius(boardElement, pieceSquare);
@@ -280,9 +288,6 @@ export class AnalysisHelper {
         }
     }
 
-    // get the square for the given radius relating the
-    // vector representing the piece's direction of travel
-    // and rotate it depending on the piece's player
     checkAttackVector(boardElement: HTMLElement, pieceSquare: Square,
         vector: [Vector, boolean], radius: number): void {
         if (vector[1]) {
@@ -485,7 +490,7 @@ export class AnalysisHelper {
                 if (index !== -1) {
                     attackCodes.splice(index, 1);
                 }
-                const friendly = this.isFriendlySquare(boardElement, piece, attackCodes);
+                const friendly = this.isFriendlySquare(boardElement, attackCodes);
                 const colour = this.getColour(element, friendly);
                 element.style.backgroundColor = colour;
                 this.addCodeToModifiedSquares(ds.value);
@@ -539,8 +544,71 @@ export class AnalysisHelper {
             }
         }
     }
-    
-    isFriendlySquare(boardElement: HTMLElement, piece: Piece, codes: string[]): boolean {
+
+    colouriseSquaresWithHangingPieces(boardElement: HTMLElement): void {
+        const row = boardElement.children;
+        if (row.length < 14) {
+            return;
+        }
+        let friends = 0;
+        let enemies = 0;
+        for (let m = 0; m < 14; m++) {
+            for (let n = 0; n < 14; n++) {
+                const element = row[m].children[n];
+                const ds: Attr = element.attributes["data-square"];
+                if (!ds || !(element instanceof HTMLElement)) {
+                    continue;
+                }
+                const square = this.board.square(ds.value);
+                const piece = square.piece;
+                if (!piece) {
+                    continue;
+                }
+                const attacks: Attr = element.attributes["attacks"];
+                if (!attacks) {
+                    continue;
+                }
+                const attackCodes = attacks.value.split(",");
+                const hanging = this.doesSquareHaveHangingPiece(boardElement, piece.player, attackCodes);
+                if (hanging) {
+                    const colour = this.getColour(element, !hanging);
+                    element.style.backgroundColor = colour;
+                }
+            }
+        }
+    }
+
+    doesSquareHaveHangingPiece(boardElement: HTMLElement, player: Player, codes: string[]): boolean {
+        const row = boardElement.children;
+        if (row.length < 14) {
+            return false;
+        }
+        for (let i = 0; i < codes.length; i++) {
+            for (let m = 0; m < 14; m++) {
+                for (let n = 0; n < 14; n++) {
+                    const element = row[m].children[n];
+                    const ds: Attr = element.attributes["data-square"];
+                    if (!ds || !(element instanceof HTMLElement)) {
+                        continue;
+                    }
+                    if (ds.value !== codes[i]) {
+                        continue;
+                    }
+                    const square = this.board.square(ds.value);
+                    const piece = square.piece;
+                    if (!piece) {
+                        continue;
+                    }
+                    if (piece.player.name === player.name) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    isFriendlySquare(boardElement: HTMLElement, codes: string[]): boolean {
         const row = boardElement.children;
         if (row.length < 14) {
             return false;
@@ -558,7 +626,6 @@ export class AnalysisHelper {
                     if (ds.value !== codes[i]) {
                         continue;
                     }
-
                     const square = this.board.square(ds.value);
                     const piece = square.piece;
                     if (!piece) {

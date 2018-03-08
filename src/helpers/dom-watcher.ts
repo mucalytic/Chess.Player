@@ -1,4 +1,5 @@
 import {CountdownHelper} from "./countdown-helper"
+import { AnalysisHelper } from "./analysis-helper";
 
 export class DomWatcher {
     observer: MutationObserver;
@@ -14,6 +15,7 @@ export class DomWatcher {
 
     createDocumentBodyObserverSubscription(): void {
         this.observer = new MutationObserver(mrs => {
+            new AnalysisHelper().showHangingPieces();
             mrs.forEach(mr => {
                 this.countdown.reset(mr);
                 this.countdown.utter(mr);
