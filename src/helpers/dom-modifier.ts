@@ -70,9 +70,7 @@ export class DomModifier {
     }
 
     over(event: Event): void {
-        const helper = new AnalysisHelper();
-        helper.showMovesAndEnemies(event.target);
-        helper.showHangingPieces(event.target);
+        new AnalysisHelper().showMovesAndEnemies(event.target);
     }
 
     down(event: Event) {
@@ -84,7 +82,7 @@ export class DomModifier {
     up(event: Event) {
         const helper = new AnalysisHelper();
         helper.resetOriginSquareAndCleanSquares();
-        helper.showHangingPieces(event.target);
+        helper.showHangingPieces();
     }
 
     constructor() {
