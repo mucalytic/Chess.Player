@@ -88,15 +88,8 @@ export class AnalysisHelper {
     }
 
     showHangingPieces(): void {
-        if (!this.username) {
-            return;
-        }
         const boardElement = this.getBoardElement();
         if (!boardElement) {
-            return;
-        }
-        const originSquareElement = this.getOriginSquareElement(boardElement);
-        if (originSquareElement) {
             return;
         }
         this.clearCandidatesFromSquares(boardElement);
@@ -525,7 +518,6 @@ export class AnalysisHelper {
         }
         for (let i = 0; i < codes.length; i++) {
             const square = this.board.square(codes[i]);
-            console.log("codes[%i]:%s (13 - sq.m):%i n:%i", i, codes[i], 13 - square.m, square.n);
             const element = row[13 - square.m].children[square.n];
             if (!(element instanceof HTMLElement)) {
                 continue;
@@ -565,21 +557,47 @@ export class AnalysisHelper {
                 if (piece.player instanceof Dead) {
                     continue;
                 }
+                let hanging: boolean;
                 const attacks: Attr = element.attributes["attacks"];
-                if (!attacks) {
-                    continue;
+                if (attacks) {
+                    const codes = attacks.value.split(",");
+                    hanging = !this.isSquareCovered(piece.player, codes);
+                } else {
+                    hanging = !this.isSquareEnclosed(square);
                 }
-                const attackCodes = attacks.value.split(",");
-                const hanging = this.doesSquareHaveHangingPiece(piece.player, attackCodes);
                 if (hanging) {
-                    const colour = this.getColour(element, !hanging);
+                    const colour = this.getColour(element, false);
                     element.style.backgroundColor = colour;
                 }
             }
         }
     }
 
-    doesSquareHaveHangingPiece(player: Player, codes: string[]): boolean {
+    isSquareEnclosed(ps: Square): boolean {
+        for (var x = -1; x <= 1; x++) {
+            for (var y = -1; y <= 1; y++) {
+                if (x === 0 && y === 0) {
+                    continue;
+                }
+                if (!this.board.valid(ps.n + x, ps.m + y)) {
+                    continue;
+                }
+                const square = this.board.squares[ps.m + y][ps.n + x];
+                if (!square.accessible()) {
+                    continue;
+                }
+                if (!square.piece) {
+                    return false;
+                }
+                if (square.piece.player.name !== ps.piece.player.name) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    isSquareCovered(player: Player, codes: string[]): boolean {
         for (let i = 0; i < codes.length; i++) {
             const square = this.board.square(codes[i]);
             const piece = square.piece;
@@ -587,10 +605,10 @@ export class AnalysisHelper {
                 continue;
             }
             if (piece.player.name === player.name) {
-                return false;
+                return true;
             }
         }
-        return true;
+        return false;
     }
 
     isFriendlySquare(codes: string[]): boolean {
