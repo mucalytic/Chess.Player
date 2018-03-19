@@ -4,6 +4,7 @@ export class Square {
     m: number;
     n: number;
     piece: Piece;
+    element: HTMLDivElement;
 
     char(n: number): string {
         return String.fromCharCode(n + 97);

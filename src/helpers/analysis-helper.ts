@@ -34,11 +34,11 @@ export class AnalysisHelper {
         }
     }
 
-    getOriginSquareElement(boardElement: HTMLElement): HTMLElement {
+    getOriginSquareElement(): HTMLElement {
         const element = document.getElementById("four-player-username");
         const origin = element.attributes["origin"];
         if (origin) {
-            return this.getSquareElement(boardElement, origin.value);
+            return this.board.square(origin.value).element;
         }
         return undefined;
     }
@@ -49,8 +49,9 @@ export class AnalysisHelper {
             element.removeAttribute("origin");
         }
         const boardElement = this.getBoardElement();
-        this.clearCandidatesFromSquares(boardElement);
-        this.cleanColouredSquares(boardElement);
+        this.createBoard(boardElement);
+        this.clearCandidatesFromSquares();
+        this.cleanColouredSquares();
     }
 
     showMovesAndEnemies(target: EventTarget): void {
@@ -61,7 +62,8 @@ export class AnalysisHelper {
         if (!boardElement) {
             return;
         }
-        const originSquareElement = this.getOriginSquareElement(boardElement);
+        this.createBoard(boardElement);
+        const originSquareElement = this.getOriginSquareElement();
         if (!originSquareElement) {
             return;
         }
@@ -69,9 +71,8 @@ export class AnalysisHelper {
         if (!targetSquareElement) {
             return;
         }
-        this.clearCandidatesFromSquares(boardElement);
-        this.cleanColouredSquares(boardElement);
-        this.createBoard(boardElement);
+        this.clearCandidatesFromSquares();
+        this.cleanColouredSquares();
         const ds = originSquareElement.attributes["data-square"];
         if (!ds) {
             return;
@@ -83,7 +84,7 @@ export class AnalysisHelper {
         if (originSquare.piece.player.name.toLowerCase() !== this.username) {
             return;
         }
-        this.analyseSquares(boardElement);
+        this.analyseSquares();
         this.colouriseSquares(boardElement, originSquareElement, targetSquareElement);
     }
 
@@ -92,14 +93,14 @@ export class AnalysisHelper {
         if (!boardElement) {
             return;
         }
-        this.clearCandidatesFromSquares(boardElement);
-        this.cleanColouredSquares(boardElement);
         this.createBoard(boardElement);
-        this.analyseSquares(boardElement);
-        this.colouriseSquaresWithHangingPieces(boardElement);
+        this.clearCandidatesFromSquares();
+        this.cleanColouredSquares();
+        this.analyseSquares();
+        this.colouriseSquaresWithHangingPieces();
     }
 
-    getThisSquareElement(target: EventTarget): HTMLElement {
+    getThisSquareElement(target: EventTarget): HTMLDivElement {
         let squareElement: HTMLElement;
         if (target instanceof HTMLElement) {
             if (target.className.indexOf("piece-") !== -1) {
@@ -109,77 +110,52 @@ export class AnalysisHelper {
                 squareElement = target;
             }
             if (squareElement.className.indexOf("square-") !== -1) {
-                return squareElement;
+                if (squareElement instanceof HTMLDivElement) {
+                    return squareElement;
+                }
             }
         }
         return undefined;
     }
 
-    getBoardElement() : HTMLElement {
-        let boardElement: HTMLElement;
-        const elements = document.body.getElementsByTagName("div");
-        for (let i = 0; i < elements.length; i++) {
-            if (elements[i].className.indexOf("board-") === 0) {
-                const element = elements[i];
-                if (element instanceof HTMLElement) {
-                    boardElement = element;
-                    break;
-                }
-            }
-        }
-        return boardElement;
+    getHtmlDivElementArray(): HTMLDivElement[] {
+        return [].slice.call(document.body.getElementsByTagName("div"));
     }
 
-    cleanColouredSquares(boardElement: HTMLElement): void {
+    getBoardElement() : HTMLDivElement {
+        return this.getHtmlDivElementArray()
+                   .filter(e => e.className.indexOf("board-") === 0)[0];
+    }
+
+    cleanColouredSquares(): void {
         const element = document.getElementById("four-player-username");
         const mods = element.attributes["modifications"];
         if (!mods) {
             return;
         }
-        const row = boardElement.children;
-        if (row.length < 14) {
-            return;
-        }
         const codes = mods.value.split(",");
         for (let i = 0; i < codes.length; i++) {
-            searchLoop:
-            for (let m = 0; m < 14; m++) {
-                for (let n = 0; n < 14; n++) {
-                    const element = row[m].children[n];
-                    const ds = element.attributes["data-square"];
-                    if (!ds || !(element instanceof HTMLElement)) {
-                        continue;
-                    }
-                    if (ds.value !== codes[i]) {
-                        continue;
-                    }
-                    element.style.backgroundColor = null;
-                    break searchLoop;
-                }
-            }
+            const square = this.board.square(codes[i]);
+            square.element.style.backgroundColor = null;
         }
         element.removeAttribute("modifications");
     }
 
-    clearCandidatesFromSquares(boardElement: HTMLElement): void {
-        const row = boardElement.children;
-        if (row.length < 14) {
-            return;
-        }
+    clearCandidatesFromSquares(): void {
         for (let m = 0; m < 14; m++) {
             for (let n = 0; n < 14; n++) {
-                const element = row[m].children[n];
-                if (element.attributes["attacks"]) {
-                    element.removeAttribute("attacks");
+                const square = this.board.squares[m][n];
+                if (square.element.attributes["attacks"]) {
+                    square.element.removeAttribute("attacks");
                 }
-                if (element.attributes["moves"]) {
-                    element.removeAttribute("moves");
+                if (square.element.attributes["moves"]) {
+                    square.element.removeAttribute("moves");
                 }
             }
         }
     }
 
-    createBoard(boardElement: HTMLElement): void {
+    createBoard(boardElement: HTMLDivElement): void {
         const row = boardElement.children;
         if (row.length < 14) {
             return;
@@ -187,7 +163,7 @@ export class AnalysisHelper {
         for (let m = 0; m < 14; m++) {
             for (let n = 0; n < 14; n++) {
                 const element = row[m].children[n];
-                if (!(element instanceof HTMLElement)) {
+                if (!(element instanceof HTMLDivElement)) {
                     continue;
                 }
                 const ds = element.attributes["data-square"];
@@ -196,14 +172,13 @@ export class AnalysisHelper {
                 }
                 const square = this.board.square(ds.value);
                 const child = this.getPieceElement(element.children);
-                if (!child) {
-                    continue;
+                if (child) {
+                    const dp = child.attributes["data-piece"];
+                    if (dp) {
+                        square.piece = this.createPiece(dp.value, ds.value);
+                    }
                 }
-                const dp = child.attributes["data-piece"];
-                if (!dp) {
-                    continue;
-                }
-                square.piece = this.createPiece(dp.value, ds.value);
+                square.element = element;
             }
         }
     }
@@ -228,22 +203,10 @@ export class AnalysisHelper {
         }
     }
 
-    analyseSquares(boardElement: HTMLElement): void {
-        const row = boardElement.children;
-        if (row.length < 14) {
-            return;
-        }
+    analyseSquares(): void {
         for (let m = 0; m < 14; m++) {
             for (let n = 0; n < 14; n++) {
-                const element = row[m].children[n];
-                if (!(element instanceof HTMLElement)) {
-                    continue;
-                }
-                const ds = element.attributes["data-square"];
-                if (!ds) {
-                    continue;
-                }
-                const square = this.board.square(ds.value);
+                const square = this.board.squares[m][n];
                 if (!square.accessible()) {
                     continue;
                 }
@@ -254,42 +217,41 @@ export class AnalysisHelper {
                 if (piece.player instanceof Dead) {
                     continue;
                 }
-                this.checkRadius(boardElement, square);
+                this.checkRadius(square);
             }
         }
     }
 
-    checkRadius(boardElement: HTMLElement, pieceSquare: Square): void {
-        this.checkAttackRadius(boardElement, pieceSquare);
-        this.checkMoveRadius(boardElement, pieceSquare);
+    checkRadius(pieceSquare: Square): void {
+        this.checkAttackRadius(pieceSquare);
+        this.checkMoveRadius(pieceSquare);
     }
 
-    checkAttackRadius(boardElement: HTMLElement, pieceSquare: Square): void {
+    checkAttackRadius(pieceSquare: Square): void {
         const piece = pieceSquare.piece;
         let vectors = piece.attacks();
         let radius = piece.radius();
         while (!radius.done && radius.value <= 14 && this.remaining(vectors) > 0) {
             for (let j = 0; j < vectors.length; j++) {
-                this.checkAttackVector(boardElement, pieceSquare, vectors[j], radius.value);
+                this.checkAttackVector(pieceSquare, vectors[j], radius.value);
             }
             radius = piece.radius();
         }
     }
 
-    checkMoveRadius(boardElement: HTMLElement, pieceSquare: Square): void {
+    checkMoveRadius(pieceSquare: Square): void {
         const piece = pieceSquare.piece;
         let vectors = piece.moves();
         let radius = piece.radius();
         while (!radius.done && radius.value <= 14 && this.remaining(vectors) > 0) {
             for (let j = 0; j < vectors.length; j++) {
-                this.checkMoveVector(boardElement, pieceSquare, vectors[j], radius.value);
+                this.checkMoveVector(pieceSquare, vectors[j], radius.value);
             }
             radius = piece.radius();
         }
     }
 
-    checkAttackVector(boardElement: HTMLElement, pieceSquare: Square,
-        vector: [Vector, boolean], radius: number): void {
+    checkAttackVector(pieceSquare: Square, vector: [Vector, boolean], radius: number): void {
         if (vector[1]) {
             const x1 = vector[0].x1(radius);
             const y1 = vector[0].y1(radius);
@@ -303,15 +265,14 @@ export class AnalysisHelper {
                 vector[1] = false;
                 return;
             }
-            this.setAttackCandidate(boardElement, pieceSquare, targetSquare);
+            this.setAttackCandidate(pieceSquare, targetSquare);
             if (targetSquare.piece) {
                 vector[1] = false;
             }
         }
     }
 
-    checkMoveVector(boardElement: HTMLElement, pieceSquare: Square,
-        vector: [Vector, boolean], radius: number): void {
+    checkMoveVector(pieceSquare: Square, vector: [Vector, boolean], radius: number): void {
         if (vector[1]) {
             const x1 = vector[0].x1(radius);
             const y1 = vector[0].y1(radius);
@@ -326,60 +287,29 @@ export class AnalysisHelper {
                 return;
             }
             if (!targetSquare.piece) {
-                this.setMoveCandidate(boardElement, pieceSquare, targetSquare);
+                this.setMoveCandidate(pieceSquare, targetSquare);
             } else {
                 vector[1] = false;
             }
         }
     }
 
-    setAttackCandidate(boardElement: HTMLElement, pieceSquare: Square, targetSquare: Square): void {
-        const element = this.getSquareElement(boardElement, targetSquare.code());
-        if (!element) {
-            return;
-        }
-        const attacks = element.attributes["attacks"];
+    setAttackCandidate(pieceSquare: Square, targetSquare: Square): void {
+        const attacks = targetSquare.element.attributes["attacks"];
         if (attacks) {
             attacks.value = `${attacks.value},${pieceSquare.code()}`;
         } else {
-            element.setAttribute("attacks", pieceSquare.code());
+            targetSquare.element.setAttribute("attacks", pieceSquare.code());
         }
     }
 
-    setMoveCandidate(boardElement: HTMLElement, pieceSquare: Square, targetSquare: Square): void {
-        const element = this.getSquareElement(boardElement, targetSquare.code());
-        if (!element) {
-            return;
-        }
-        const moves = element.attributes["moves"];
+    setMoveCandidate(pieceSquare: Square, targetSquare: Square): void {
+        const moves = targetSquare.element.attributes["moves"];
         if (moves) {
             moves.value = `${moves.value},${pieceSquare.code()}`;
         } else {
-            element.setAttribute("moves", pieceSquare.code());
+            targetSquare.element.setAttribute("moves", pieceSquare.code());
         }
-    }
-
-    getSquareElement(boardElement: HTMLElement, code: string): HTMLElement {
-        const row = boardElement.children;
-        if (row.length < 14) {
-            return undefined;
-        }
-        let squareElement: HTMLElement;
-        rowLoop:
-        for (let m = 0; m < 14; m++) {
-            for (let n = 0; n < 14; n++) {
-                const element = row[m].children[n];
-                if (!(element instanceof HTMLElement)) {
-                    continue;
-                }
-                if (!element.classList.contains(`square-${code}`)) {
-                    continue;
-                }
-                squareElement = element;
-                break rowLoop;
-            }
-        }
-        return squareElement;
     }
 
     isTargetSquareValid(boardElement: HTMLElement,
@@ -535,30 +465,18 @@ export class AnalysisHelper {
         }
     }
 
-    colouriseSquaresWithHangingPieces(boardElement: HTMLElement): void {
-        const row = boardElement.children;
-        if (row.length < 14) {
-            return;
-        }
+    colouriseSquaresWithHangingPieces(): void {
         let friends = 0;
         let enemies = 0;
         for (let m = 0; m < 14; m++) {
             for (let n = 0; n < 14; n++) {
-                const element = row[m].children[n];
-                const ds: Attr = element.attributes["data-square"];
-                if (!ds || !(element instanceof HTMLElement)) {
-                    continue;
-                }
-                const square = this.board.square(ds.value);
+                const square = this.board.square[m][n];
                 const piece = square.piece;
-                if (!piece) {
-                    continue;
-                }
-                if (piece.player instanceof Dead) {
+                if (!piece || piece.player instanceof Dead) {
                     continue;
                 }
                 let hanging: boolean;
-                const attacks: Attr = element.attributes["attacks"];
+                const attacks: Attr = square.element.attributes["attacks"];
                 if (attacks) {
                     const codes = attacks.value.split(",");
                     hanging = !this.isSquareCovered(piece.player, codes);
@@ -566,8 +484,8 @@ export class AnalysisHelper {
                     hanging = !this.isSquareEnclosed(square);
                 }
                 if (hanging) {
-                    const colour = this.getColour(element, false);
-                    element.style.backgroundColor = colour;
+                    const colour = this.getColour(square.element, false);
+                    square.element.style.backgroundColor = colour;
                 }
             }
         }
