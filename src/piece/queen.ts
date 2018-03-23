@@ -8,8 +8,8 @@ export class Queen extends Piece {
     home: [number, number][] =
         this.player instanceof Red ||
         this.player instanceof Yellow
-            ? [[0, 6]]
-            : [[0, 7]];
+            ? [[6, 0]]
+            : [[7, 0]];
 
     moves(): Vector[] {
         return [];
