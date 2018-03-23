@@ -4,9 +4,14 @@ import {Player} from "../player"
 export class Blue extends Player {
     name: string = "Blue";
     turn: number = 2;
+    
+    pivot(): [number, number] {
+        return [this.piece.square.y,
+           13 - this.piece.square.x];
+    }
 
     rotate(vector: Vector, radius: number): [number, number] {
-        return [this.piece.square.n + vector.x1(radius),
-                this.piece.square.m - vector.y1(radius)];
+        return [this.piece.square.x + vector.x1(radius),
+                this.piece.square.y - vector.y1(radius)];
     }
 }
