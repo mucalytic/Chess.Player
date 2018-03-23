@@ -4,7 +4,7 @@ import {Piece} from "../piece"
 export class Rook extends Piece {
     name: string = "Rook";
     home: [number, number][] =
-        [[0, 3], [0, 10]];
+        [[3, 0], [10, 0]];
 
     moves(): Vector[] {
         return [];
