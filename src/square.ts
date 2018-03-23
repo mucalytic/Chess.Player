@@ -8,8 +8,8 @@ import {Piece} from "./piece"
 import {Board} from "./board"
 
 export class Square {
-    m: number;
-    n: number;
+    x: number;
+    y: number;
     code: string;
     piece: Piece;
     board: Board;
@@ -49,8 +49,8 @@ export class Square {
 
     isEnclosed(): boolean {
         return this.board.squares
-            .filter(s => Math.abs(this.m - s.m) === 1 &&
-                         Math.abs(this.n - s.n) === 1)
+            .filter(s => Math.abs(this.x - s.x) === 1 &&
+                         Math.abs(this.y - s.y) === 1)
             .every(s => s.hasPiece());
     }
 
@@ -69,8 +69,8 @@ export class Square {
             const ds = element.attributes["data-square"];
             if (ds) {
                 this.code = ds.value;
-                this.m = parseInt(this.code.slice(1)) - 1;
-                this.n = this.code.charCodeAt(0) - 97;
+                this.y = parseInt(this.code.slice(1)) - 1;
+                this.x = this.code.charCodeAt(0) - 97;
                 this.piece = this.createPiece();
                 this.valid = [].slice
                     .call(element.classList)
