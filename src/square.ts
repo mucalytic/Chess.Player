@@ -20,31 +20,32 @@ export class Square {
         return this.piece !== null && this.piece !== undefined;
     }
 
-    createPiece(): void {
-        const codes: string[] = [].slice
+    createPiece(): Piece {
+        return [].slice
             .call(this.element.children)
             .filter(e => e instanceof HTMLElement &&
                          e.className.indexOf("piece-") === 0)
-            .map(e => e.attributes["data-piece"]);
-        if (codes.length === 1) {
-            switch (codes[0].charAt(1)) {
-                case "R":
-                    this.piece = new Rook(codes[0], this);
-                case "P":
-                    this.piece = new Pawn(codes[0], this);
-                case "K":
-                    this.piece = new King(codes[0], this);
-                case "Q":
-                case "D":
-                    this.piece = new Queen(codes[0], this);
-                case "B":
-                    this.piece = new Bishop(codes[0], this);
-                case "N":
-                    this.piece = new Knight(codes[0], this);
-            }
-        }
+            .map(e => e.attributes["data-piece"])
+            .filter(a => a !== null && a !== undefined)
+            .map(a => a.value)
+            .map(c => {
+                switch (c.charAt(1)) {
+                    case "R":
+                        return new Rook(c, this);
+                    case "P":
+                        return new Pawn(c, this);
+                    case "K":
+                        return new King(c, this);
+                    case "Q":
+                    case "D":
+                        return new Queen(c, this);
+                    case "B":
+                        return new Bishop(c, this);
+                    case "N":
+                        return new Knight(c, this);
+                }
+            })[0];
     }
-
 
     isEnclosed(): boolean {
         return this.board.squares
@@ -65,11 +66,12 @@ export class Square {
         this.board = board;
         if (element instanceof HTMLDivElement) {
             this.element = element;
-            this.code = element.attributes["data-square"];
-            if (this.code) {
+            const ds = element.attributes["data-square"];
+            if (ds) {
+                this.code = ds.value;
                 this.m = parseInt(this.code.slice(1)) - 1;
                 this.n = this.code.charCodeAt(0) - 97;
-                this.createPiece();
+                this.piece = this.createPiece();
                 this.valid = [].slice
                     .call(element.classList)
                     .every(c => c.indexOf("blank-") === -1);

@@ -1,3 +1,4 @@
+import {Candidates} from "./candidates"
 import {Yellow} from "./player/yellow"
 import {Green} from "./player/green"
 import {Blue} from "./player/blue"
@@ -8,10 +9,7 @@ import {Square} from "./square"
 import {Vector} from "./vector"
 
 export abstract class Piece {
-    candidates: ({
-        attacks: Square[],
-        moves: Square[]
-    });
+    candidates: Candidates;
     square: Square;
     player: Player;
     code: string;
@@ -53,20 +51,6 @@ export abstract class Piece {
                 return undefined;
         }
     }
-    
-    move(vector: Vector, radius: number, square: Square): void {
-        if (!square.piece) {
-            this.candidates.moves.push(square);
-            this.scale(vector, radius + 1, this.move);
-        }
-    }
-
-    attack(vector: Vector, radius: number, square: Square): void {
-        this.candidates.attacks.push(square);
-        if (!square.piece) {
-            this.scale(vector, radius + 1, this.attack);
-        }
-    }
 
     scale(vector: Vector, radius: number, traverse: (vector: Vector, radius: number, square: Square) => void): void {
         if (!this.max || radius <= this.max) {
@@ -78,8 +62,22 @@ export abstract class Piece {
     }
 
     createCandidates(): void {
-        this.moves().forEach(v => this.scale(v, 1, this.move))
-        this.attacks().forEach(v => this.scale(v, 1, this.attack));
+        const move = (vector: Vector, radius: number, square: Square) => {
+            if (!square.piece) {
+                this.candidates.moves.push(square);
+                this.scale(vector, radius + 1, move);
+            }
+        };
+
+        const attack = (vector: Vector, radius: number, square: Square) => {
+            this.candidates.attacks.push(square);
+            if (!square.piece) {
+                this.scale(vector, radius + 1, attack);
+            }
+        };
+
+        this.moves().forEach(v => this.scale(v, 1, move));
+        this.attacks().forEach(v => this.scale(v, 1, attack));
     }
 
     colouriseCandidates(): void {
@@ -126,6 +124,10 @@ export abstract class Piece {
 
     constructor(code: string, square: Square) {
         this.player = this.createPlayer(code);
+        this.candidates = ({
+            attacks: [],
+            moves: []
+        });
         this.square = square;
         this.code = code;
     }
