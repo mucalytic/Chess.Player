@@ -9,8 +9,8 @@ export class King extends Piece {
     home: [number, number][] =
         this.player instanceof Red ||
         this.player instanceof Yellow
-            ? [[0, 7]]
-            : [[0, 6]];
+            ? [[7, 0]]
+            : [[6, 0]];
 
     moves(): Vector[] {
         return [];
