@@ -7,6 +7,7 @@ export abstract class Player {
     abstract name: string;
     abstract turn: number;
 
+    abstract pivot(): [number, number];
     abstract rotate(vector: Vector, radius: number): [number, number];
 
     playing(): boolean {
