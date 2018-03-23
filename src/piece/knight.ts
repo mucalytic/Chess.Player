@@ -5,7 +5,7 @@ import {Piece} from "../piece"
 export class Knight extends Piece {
     name: string = "Knight";
     home: [number, number][] =
-        [[0, 4], [0, 9]];
+        [[4, 0], [9, 0]];
 
     moves(): Vector[] {
         return [];
