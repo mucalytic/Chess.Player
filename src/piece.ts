@@ -20,19 +20,9 @@ export abstract class Piece {
     abstract attacks(): Vector[];
     abstract moves(): Vector[];
 
-    moved(): boolean { // TODO: this will not work because now we can't set m1 and n1 - fix it
-        let moved = true;
-        for (let i = 0; i < this.home.length; i++) {
-            const m1 = this.home[i][0] - 6.5;
-            const n1 = this.home[i][1] - 6.5;
-            const [x2, y2] = this.player.rotate(new Vector(r => r + 6.5, r => r + 6.5), -6.5);
-            if (this.square.n === x2 &&
-                this.square.m === y2) {
-                moved = false;
-                break;
-            }
-        }
-        return moved;
+    moved(): boolean {
+        const pivot = this.player.pivot();
+        return this.home.every(h => pivot[0] !== h[0] && pivot[1] !== h[1]);
     }
 
     createPlayer(code: string): Player {
@@ -56,7 +46,7 @@ export abstract class Piece {
         if (!this.max || radius <= this.max) {
             const [x2, y2] = this.player.rotate(vector, radius);
             this.square.board.squares
-                .filter(s => s.n === x2 && s.m === y2)
+                .filter(s => s.x === x2 && s.y === y2)
                 .forEach(s => traverse(vector, radius, s));
         }
     }
