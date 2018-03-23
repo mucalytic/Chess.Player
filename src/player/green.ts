@@ -1,11 +1,12 @@
+import {Vector} from "../vector"
 import {Player} from "../player"
 
 export class Green extends Player {
     name: string = "Green";
     turn: number = 4;
 
-    rotate(x: number,  y: number,
-          x1: number, y1: number): [number, number] {
-        return [x - y1, y + x1];
+    rotate(vector: Vector, radius: number): [number, number] {
+        return [this.piece.square.n - vector.x1(radius),
+                this.piece.square.m + vector.y1(radius)];
     }
 }

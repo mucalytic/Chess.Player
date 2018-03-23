@@ -1,5 +1,5 @@
 import {CountdownHelper} from "./countdown-helper"
-import { AnalysisHelper } from "./analysis-helper";
+import {Board} from "../board";
 
 export class DomWatcher {
     observer: MutationObserver;
@@ -28,7 +28,7 @@ export class DomWatcher {
         if (mr.type === "childList" &&
             mr.target instanceof HTMLElement &&
             mr.target.className.indexOf("board-") === 0) {
-            new AnalysisHelper().showHangingPieces();
+            new Board().colouriseSquaresWithHangingPieces();
         }
     }
 

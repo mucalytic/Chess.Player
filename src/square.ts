@@ -1,34 +1,79 @@
+import {Knight} from "./piece/knight"
+import {Bishop} from "./piece/bishop"
+import {Queen} from "./piece/queen"
+import {King} from "./piece/king"
+import {Rook} from "./piece/rook"
+import {Pawn} from "./piece/pawn"
 import {Piece} from "./piece"
+import {Board} from "./board"
 
 export class Square {
     m: number;
     n: number;
+    code: string;
     piece: Piece;
+    board: Board;
+    valid: boolean;
     element: HTMLDivElement;
 
-    char(n: number): string {
-        return String.fromCharCode(n + 97);
+    hasPiece(): boolean {
+        return this.piece !== null && this.piece !== undefined;
     }
 
-    code(): string {
-        return `${this.char(this.n)}${this.m + 1}`;
+    createPiece(): void {
+        const codes: string[] = [].slice
+            .call(this.element.children)
+            .filter(e => e instanceof HTMLElement &&
+                         e.className.indexOf("piece-") === 0)
+            .map(e => e.attributes["data-piece"]);
+        if (codes.length === 1) {
+            switch (codes[0].charAt(1)) {
+                case "R":
+                    this.piece = new Rook(codes[0], this);
+                case "P":
+                    this.piece = new Pawn(codes[0], this);
+                case "K":
+                    this.piece = new King(codes[0], this);
+                case "Q":
+                case "D":
+                    this.piece = new Queen(codes[0], this);
+                case "B":
+                    this.piece = new Bishop(codes[0], this);
+                case "N":
+                    this.piece = new Knight(codes[0], this);
+            }
+        }
     }
 
-    accessible(): boolean {
-        return (this.m >= 3 && this.m <= 10 && this.n >= 0 && this.n <= 2) ||
-               (this.m >= 0 && this.m <= 13 && this.n >= 3 && this.n <= 10) ||
-               (this.m >= 3 && this.m <= 10 && this.n >= 11 && this.n <= 13);
+
+    isEnclosed(): boolean {
+        return this.board.squares
+            .filter(s => Math.abs(this.m - s.m) === 1 &&
+                         Math.abs(this.n - s.n) === 1)
+            .every(s => s.hasPiece());
     }
 
-    static coords(code: string): [number, number] {
-        const m = parseInt(code.slice(1)) - 1;
-        const n = code.charCodeAt(0) - 97;
-        return [m, n];
+    isCovered(): boolean {
+        return this.board.squares
+            .filter(s => s.hasPiece())
+            .map(s => s.piece)
+            .filter(p => p.player.playing())
+            .some(p => p.candidates.attacks.some(s => s === this));
     }
 
-    constructor(m: number, n: number) {
-        this.m = m;
-        this.n = n;
-        return this;
+    constructor(board: Board, element: Element) {
+        this.board = board;
+        if (element instanceof HTMLDivElement) {
+            this.element = element;
+            this.code = element.attributes["data-square"];
+            if (this.code) {
+                this.m = parseInt(this.code.slice(1)) - 1;
+                this.n = this.code.charCodeAt(0) - 97;
+                this.createPiece();
+                this.valid = [].slice
+                    .call(element.classList)
+                    .every(c => c.indexOf("blank-") === -1);
+            }
+        }
     }
 }

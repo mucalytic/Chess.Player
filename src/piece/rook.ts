@@ -6,14 +6,14 @@ export class Rook extends Piece {
     home: [number, number][] =
         [[0, 3], [0, 10]];
 
-    moves(): [Vector, boolean][] {
+    moves(): Vector[] {
         return [];
     }
 
-    attacks(): [Vector, boolean][] {
-        return [[new Vector(r =>  r, _ =>  0), true],
-                [new Vector(r => -r, _ =>  0), true],
-                [new Vector(_ =>  0, r =>  r), true],
-                [new Vector(_ =>  0, r => -r), true]];
+    attacks(): Vector[] {
+        return [new Vector(r =>  r, _ =>  0),
+                new Vector(r => -r, _ =>  0),
+                new Vector(_ =>  0, r =>  r),
+                new Vector(_ =>  0, r => -r)];
     }
 }

@@ -1,23 +1,65 @@
+import {ColourHelper} from "./helpers/colour-helper"
+import {Dead} from "./player/dead"
 import {Square} from "./square"
 
 export class Board {
-    squares: Square[][] = [];
+    origin: Square;
+    target: Square;
+    squares: Square[];
+    colourHelper = new ColourHelper();
 
-    square(code: string): Square {
-        const c = Square.coords(code);
-        return this.squares[c[0]][c[1]];
+    createSquares(): void {
+        this.squares = [].slice
+            .call([].slice
+                .call(document.body.getElementsByTagName("div"))
+                .filter(e => e.className.indexOf("board-") === 0)[0].children)
+            .reduce((es, a) => {
+                [].slice
+                    .call(a.children)
+                    .filter(e => e.className.indexOf("square-") === 0)
+                    .forEach(e => es.push(e));
+                return es;
+            }, [])
+            .map(e => new Square(this, e))
+            .filter(s => s.valid);
     }
 
-    valid(x: number, y: number): boolean {
-        return (x >= 0 && x <= 13 && y >= 0 && y <= 13);
+    cleanColouredSquares(): void {
+        this.squares
+            .map(s => s.element)
+            .filter(e => 
+                [].slice
+                    .call(e.classList)
+                    .some(c => c.indexOf("cp-mod") !== -1))
+            .forEach(e => {
+                e.style.backgroundColor = null;
+                e.classList.remove("cp-mod");
+            });
+    }
+
+    setCandidateSquares(): void {
+        this.squares
+            .filter(s => s.hasPiece())
+            .map(s => s.piece)
+            .forEach(p => p.createCandidates());
+    }
+
+    colouriseSquaresWithHangingPieces(): Board {
+        this.squares
+            .filter(s => s.hasPiece())
+            .filter(s => !(s.piece.player instanceof Dead))
+            .filter(s => !s.isCovered() || !s.isEnclosed())
+            .forEach(s => {
+                s.element.classList.add("cp-mod");
+                s.element.style.backgroundColor =
+                    this.colourHelper.getColour(s.element, false);
+            });
+        return this;
     }
 
     constructor() {
-        for (let m = 0; m < 14; m++) {
-            this.squares[m] = [];
-            for (let n = 0; n < 14; n++) {
-                this.squares[m][n] = new Square(m, n);
-            }
-        }
+        this.createSquares();
+        this.cleanColouredSquares();
+        this.setCandidateSquares();
     }
 }

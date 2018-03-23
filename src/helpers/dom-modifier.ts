@@ -1,5 +1,6 @@
-import {AnalysisHelper} from "./analysis-helper"
 import {DomWatcher} from "./dom-watcher"
+import {DomHelper} from "./dom-helper"
+import {Board} from "../board"
 
 export class DomModifier {
     domWatcher: DomWatcher;
@@ -70,40 +71,46 @@ export class DomModifier {
     }
 
     over(event: Event): void {
-        new AnalysisHelper().showMovesAndEnemies(event.target);
+        const helper = new DomHelper();
+        const originCode = helper.getOriginSquareCode();
+        if (originCode) {
+            const board = new Board();
+            const squares = board.squares.filter(s => s.code === originCode);
+            if (squares.length === 1 && squares[0].hasPiece()) {
+                squares[0].piece.colouriseCandidates();
+            }
+            const squareCode = helper.getSquareCode(event.target);
+            if (squareCode && squareCode !== originCode) {
+                const squares = board.squares.filter(s => s.code === squareCode);
+                if (squares.length === 1 && squares[0].hasPiece()) {
+                    squares[0].piece.colouriseAttackerSquares();
+                }
+            }
+        }
     }
 
     down(event: Event) {
-        const helper = new AnalysisHelper();
-        helper.setOriginSquare(event.target);
-        helper.showMovesAndEnemies(event.target);
+        const helper = new DomHelper();
+        const squareCode = helper.setOriginSquare(event.target);
+        if (squareCode) {
+            const board = new Board();
+            const squares = board.squares.filter(s => s.code === squareCode);
+            if (squares.length === 1 && squares[0].hasPiece()) {
+                squares[0].piece.colouriseAttackerSquares();
+            }
+        }
     }
 
     up(event: Event) {
-        const helper = new AnalysisHelper();
-        helper.resetOriginSquareAndCleanSquares();
-        helper.showHangingPieces();
+        new DomHelper().resetOriginSquare();
+        new Board();
     }
 
     constructor() {
         document.body.addEventListener("mouseover", this.over);
         document.body.addEventListener("mousedown", this.down);
         document.body.addEventListener("mouseup", this.up);
-        window.addEventListener("keydown", e => {
-            if (!e.repeat &&
-                 e.key === "q" || e.key === "Q") {
-                console.log("q key pressed");
-                // show hanging pieces and their attackers
-                // add hidden field to dom with affected elements
-            }
-        });
-        window.addEventListener("keyup", e => {
-            if (e.key === "q" || e.key === "Q") {
-                console.log("q key released");
-                // clear effects on elements for hanging pieces
-                // remove hidden field from dom
-            }
-        });
+
         this.domWatcher = new DomWatcher();
         this.rightAlignStartButton();
         this.addStartAiButton();

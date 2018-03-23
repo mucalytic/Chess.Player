@@ -1,5 +1,6 @@
 import {Yellow} from "../player/yellow"
 import {Red} from "../player/red"
+import {Square} from "../square"
 import {Vector} from "../vector"
 import {Piece} from "../piece"
 
@@ -11,23 +12,23 @@ export class King extends Piece {
             ? [[0, 7]]
             : [[0, 6]];
 
-    moves(): [Vector, boolean][] {
+    moves(): Vector[] {
         return [];
     }
 
-    attacks(): [Vector, boolean][] {
-        return [[new Vector(_ =>  1, _ =>  0), true],
-                [new Vector(_ => -1, _ =>  0), true],
-                [new Vector(_ =>  0, _ =>  1), true],
-                [new Vector(_ =>  0, _ => -1), true],
-                [new Vector(_ =>  1, _ =>  1), true],
-                [new Vector(_ =>  1, _ => -1), true],
-                [new Vector(_ => -1, _ =>  1), true],
-                [new Vector(_ => -1, _ => -1), true]];
+    attacks(): Vector[] {
+        return [new Vector(_ =>  1, _ =>  0),
+                new Vector(_ => -1, _ =>  0),
+                new Vector(_ =>  0, _ =>  1),
+                new Vector(_ =>  0, _ => -1),
+                new Vector(_ =>  1, _ =>  1),
+                new Vector(_ =>  1, _ => -1),
+                new Vector(_ => -1, _ =>  1),
+                new Vector(_ => -1, _ => -1)];
     }
 
-    constructor(dp: string, code: string) {
-        super(dp, code);
+    constructor(dp: string, square: Square) {
+        super(dp, square);
         this.max = 1;
     }
 }
