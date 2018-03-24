@@ -4,7 +4,7 @@ export class DomHelper {
         if (element) {
             const ds = element.attributes["data-square"];
             if (ds) {
-                return ds;
+                return ds.value;
             }
         }
         return undefined;
@@ -47,7 +47,7 @@ export class DomHelper {
                 } else {
                     element.setAttribute("origin", ds.value);
                 }
-                return ds;
+                return ds.value;
             }
         }
         return undefined;

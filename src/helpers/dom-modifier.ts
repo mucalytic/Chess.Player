@@ -91,12 +91,12 @@ export class DomModifier {
 
     down(event: Event) {
         const helper = new DomHelper();
-        const squareCode = helper.setOriginSquare(event.target);
-        if (squareCode) {
+        const code = helper.setOriginSquare(event.target);
+        if (code) {
             const board = new Board();
-            const squares = board.squares.filter(s => s.code === squareCode);
+            const squares = board.squares.filter(s => s.code === code);
             if (squares.length === 1 && squares[0].hasPiece()) {
-                squares[0].piece.colouriseAttackerSquares();
+                squares[0].piece.colouriseCandidates();
             }
         }
     }
