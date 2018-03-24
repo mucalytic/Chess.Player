@@ -1,3 +1,4 @@
+import {SquareCandidates} from "./candidates";
 import {Knight} from "./piece/knight"
 import {Bishop} from "./piece/bishop"
 import {Queen} from "./piece/queen"
@@ -15,6 +16,7 @@ export class Square {
     board: Board;
     valid: boolean;
     element: HTMLDivElement;
+    candidates: SquareCandidates;
 
     hasPiece(): boolean {
         return this.piece !== null && this.piece !== undefined;
@@ -64,6 +66,10 @@ export class Square {
 
     constructor(board: Board, element: Element) {
         this.board = board;
+        this.candidates = ({
+            attacks: [],
+            moves: []
+        });
         if (element instanceof HTMLDivElement) {
             this.element = element;
             const ds = element.attributes["data-square"];

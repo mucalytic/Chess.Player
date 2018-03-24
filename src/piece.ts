@@ -1,4 +1,4 @@
-import {Candidates} from "./candidates"
+import {PieceCandidates} from "./candidates"
 import {Yellow} from "./player/yellow"
 import {Green} from "./player/green"
 import {Blue} from "./player/blue"
@@ -9,7 +9,7 @@ import {Square} from "./square"
 import {Vector} from "./vector"
 
 export abstract class Piece {
-    candidates: Candidates;
+    candidates: PieceCandidates;
     square: Square;
     player: Player;
     code: string;
@@ -54,6 +54,7 @@ export abstract class Piece {
     createCandidates(): void {
         const move = (vector: Vector, radius: number, square: Square) => {
             if (!square.piece) {
+                square.candidates.moves.push(this);
                 this.candidates.moves.push(square);
                 this.scale(vector, radius + 1, move);
             }
@@ -61,6 +62,7 @@ export abstract class Piece {
 
         const attack = (vector: Vector, radius: number, square: Square) => {
             this.candidates.attacks.push(square);
+            square.candidates.attacks.push(this);
             if (!square.piece) {
                 this.scale(vector, radius + 1, attack);
             }
@@ -83,27 +85,26 @@ export abstract class Piece {
     }
 
     colouriseMovementSquares(square: Square): void {
-        const candidates =
-            this.square.board.squares
-                .filter(s => s.hasPiece())
-                .map(s => s.piece)
+        const allies =
+            square.candidates.attacks
                 .filter(p => p !== this)
-                .filter(p => p.candidates.attacks.some(s => s === this.square));
+                .filter(p => p.player.playing());
 
-        const allies = candidates.filter(p => p.player.playing());
+        const enemies =
+            square.candidates.attacks
+                .filter(p =>  p !== this)
+                .filter(p => !p.player.playing());
 
         square.element.classList.add("cp-mod");
         square.element.style.backgroundColor =
-            this.square.board.colourHelper.getColour(square.element,
-                (allies.length >= (candidates.length - allies.length)));
+            this.square.board.colourHelper
+                .getColour(square.element, allies.length >= enemies.length);
     }
 
     colouriseAttackerSquares(): void {
-        this.square.board.squares
-            .filter(s => s.hasPiece())
-            .map(s => s.piece)
+        this.square.candidates.attacks
+            .filter(p =>  p !== this)
             .filter(p => !p.player.playing())
-            .filter(p => p.candidates.attacks.some(s => s === this.square))
             .map(p => p.square)
             .forEach(s => {
                 s.element.classList.add("cp-mod");
