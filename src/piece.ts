@@ -87,24 +87,17 @@ export abstract class Piece {
     }
 
     colouriseMovementSquares(square: Square): void {
-        console.group("%s", square.code);
         const allies =
             square.candidates.attacks
                 .filter(p => p !== this)
                 .filter(p => p.player.playing());
-        console.log("allies:%s", allies.map(p => p.square.code).join(","));
         const enemies =
             square.candidates.attacks
                 .filter(p =>  p !== this)
                 .filter(p => !p.player.playing());
-        console.log("enemies:%s", enemies.map(p => p.square.code).join(","));
-        console.log("1");
         square.element.classList.add("cp-mod");
-        console.log("2");
         square.element.style.backgroundColor = square.board.colourHelper
             .getColour(square.element, allies.length >= enemies.length);
-        console.log("3");
-        console.groupEnd();
     }
 
     colouriseAttackerSquares(): void {

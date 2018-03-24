@@ -94,8 +94,11 @@ export class DomModifier {
         const code = helper.setOriginSquare(event.target);
         if (code) {
             const board = new Board();
-            const squares = board.squares.filter(s => s.code === code);
-            if (squares.length === 1 && squares[0].hasPiece()) {
+            const squares = board.squares
+                .filter(s => s.code === code)
+                .filter(s => s.hasPiece())
+                .filter(s => s.piece.player.playing());
+            if (squares.length === 1) {
                 squares[0].piece.colouriseCandidates();
             }
         }
