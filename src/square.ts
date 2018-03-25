@@ -60,7 +60,7 @@ export class Square {
         return this.board.squares
             .filter(s => s.hasPiece())
             .map(s => s.piece)
-            .filter(p => p.player.playing())
+            .filter(p => p.player.name === this.piece.player.name)
             .some(p => p.candidates.attacks.some(s => s === this));
     }
 

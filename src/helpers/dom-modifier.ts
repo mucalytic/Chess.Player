@@ -86,15 +86,24 @@ export class DomModifier {
         if (squareCode) {
             board.squares
                 .filter(s => s.code === squareCode)
-                .filter(s => s.candidates.attacks.length > 0)
                 .map(s => {
-                    console.log("%s covered:%s enclosed:%s attackers: %s",
-                        s.code, s.isCovered(), s.isEnclosed(), s.candidates.attacks
-                        .map(p => `${p.player.name} ${p.name} (${p.square.code})`)
-                        .join(", "));
+                    console.log(s.code);
+                    return s;
+                })
+                .map(s => {
+                    console.log("attackers: %s", s.candidates.attacks
+                    .map(p => `${p.player.name} ${p.name} (${p.square.code})`)
+                    .join(", "));
                     return s;
                 })
                 // .filter(s => s.hasPiece())
+                .map(s => {
+                    if (s.hasPiece()) {
+                        console.log("covered:%s enclosed:%s", s.isCovered(), s.isEnclosed());
+                    }
+                    return s;
+                })
+                .filter(s => s.candidates.attacks.length > 0)
                 .forEach(s => s.colouriseAttackerSquares());
         }
     }
@@ -117,7 +126,7 @@ export class DomModifier {
 
     up(event: Event) {
         new DomHelper().resetOriginSquare();
-        new Board();
+        new Board().colouriseSquaresWithHangingPieces();
     }
 
     constructor() {

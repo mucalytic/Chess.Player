@@ -11,7 +11,7 @@ export class Blue extends Player {
     }
 
     rotate(vector: Vector, radius: number): [number, number] {
-        return [this.piece.square.x + vector.x1(radius),
-                this.piece.square.y - vector.y1(radius)];
+        return [this.piece.square.x + vector.y1(radius),
+                this.piece.square.y - vector.x1(radius)];
     }
 }
