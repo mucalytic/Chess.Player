@@ -59,7 +59,6 @@ export class Board {
     }
 
     constructor() {
-        this.testing = true;
         this.createSquares();
         this.cleanColouredSquares();
         this.setCandidateSquares();

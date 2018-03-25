@@ -11,9 +11,6 @@ export abstract class Player {
     abstract rotate(vector: Vector, radius: number): [number, number];
 
     playing(): boolean {
-        if (this.piece.square.board.testing) {
-            return this.name.toLowerCase() === "red";
-        }
         const element = document.getElementById("four-player-username");
         if (element) {
             return [].slice
