@@ -22,7 +22,7 @@ export abstract class Piece {
 
     moved(): boolean {
         const pivot = this.player.pivot();
-        return this.home.every(h => pivot[0] !== h[0] && pivot[1] !== h[1]);
+        return this.home.every(h => pivot[0] !== h[0] || pivot[1] !== h[1]);
     }
 
     createPlayer(code: string): Player {

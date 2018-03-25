@@ -6,8 +6,8 @@ export class Green extends Player {
     turn: number = 4;
     
     pivot(): [number, number] {
-        return [13 - this.piece.square.y,
-                     this.piece.square.x];
+        return [this.piece.square.y,
+           13 - this.piece.square.x];
     }
 
     rotate(vector: Vector, radius: number): [number, number] {

@@ -91,18 +91,20 @@ export class DomModifier {
                     return s;
                 })
                 .map(s => {
-                    console.log("attackers: %s", s.candidates.attacks
-                    .map(p => `${p.player.name} ${p.name} (${p.square.code})`)
-                    .join(", "));
+                    if (s.candidates.attacks.length > 0) {
+                        console.log("attackers: %s", s.candidates.attacks
+                        .map(p => `${p.player.name} ${p.name} (${p.square.code})`)
+                        .join(", "));
+                    }
                     return s;
                 })
-                // .filter(s => s.hasPiece())
                 .map(s => {
                     if (s.hasPiece()) {
                         console.log("covered:%s enclosed:%s", s.isCovered(), s.isEnclosed());
                     }
                     return s;
                 })
+                .filter(s => s.hasPiece())
                 .filter(s => s.candidates.attacks.length > 0)
                 .forEach(s => s.colouriseAttackerSquares());
         }
