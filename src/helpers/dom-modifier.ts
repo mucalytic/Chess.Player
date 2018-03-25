@@ -71,29 +71,40 @@ export class DomModifier {
     }
 
     over(event: Event): void {
+        const board = new Board();
+        board.colouriseSquaresWithHangingPieces();
         const helper = new DomHelper();
         const originCode = helper.getOriginSquareCode();
         if (originCode) {
-            const board = new Board();
             const squares = board.squares.filter(s => s.code === originCode);
             if (squares.length === 1 && squares[0].hasPiece()) {
                 squares[0].piece.colouriseCandidates();
             }
-            const squareCode = helper.getSquareCode(event.target);
-            if (squareCode && squareCode !== originCode) {
-                const squares = board.squares.filter(s => s.code === squareCode);
-                if (squares.length === 1 && squares[0].hasPiece()) {
-                    squares[0].piece.colouriseAttackerSquares();
-                }
-            }
+        }
+        const squareCode = helper.getSquareCode(event.target);
+        // if (squareCode && squareCode !== originCode) {
+        if (squareCode) {
+            board.squares
+                .filter(s => s.code === squareCode)
+                .filter(s => s.candidates.attacks.length > 0)
+                .map(s => {
+                    console.log("%s covered:%s enclosed:%s attackers: %s",
+                        s.code, s.isCovered(), s.isEnclosed(), s.candidates.attacks
+                        .map(p => `${p.player.name} ${p.name} (${p.square.code})`)
+                        .join(", "));
+                    return s;
+                })
+                // .filter(s => s.hasPiece())
+                .forEach(s => s.colouriseAttackerSquares());
         }
     }
 
     down(event: Event) {
+        const board = new Board();
+        board.colouriseSquaresWithHangingPieces();
         const helper = new DomHelper();
         const code = helper.setOriginSquare(event.target);
         if (code) {
-            const board = new Board();
             const squares = board.squares
                 .filter(s => s.code === code)
                 .filter(s => s.hasPiece())

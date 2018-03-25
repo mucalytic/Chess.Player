@@ -100,18 +100,6 @@ export abstract class Piece {
             .getColour(square.element, allies.length >= enemies.length);
     }
 
-    colouriseAttackerSquares(): void {
-        this.square.candidates.attacks
-            .filter(p =>  p !== this)
-            .filter(p => !p.player.playing())
-            .map(p => p.square)
-            .forEach(s => {
-                s.element.classList.add("cp-mod");
-                s.element.style.backgroundColor =
-                    this.square.board.colourHelper.getColour(s.element, false);
-            });
-    }
-
     constructor(code: string, square: Square) {
         this.player = this.createPlayer(code);
         this.candidates = ({

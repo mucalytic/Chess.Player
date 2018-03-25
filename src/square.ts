@@ -64,6 +64,17 @@ export class Square {
             .some(p => p.candidates.attacks.some(s => s === this));
     }
 
+    colouriseAttackerSquares(): void {
+        this.candidates.attacks
+            // .filter(p => !p.player.playing())
+            .map(p => p.square)
+            .forEach(s => {
+                s.element.classList.add("cp-mod");
+                s.element.style.backgroundColor =
+                    this.board.colourHelper.getColour(s.element, false);
+            });
+    }
+
     constructor(board: Board, element: Element) {
         this.board = board;
         this.candidates = ({

@@ -49,7 +49,7 @@ export class Board {
         this.squares
             .filter(s => s.hasPiece())
             .filter(s => !(s.piece.player instanceof Dead))
-            .filter(s => !s.isCovered() || !s.isEnclosed())
+            .filter(s => !s.isCovered() && !s.isEnclosed())
             .forEach(s => {
                 s.element.classList.add("cp-mod");
                 s.element.style.backgroundColor =
