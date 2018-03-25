@@ -73,31 +73,29 @@ export abstract class Piece {
     }
 
     colouriseCandidates(): void {
+        const colouriseMovementSquares = (square: Square) => {
+            const attackers =
+                square.candidates.attacks
+                    .filter(p => p.square.code !== this.square.code);
+            square.element.classList.add("cp-mod");
+            square.element.style.backgroundColor =
+                square.board.colourHelper
+                    .getColour(square.element,
+                        attackers.filter(p => p.player.playing()).length >=
+                        attackers.filter(p => !p.player.playing()).length);
+        }    
+
         if (this.candidates.moves.length > 0) {
             this.candidates.moves
                 .filter(s => !s.hasPiece() ||
                              !s.piece.player.playing())    
-                .forEach(this.colouriseMovementSquares);
+                .forEach(colouriseMovementSquares);
         } else {
             this.candidates.attacks
                 .filter(s => !s.hasPiece() ||
                              !s.piece.player.playing())
-                .forEach(this.colouriseMovementSquares);
+                .forEach(colouriseMovementSquares);
         }
-    }
-
-    colouriseMovementSquares(square: Square): void {
-        const allies =
-            square.candidates.attacks
-                .filter(p => p !== this)
-                .filter(p => p.player.playing());
-        const enemies =
-            square.candidates.attacks
-                .filter(p =>  p !== this)
-                .filter(p => !p.player.playing());
-        square.element.classList.add("cp-mod");
-        square.element.style.backgroundColor = square.board.colourHelper
-            .getColour(square.element, allies.length >= enemies.length);
     }
 
     constructor(code: string, square: Square) {

@@ -66,7 +66,7 @@ export class Square {
 
     colouriseAttackerSquares(): void {
         this.candidates.attacks
-            // .filter(p => !p.player.playing())
+            .filter(p => !p.player.playing())
             .map(p => p.square)
             .forEach(s => {
                 s.element.classList.add("cp-mod");
