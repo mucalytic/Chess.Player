@@ -41,6 +41,7 @@ export class Board {
     setCandidateSquares(): void {
         this.squares
             .filter(s => s.hasPiece())
+            .filter(s => !(s.piece.player instanceof Dead))
             .map(s => s.piece)
             .forEach(p => p.createCandidates());
     }
