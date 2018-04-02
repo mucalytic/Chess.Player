@@ -5,7 +5,6 @@ import {Square} from "./square"
 export class Board {
     origin: Square;
     target: Square;
-    testing: boolean;
     squares: Square[];
     colourHelper = new ColourHelper();
 
@@ -70,7 +69,6 @@ export class Board {
     }
 
     constructor() {
-        this.testing = true;
         this.createSquares();
         this.cleanColouredSquares();
         this.setCandidateSquares();
