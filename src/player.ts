@@ -10,9 +10,13 @@ export abstract class Player {
     abstract pivot(): [number, number];
     abstract rotate(vector: Vector, radius: number): [number, number];
 
-    playing(): boolean {
+    isPlaying(): boolean {
         const element = document.getElementById("four-player-username");
         if (element) {
+            if (this.piece.square.board.testing &&
+                this.name.toLowerCase() === "red") {
+                return true;
+            }
             return [].slice
                 .call(document.getElementsByClassName("player-avatar"))
                 .filter(e => e instanceof HTMLAnchorElement)
@@ -20,7 +24,7 @@ export abstract class Player {
                 .map(e => e.parentElement)
                 .some(e => [].slice
                     .call(e.classList)
-                    .some(c => c === this.name.toLowerCase));
+                    .some(c => c === this.name.toLowerCase()));
         }
         return false;
     }

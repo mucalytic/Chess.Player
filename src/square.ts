@@ -56,17 +56,20 @@ export class Square {
             .every(s => s.hasPiece());
     }
 
-    isCovered(): boolean {
+    isHanging(): boolean {
         return this.board.squares
             .filter(s => s.hasPiece())
             .map(s => s.piece)
             .filter(p => p.player.name === this.piece.player.name)
-            .some(p => p.candidates.attacks.some(s => s === this));
+            .every(p => p.candidates.attacks.every(s => s !== this)) ||
+               this.candidates.attacks
+            .filter(p => p.player.name !== this.piece.player.name)
+            .some(p => p.value < this.piece.value);
     }
 
     colouriseAttackerSquares(): void {
         this.candidates.attacks
-            .filter(p => !p.player.playing())
+            .filter(p => !p.player.isPlaying())
             .map(p => p.square)
             .forEach(s => {
                 s.element.classList.add("cp-mod");

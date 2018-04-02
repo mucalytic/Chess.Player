@@ -3,7 +3,8 @@ import {Vector} from "../vector"
 import {Piece} from "../piece"
 
 export class Knight extends Piece {
-    name: string = "Knight";
+    value = 3;
+    name = "Knight";
     home: [number, number][] =
         [[4, 0], [9, 0]];
 

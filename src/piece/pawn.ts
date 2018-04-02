@@ -3,7 +3,8 @@ import {Vector} from "../vector"
 import {Piece} from "../piece"
 
 export class Pawn extends Piece {
-    name: string = "Pawn";
+    value = 1;
+    name = "Pawn";
     home: [number, number][] =
         [[3, 1], [4, 1], [5, 1], [6, 1], [7, 1], [8, 1], [9, 1], [10, 1]];
 

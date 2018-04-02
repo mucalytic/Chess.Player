@@ -41,16 +41,26 @@ export class Board {
     setCandidateSquares(): void {
         this.squares
             .filter(s => s.hasPiece())
-            .filter(s => !(s.piece.player instanceof Dead))
+            .filter(s => !s.piece.isDead())
             .map(s => s.piece)
             .forEach(p => p.createCandidates());
     }
 
     colouriseSquaresWithHangingPieces(): Board {
-        this.squares
+        const squares = this.squares
             .filter(s => s.hasPiece())
-            .filter(s => !(s.piece.player instanceof Dead))
-            .filter(s => !s.isCovered() && !s.isEnclosed())
+            .filter(s => s.isHanging())
+            .filter(s => !s.isEnclosed())
+            .filter(s => !s.piece.isDead());
+        squares
+            .filter(s => !s.piece.player.isPlaying())
+            .forEach(s => {
+                s.element.classList.add("cp-mod");
+                s.element.style.backgroundColor =
+                    this.colourHelper.getColour(s.element, true);
+            });
+        squares
+            .filter(s => s.piece.player.isPlaying())
             .forEach(s => {
                 s.element.classList.add("cp-mod");
                 s.element.style.backgroundColor =
@@ -60,6 +70,7 @@ export class Board {
     }
 
     constructor() {
+        this.testing = true;
         this.createSquares();
         this.cleanColouredSquares();
         this.setCandidateSquares();

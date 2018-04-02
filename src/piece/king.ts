@@ -5,7 +5,8 @@ import {Vector} from "../vector"
 import {Piece} from "../piece"
 
 export class King extends Piece {
-    name: string = "King";
+    value = 20;
+    name = "King";
     home: [number, number][] =
         this.player instanceof Red ||
         this.player instanceof Yellow

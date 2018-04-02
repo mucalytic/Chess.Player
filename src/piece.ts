@@ -16,6 +16,7 @@ export abstract class Piece {
     max: number;
 
     abstract name: string;
+    abstract value: number;
     abstract home: [number, number][];
     abstract attacks(): Vector[];
     abstract moves(): Vector[];
@@ -74,28 +75,34 @@ export abstract class Piece {
 
     colouriseCandidates(): void {
         const colouriseMovementSquares = (square: Square) => {
-            const attackers =
-                square.candidates.attacks
-                    .filter(p => p.square.code !== this.square.code);
             square.element.classList.add("cp-mod");
             square.element.style.backgroundColor =
                 square.board.colourHelper
                     .getColour(square.element,
-                        attackers.filter(p => p.player.playing()).length >=
-                        attackers.filter(p => !p.player.playing()).length);
+                        square.candidates.attacks
+                            .filter(p => p.player.isPlaying())
+                            .filter(p => p.square.code !== this.square.code)
+                            .length >=
+                        square.candidates.attacks
+                            .filter(p => !p.player.isPlaying())
+                            .length);
         }    
 
         if (this.candidates.moves.length > 0) {
             this.candidates.moves
                 .filter(s => !s.hasPiece() ||
-                             !s.piece.player.playing())    
+                             !s.piece.player.isPlaying())    
                 .forEach(colouriseMovementSquares);
         } else {
             this.candidates.attacks
                 .filter(s => !s.hasPiece() ||
-                             !s.piece.player.playing())
+                             !s.piece.player.isPlaying())
                 .forEach(colouriseMovementSquares);
         }
+    }
+
+    isDead(): boolean {
+        return this.player instanceof Dead;
     }
 
     constructor(code: string, square: Square) {

@@ -84,24 +84,6 @@ export class DomModifier {
             if (squareCode && squareCode !== originCode) {
                 board.squares
                     .filter(s => s.code === squareCode)
-                    .map(s => {
-                        console.log(s.code);
-                        return s;
-                    })
-                    .map(s => {
-                        if (s.candidates.attacks.length > 0) {
-                            console.log("attackers: %s", s.candidates.attacks
-                            .map(p => `${p.player.name} ${p.name} (${p.square.code})`)
-                            .join(", "));
-                        }
-                        return s;
-                    })
-                    .map(s => {
-                        if (s.hasPiece()) {
-                            console.log("covered:%s enclosed:%s", s.isCovered(), s.isEnclosed());
-                        }
-                        return s;
-                    })
                     .filter(s => s.hasPiece())
                     .filter(s => s.candidates.attacks.length > 0)
                     .forEach(s => s.colouriseAttackerSquares());
@@ -118,7 +100,7 @@ export class DomModifier {
             const squares = board.squares
                 .filter(s => s.code === code)
                 .filter(s => s.hasPiece())
-                .filter(s => s.piece.player.playing())
+                .filter(s => s.piece.player.isPlaying())
                 .forEach(s => s.piece.colouriseCandidates());
         }
     }
