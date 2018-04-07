@@ -52,7 +52,7 @@ export abstract class Piece {
         }
     }
 
-    createCandidates(code?: string): void {
+    createCandidates(): void {
         const move = (vector: Vector, radius: number, square: Square) => {
             if (!square.piece) {
                 square.candidates.moves.push(this);
@@ -64,7 +64,7 @@ export abstract class Piece {
         const attack = (vector: Vector, radius: number, square: Square) => {
             this.candidates.attacks.push(square);
             square.candidates.attacks.push(this);
-            if (!square.piece || (code !== null && code !== undefined && code === square.code)) {
+            if (!square.piece) {
                 this.scale(vector, radius + 1, attack);
             }
         };

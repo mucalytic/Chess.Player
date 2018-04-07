@@ -5,6 +5,7 @@ import {Square} from "./square"
 export class Board {
     origin: Square;
     target: Square;
+    testing: boolean;
     squares: Square[];
     colourHelper = new ColourHelper();
 
@@ -37,12 +38,12 @@ export class Board {
             });
     }
 
-    setCandidateSquares(code?: string): void {
+    setCandidateSquares(): void {
         this.squares
             .filter(s => s.hasPiece())
             .filter(s => !s.piece.isDead())
             .map(s => s.piece)
-            .forEach(p => p.createCandidates(code));
+            .forEach(p => p.createCandidates());
     }
 
     colouriseSquaresWithHangingPieces(): Board {
@@ -68,9 +69,10 @@ export class Board {
         return this;
     }
 
-    constructor(code?: string) {
+    constructor() {
+        this.testing = true;
         this.createSquares();
         this.cleanColouredSquares();
-        this.setCandidateSquares(code);
+        this.setCandidateSquares();
     }
 }

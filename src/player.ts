@@ -13,6 +13,10 @@ export abstract class Player {
     isPlaying(): boolean {
         const element = document.getElementById("four-player-username");
         if (element) {
+            if (this.piece.square.board.testing &&
+                this.name.toLowerCase() === "red") {
+                return true;
+            }
             return [].slice
                 .call(document.getElementsByClassName("player-avatar"))
                 .filter(e => e instanceof HTMLAnchorElement)
