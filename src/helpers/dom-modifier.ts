@@ -92,17 +92,19 @@ export class DomModifier {
     }
 
     down(event: Event) {
-        const board = new Board();
-        board.colouriseSquaresWithHangingPieces();
-        const helper = new DomHelper();
-        const code = helper.setOriginSquare(event.target);
+        let board: Board;
+        const code = new DomHelper().setOriginSquare(event.target);
         if (code) {
-            const squares = board.squares
+            board = new Board(code);
+            board.squares
                 .filter(s => s.code === code)
                 .filter(s => s.hasPiece())
                 .filter(s => s.piece.player.isPlaying())
                 .forEach(s => s.piece.colouriseCandidates());
+        } else {
+            board = new Board();
         }
+        board.colouriseSquaresWithHangingPieces();
     }
 
     up(event: Event) {

@@ -61,10 +61,10 @@ export class Square {
             .filter(s => s.hasPiece())
             .map(s => s.piece)
             .filter(p => p.player.name === this.piece.player.name)
-            .every(p => p.candidates.attacks.every(s => s !== this)) ||
-               this.candidates.attacks
+            .every(p => p.candidates.attacks.every(s => s !== this)) // no friendly pieces are covering the square
+            || this.candidates.attacks
             .filter(p => p.player.name !== this.piece.player.name)
-            .some(p => p.value < this.piece.value);
+            .some(p => p.value < this.piece.value); // one or more enemy pieces have a lower value than this one
     }
 
     colouriseAttackerSquares(): void {

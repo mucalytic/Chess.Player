@@ -37,12 +37,12 @@ export class Board {
             });
     }
 
-    setCandidateSquares(): void {
+    setCandidateSquares(code?: string): void {
         this.squares
             .filter(s => s.hasPiece())
             .filter(s => !s.piece.isDead())
             .map(s => s.piece)
-            .forEach(p => p.createCandidates());
+            .forEach(p => p.createCandidates(code));
     }
 
     colouriseSquaresWithHangingPieces(): Board {
@@ -68,9 +68,9 @@ export class Board {
         return this;
     }
 
-    constructor() {
+    constructor(code?: string) {
         this.createSquares();
         this.cleanColouredSquares();
-        this.setCandidateSquares();
+        this.setCandidateSquares(code);
     }
 }
